@@ -216,7 +216,7 @@ const Home = () => {
           {storeConfig.instagramUrl && <a href={storeConfig.instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Visite nosso Instagram">Instagram ↗</a>}
           <a href={createWhatsAppUrl('Olá! Vim pelo site da Bella Chic Boutique.', storeConfig.whatsappContacts[0].number)} target="_blank" rel="noopener noreferrer" aria-label="Fale com a Bella Chic pelo WhatsApp">WhatsApp ↗</a>
         </div>
-        <small>© {new Date().getFullYear()} Bella Chic Boutique · Feito com carinho.</small>
+        <small>© {new Date().getFullYear()} Bella Chic Boutique · Moda Acessível.</small>
       </Footer>
       <CartDrawer
         isOpen={isCartOpen}
