@@ -115,26 +115,45 @@ export const deleteCatalogProduct = async (id: number): Promise<void> => {
 
 export const uploadProductImage = async (file: File): Promise<string> => {
   const client = requireSupabase()
-  const allowedTypes: Record<string, string> = {
-    'image/jpeg': 'jpg',
-    'image/png': 'png',
-    'image/webp': 'webp'
+  const allowedTypes: Record<string, { extension: string; contentType: string }> = {
+    'image/jpeg': { extension: 'jpg', contentType: 'image/jpeg' },
+    'image/png': { extension: 'png', contentType: 'image/png' },
+    'image/webp': { extension: 'webp', contentType: 'image/webp' }
   }
-  const extension = allowedTypes[file.type]
+  const extensionByName: Record<string, { extension: string; contentType: string }> = {
+    jpg: { extension: 'jpg', contentType: 'image/jpeg' },
+    jpeg: { extension: 'jpg', contentType: 'image/jpeg' },
+    png: { extension: 'png', contentType: 'image/png' },
+    webp: { extension: 'webp', contentType: 'image/webp' }
+  }
+  const fileExtension = file.name.split('.').pop()?.toLowerCase() || ''
+  const imageType = allowedTypes[file.type] || (!file.type ? extensionByName[fileExtension] : undefined)
 
-  if (!extension) {
+  if (!imageType) {
     throw new Error('Formato não permitido. Envie uma imagem PNG, JPG ou WebP.')
   }
   if (file.size > 5 * 1024 * 1024) {
     throw new Error('A imagem deve ter no máximo 5 MB.')
   }
 
-  const filePath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`
+  const filePath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${imageType.extension}`
   const { data, error } = await client.storage
     .from(productImagesBucket)
-    .upload(filePath, file, { contentType: file.type, upsert: false })
+    .upload(filePath, file, { contentType: imageType.contentType, upsert: false })
 
-  if (error) throw error
+  if (error) {
+    const message = error.message.toLowerCase()
+    if (message.includes('bucket not found')) {
+      throw new Error('O armazenamento de imagens ainda não foi configurado. Execute supabase/storage.sql no SQL Editor.')
+    }
+    if (message.includes('row-level security') || message.includes('permission denied')) {
+      throw new Error('O Supabase bloqueou o envio. Confirme que seu usuário está em store_admins e execute supabase/storage.sql.')
+    }
+    if (message.includes('payload too large') || message.includes('file size')) {
+      throw new Error('A imagem excede o limite de 5 MB.')
+    }
+    throw error
+  }
 
   const { data: publicUrl } = client.storage.from(productImagesBucket).getPublicUrl(data.path)
   return publicUrl.publicUrl

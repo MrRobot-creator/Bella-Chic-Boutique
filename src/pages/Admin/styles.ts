@@ -50,7 +50,7 @@ export const AdminForm = styled.form`
     font: inherit;
     font-size: 13px;
   }
-  textarea { min-height: 84px; resize: vertical; }
+  textarea { min-height: 84px; resize: none; overflow-y: auto; }
   .wide { grid-column: 1 / -1; }
   .check { display: flex; align-items: center; gap: 9px; }
   .check input { width: auto; accent-color: #9a6871; }

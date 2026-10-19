@@ -309,9 +309,9 @@ const Admin = () => {
                 <label className="wide">URL da imagem
                   <input type="url" value={draft.image} onChange={(event) => setDraft({ ...draft, image: event.target.value })} placeholder="Cole uma URL ou envie uma imagem abaixo" required />
                 </label>
-                <label className="wide">Enviar imagem para o Supabase Storage (PNG, JPG ou WebP; até 5 MB)
+                <label className="wide">Enviar foto do dispositivo (PNG, JPG ou WebP; até 5 MB)
                   <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleImageUpload} disabled={uploadingImage} />
-                  {uploadingImage && <span role="status">Enviando imagem...</span>}
+                  {uploadingImage && <span role="status">Enviando imagem para o Supabase...</span>}
                   {draft.image && <img className="image-preview" src={draft.image} alt="Pré-visualização da imagem do produto" />}
                 </label>
                 <label className="wide">Descrição
