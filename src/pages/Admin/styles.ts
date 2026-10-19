@@ -56,6 +56,14 @@ export const AdminForm = styled.form`
   .check input { width: auto; accent-color: #9a6871; }
   input[type="file"] { padding: 8px; }
   .image-preview { width: 120px; height: 150px; object-fit: cover; border: 1px solid #e8dedd; background: #fbf6f5; }
+  .color-list { display: grid; gap: 12px; }
+  .color-item { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 14px; border: 1px solid #f0e7e6; }
+  .color-item .color-image-preview { width: 92px; height: 110px; object-fit: cover; border: 1px solid #e8dedd; background: #fbf6f5; }
+  .color-item .color-hex { display: flex; align-items: center; gap: 8px; }
+  .color-item .color-hex input[type="color"] { width: 42px; height: 38px; padding: 3px; }
+  .color-item .color-image-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .color-item .color-image-actions input[type="file"] { min-width: 0; flex: 1; }
+  @media (max-width: 560px) { .color-item { grid-template-columns: 1fr; } }
   .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   @media (max-width: 640px) { grid-template-columns: 1fr; .wide { grid-column: auto; } }
 `

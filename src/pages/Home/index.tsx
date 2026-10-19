@@ -31,6 +31,8 @@ import {
   StatusMessage
 } from './styles'
 import banner from '../../assets/thalita-banner.jpeg'
+import boutiqueLogo from '../../assets/bella-chic-logo.jpg'
+import thalitaPhoto from '../../assets/thalita_final.jpg'
 
 
 const Home = () => {
@@ -193,7 +195,7 @@ const Home = () => {
 
         <About id="sobre">
           <AboutImage>
-            <img src="https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=1000&q=85" alt="Detalhe de um look feminino delicado" loading="lazy" />
+            <img src={thalitaPhoto} alt="Thalita, da Bella Chic Boutique" loading="lazy" />
           </AboutImage>
           <AboutText>
             <span className="eyebrow">UM POUQUINHO SOBRE NÓS</span>
@@ -207,8 +209,7 @@ const Home = () => {
       </Main>
       <Footer>
         <FooterBrand>
-          <span className="monogram">Ｂ</span>
-          <span><strong>BELLA CHIC</strong><small>B O U T I Q U E</small></span>
+          <img src={boutiqueLogo} alt="" />
         </FooterBrand>
         <p>Escolhida com carinho, feita para você.</p>
         <div className="social-links">

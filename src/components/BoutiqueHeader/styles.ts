@@ -44,16 +44,12 @@ export const Brand = styled.div`
   @media (max-width: 400px) { strong { font-size: 14px; } }
 `
 
-export const BrandMark = styled.span`
+export const BrandMark = styled.img`
   width: 39px;
   height: 39px;
-  display: grid;
-  place-items: center;
-  border: 1px solid #d39da5;
+  display: block;
   border-radius: 50%;
-  color: #a66b75;
-  font-family: Georgia, serif;
-  font-size: 19px;
+  object-fit: cover;
 `
 
 export const Navigation = styled.nav`

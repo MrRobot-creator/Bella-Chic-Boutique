@@ -189,10 +189,6 @@ export const Footer = styled.footer`
 export const FooterBrand = styled.div`
   display: flex;
   align-items: center;
-  gap: 9px;
-  color: #68484e;
-  .monogram { display: grid; place-items: center; width: 35px; height: 35px; border: 1px solid #d39da5; border-radius: 50%; font: 18px Georgia, serif; }
-  strong, small { display: block; }
-  strong { font: 15px Georgia, serif; letter-spacing: 1px; }
-  small { margin-top: 3px; font-size: 7px; text-align: center; }
+  justify-content: center;
+  img { display: block; width: 70px; height: 70px; border-radius: 50%; object-fit: cover; }
 `

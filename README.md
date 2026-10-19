@@ -52,6 +52,8 @@ As regras RLS permitem leitura pública do catálogo, mas somente usuários regi
 
 O formulário de produtos aceita uma URL pública ou envio de arquivo PNG, JPG/JPEG ou WebP de até 5 MB. Para habilitar o envio, execute também o conteúdo de `supabase/storage.sql` no SQL Editor. Ele cria o bucket público `bella-chic-products`; leitura das imagens é pública para a vitrine e upload/alteração/exclusão exigem uma conta listada em `store_admins`. Se já executou `supabase/setup.sql`, basta executar `storage.sql`; não é necessário recriar as tabelas do catálogo.
 
+No painel, cada cor também pode ter sua própria foto (URL ou upload separado). Ao selecionar a cor na vitrine, a imagem do produto muda para a foto daquela variação; se uma cor não tiver imagem, usa a imagem principal. O dado da foto por cor é armazenado junto ao JSONB `colors`, sem migração adicional do banco.
+
 ### Sincronizar o catálogo local com o Supabase
 
 As seis fotos selecionadas também estão em `public/assets` e são usadas pelo catálogo local em `src/data/products.ts`. Quando alterar os dados localmente e quiser publicá-los, atualize `supabase/catalog-sync.sql` com os mesmos campos e execute o script no SQL Editor do Supabase. O script atual sincroniza os seis produtos com IDs 1, 2, 3, 7, 9 e 12, incluindo nomes, preços, tamanhos, cores e imagens. Publique também a aplicação para servir os arquivos em `/assets/`.

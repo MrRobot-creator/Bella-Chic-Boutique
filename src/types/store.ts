@@ -7,7 +7,7 @@ export type Product = {
   oldPrice?: number
   image: string
   sizes: string[]
-  colors: { name: string; hex: string }[]
+  colors: { name: string; hex: string; image?: string }[]
   tag?: string
   available?: boolean
 }

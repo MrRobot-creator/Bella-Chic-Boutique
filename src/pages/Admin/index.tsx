@@ -31,9 +31,15 @@ type ProductDraft = {
   oldPrice: string
   image: string
   sizes: string
-  colors: string
+  colors: ColorDraft[]
   tag: string
   available: boolean
+}
+
+type ColorDraft = {
+  name: string
+  hex: string
+  image: string
 }
 
 const blankDraft: ProductDraft = {
@@ -44,7 +50,7 @@ const blankDraft: ProductDraft = {
   oldPrice: '',
   image: '',
   sizes: '',
-  colors: '',
+  colors: [{ name: '', hex: '#e5a1ad', image: '' }],
   tag: '',
   available: true
 }
@@ -57,7 +63,11 @@ const draftFromProduct = (product: Product): ProductDraft => ({
   oldPrice: product.oldPrice === undefined ? '' : String(product.oldPrice),
   image: product.image,
   sizes: product.sizes.join(', '),
-  colors: product.colors.map((color) => `${color.name} | ${color.hex}`).join('\n'),
+  colors: product.colors.map((color) => ({
+    name: color.name,
+    hex: color.hex,
+    image: color.image || ''
+  })),
   tag: product.tag || '',
   available: product.available !== false
 })
@@ -77,6 +87,7 @@ const Admin = () => {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [uploadingColorIndex, setUploadingColorIndex] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
@@ -171,21 +182,46 @@ const Admin = () => {
     }
   }
 
+  const handleColorImageUpload = async (index: number, event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    setError('')
+    setNotice('')
+    setUploadingColorIndex(index)
+    try {
+      const imageUrl = await uploadProductImage(file)
+      setDraft((current) => ({
+        ...current,
+        colors: current.colors.map((color, colorIndex) =>
+          colorIndex === index ? { ...color, image: imageUrl } : color
+        )
+      }))
+      setNotice(`Imagem da cor ${draft.colors[index].name || ''} enviada ao Supabase Storage.`)
+    } catch (uploadError) {
+      setError(`Não foi possível enviar a foto da cor: ${errorMessage(uploadError)}`)
+    } finally {
+      setUploadingColorIndex(null)
+    }
+  }
+
   const handleSaveProduct = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (uploadingImage) {
-      setError('Aguarde o envio da imagem terminar antes de salvar a peça.')
+    if (uploadingImage || uploadingColorIndex !== null) {
+      setError('Aguarde o envio das imagens terminar antes de salvar a peça.')
       return
     }
     setError('')
     setNotice('')
 
     const sizes = draft.sizes.split(',').map((size) => size.trim()).filter(Boolean)
-    const colorLines = draft.colors.split('\n').map((line) => line.trim()).filter(Boolean)
-    const colors = colorLines.map((line) => {
-      const [name, hex] = line.split('|').map((part) => part.trim())
-      return { name, hex }
-    })
+    const colors = draft.colors.filter((color) => color.name.trim() || color.image.trim())
+      .map((color) => ({
+        name: color.name.trim(),
+        hex: color.hex.trim(),
+        image: color.image.trim() || undefined
+      }))
     const price = Number(draft.price.replace(',', '.'))
     const oldPrice = draft.oldPrice ? Number(draft.oldPrice.replace(',', '.')) : undefined
 
@@ -193,8 +229,8 @@ const Admin = () => {
       setError('Informe pelo menos um tamanho, separado por vírgulas.')
       return
     }
-    if (!colorLines.length || colors.some((color) => !color.name || !color.hex)) {
-      setError('Informe cada cor em uma linha, no formato Nome | #hex.')
+    if (!colors.length || colors.some((color) => !color.name || !color.hex)) {
+      setError('Informe pelo menos uma cor, com nome e código hexadecimal.')
       return
     }
     if (!Number.isFinite(price) || price <= 0 || (oldPrice !== undefined && (!Number.isFinite(oldPrice) || oldPrice <= 0))) {
@@ -205,6 +241,10 @@ const Admin = () => {
       setError('Cada cor deve usar um código hexadecimal válido, por exemplo #E5A1AD.')
       return
     }
+    if (colors.some((color) => color.image && !/^https?:\/\//i.test(color.image))) {
+      setError('As imagens individuais das cores devem ser URLs públicas iniciadas por https:// ou http://.')
+      return
+    }
 
     const product: CatalogProductInput = {
       name: draft.name.trim(),
@@ -212,7 +252,7 @@ const Admin = () => {
       description: draft.description.trim(),
       price,
       oldPrice,
-      image: draft.image.trim(),
+      image: draft.image.trim() || colors.find((color) => color.image)?.image || '',
       sizes,
       colors,
       tag: draft.tag.trim() || undefined,
@@ -307,10 +347,10 @@ const Admin = () => {
                   <input type="number" min="0.01" step="0.01" value={draft.oldPrice} onChange={(event) => setDraft({ ...draft, oldPrice: event.target.value })} />
                 </label>
                 <label className="wide">URL da imagem
-                  <input type="url" value={draft.image} onChange={(event) => setDraft({ ...draft, image: event.target.value })} placeholder="Cole uma URL ou envie uma imagem abaixo" required />
+                  <input type="url" value={draft.image} onChange={(event) => setDraft({ ...draft, image: event.target.value })} placeholder="Cole uma URL ou envie uma imagem abaixo" required={!draft.image.trim() && draft.colors.some((color) => !color.image.trim())} />
                 </label>
                 <label className="wide">Enviar foto do dispositivo (PNG, JPG ou WebP; até 5 MB)
-                  <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleImageUpload} disabled={uploadingImage} />
+                  <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleImageUpload} disabled={uploadingImage || uploadingColorIndex !== null} />
                   {uploadingImage && <span role="status">Enviando imagem para o Supabase...</span>}
                   {draft.image && <img className="image-preview" src={draft.image} alt="Pré-visualização da imagem do produto" />}
                 </label>
@@ -320,9 +360,57 @@ const Admin = () => {
                 <label className="wide">Tamanhos disponíveis (separados por vírgula)
                   <input value={draft.sizes} onChange={(event) => setDraft({ ...draft, sizes: event.target.value })} placeholder="P, M, G, GG" required />
                 </label>
-                <label className="wide">Cores disponíveis (uma por linha: Nome | #hex)
-                  <textarea value={draft.colors} onChange={(event) => setDraft({ ...draft, colors: event.target.value })} placeholder={'Rosa | #E5A1AD\nPreto | #292528'} required />
-                </label>
+                <div className="wide color-list">
+                  <strong>Cores e fotos por cor</strong>
+                  <p>Envie uma foto para cada cor. Se deixar a foto vazia, será usada a imagem principal do produto.</p>
+                  {draft.colors.map((color, index) => (
+                    <div className="color-item" key={`color-${index}`}>
+                      <label>Nome da cor
+                        <input value={color.name} onChange={(event) => setDraft((current) => ({
+                          ...current,
+                          colors: current.colors.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item)
+                        }))} placeholder="Rosa" required />
+                      </label>
+                      <label>Código da cor
+                        <span className="color-hex">
+                          <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(color.hex) ? color.hex : '#e5a1ad'} onChange={(event) => setDraft((current) => ({
+                            ...current,
+                            colors: current.colors.map((item, itemIndex) => itemIndex === index ? { ...item, hex: event.target.value } : item)
+                          }))} aria-label={`Selecionar cor ${index + 1}`} />
+                          <input value={color.hex} onChange={(event) => setDraft((current) => ({
+                            ...current,
+                            colors: current.colors.map((item, itemIndex) => itemIndex === index ? { ...item, hex: event.target.value } : item)
+                          }))} placeholder="#E5A1AD" required />
+                        </span>
+                      </label>
+                      <label className="wide">URL da foto desta cor (opcional)
+                        <input type="url" value={color.image} onChange={(event) => setDraft((current) => ({
+                          ...current,
+                          colors: current.colors.map((item, itemIndex) => itemIndex === index ? { ...item, image: event.target.value } : item)
+                        }))} placeholder="Será preenchida ao enviar a foto" />
+                      </label>
+                      <div className="wide color-image-actions">
+                        <label>Enviar foto para esta cor (opcional)
+                          <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => handleColorImageUpload(index, event)} disabled={uploadingImage || uploadingColorIndex !== null} />
+                        </label>
+                        {color.image && <img className="color-image-preview" src={color.image} alt={`Pré-visualização da cor ${color.name || index + 1}`} />}
+                        {draft.colors.length > 1 && (
+                          <AdminButton type="button" className="secondary" disabled={uploadingColorIndex !== null} onClick={() => setDraft((current) => ({
+                            ...current,
+                            colors: current.colors.filter((_item, itemIndex) => itemIndex !== index)
+                          }))}>Remover cor</AdminButton>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <div className="actions">
+                    <AdminButton type="button" className="secondary" disabled={uploadingColorIndex !== null} onClick={() => setDraft((current) => ({
+                      ...current,
+                      colors: [...current.colors, { name: '', hex: '#e5a1ad', image: '' }]
+                    }))}>Adicionar cor</AdminButton>
+                    {uploadingColorIndex !== null && <span role="status">Enviando foto da cor...</span>}
+                  </div>
+                </div>
                 <label>Etiqueta opcional
                   <input value={draft.tag} onChange={(event) => setDraft({ ...draft, tag: event.target.value })} placeholder="Novo, Mais vendido..." />
                 </label>
@@ -331,7 +419,7 @@ const Admin = () => {
                   Produto disponível para compra
                 </label>
                 <div className="wide actions">
-                  <AdminButton type="submit" disabled={saving || uploadingImage}>{uploadingImage ? 'Enviando imagem...' : saving ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Adicionar peça'}</AdminButton>
+                  <AdminButton type="submit" disabled={saving || uploadingImage || uploadingColorIndex !== null}>{uploadingImage || uploadingColorIndex !== null ? 'Enviando imagem...' : saving ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Adicionar peça'}</AdminButton>
                   {editingId !== null && <AdminButton type="button" className="secondary" onClick={resetDraft}>Cancelar edição</AdminButton>}
                 </div>
               </AdminForm>

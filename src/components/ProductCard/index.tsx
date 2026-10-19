@@ -25,11 +25,13 @@ const formatPrice = (value: number) =>
 const ProductCard = ({ product, onAdd }: ProductCardProps) => {
   const [size, setSize] = useState(product.sizes[0])
   const [color, setColor] = useState(product.colors[0].name)
+  const selectedColor = product.colors.find((option) => option.name === color)
+  const image = selectedColor?.image || product.image
 
   return (
     <Card>
       <ImageArea>
-        <Image src={product.image} alt={product.name} loading="lazy" />
+        <Image src={image} alt={`${product.name}${selectedColor ? ` - ${selectedColor.name}` : ''}`} loading="lazy" />
         {product.tag && <Tag>{product.tag}</Tag>}
         {product.available === false && <span className="sold-out">Esgotado</span>}
         {product.oldPrice && <span className="discount">-{Math.round((1 - product.price / product.oldPrice) * 100)}%</span>}
