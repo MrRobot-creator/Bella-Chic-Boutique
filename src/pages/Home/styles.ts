@@ -195,5 +195,4 @@ export const FooterBrand = styled.div`
   strong, small { display: block; }
   strong { font: 15px Georgia, serif; letter-spacing: 1px; }
   small { margin-top: 3px; font-size: 7px; text-align: center; }
-  }
 `

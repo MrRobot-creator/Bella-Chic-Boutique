@@ -1,4 +1,3 @@
-
 export const storeConfig = {
   name: 'Bella Chic Boutique',
   units: [

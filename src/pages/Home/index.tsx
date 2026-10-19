@@ -127,14 +127,14 @@ const Home = () => {
             <HeroText>
               <span className="eyebrow">MODA FEMININA · FEITA PARA VOCÊ</span>
               <h1>Vista-se de <em>momentos</em> especiais.</h1>
-              <p>Moda Acessivel, por que nós amamos te vestir de AUTO ESTIMA </p>
+              <p>Moda acessível, porque amamos vestir você de autoestima.</p>
               <a className="primary-link" href="#colecao">Descobrir coleção <span>→</span></a>
               <HeroNote>♡ &nbsp; Seu estilo, seu encanto, sua Bella Chic.</HeroNote>
             </HeroText>
             <HeroImage>
               <img
                 src={banner}
-                alt="Amigas aproveitando um dia de compras e celebrando a moda"
+                alt="Modelo usando um look da Bella Chic Boutique"
               />
               <div className="image-caption"><span>COLEÇÃO</span><strong>Black Friday</strong></div>
               <span className="decorative-seal">BC<br /><small>♡</small></span>

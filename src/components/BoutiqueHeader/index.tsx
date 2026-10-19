@@ -8,7 +8,7 @@ type BoutiqueHeaderProps = {
 
 const BoutiqueHeader = ({ cartCount, onCartClick }: BoutiqueHeaderProps) => (
   <>
-    <Announcement>UM CARINHO EM CADA DETALHE · FRETE E PRAZO CONFIRMADOS PELO WHATSAPP</Announcement>
+    <Announcement>UM CARINHO EM CADA DETALHE · PRECINHO BELLA CHIC</Announcement>
     <HeaderBar>
       <HeaderContent>
         <a className="brand-link" href="#inicio" aria-label="Bella Chic Boutique, início">
