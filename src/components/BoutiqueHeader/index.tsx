@@ -8,7 +8,7 @@ type BoutiqueHeaderProps = {
 
 const BoutiqueHeader = ({ cartCount, onCartClick }: BoutiqueHeaderProps) => (
   <>
-    <Announcement>Bem-vinda à Bella Chic Boutique · um carinho em cada detalhe</Announcement>
+    <Announcement>Moda feminina · Belém e Ananindeua</Announcement>
     <HeaderBar>
       <HeaderContent>
         <a className="brand-link" href="#inicio" aria-label="Bella Chic Boutique, início">
@@ -19,7 +19,7 @@ const BoutiqueHeader = ({ cartCount, onCartClick }: BoutiqueHeaderProps) => (
         </a>
         <Navigation aria-label="Navegação principal">
           <a href="#colecao">Coleção</a>
-          <a href="#sobre">Nossa essência</a>
+          <a href="#contato">Contato</a>
         </Navigation>
         <CartButton type="button" onClick={onCartClick} aria-label={`Abrir sacola, ${cartCount} itens`}>
           <span aria-hidden="true">♡</span>

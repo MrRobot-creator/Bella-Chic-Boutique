@@ -8,31 +8,36 @@ import { fetchCatalogProducts } from '../../services/catalog'
 import { createWhatsAppUrl } from '../../services/whatsapp'
 import { CartItem, Product } from '../../types/store'
 import {
-  About,
-  AboutImage,
-  AboutText,
-  Benefits,
-  Benefit,
   Catalog,
   CatalogHeader,
   CatalogTools,
   CategoryList,
   CategoryPill,
+  Contact,
+  ContactContent,
+  ContactHeader,
+  ContactLink,
+  ContactUnit,
+  ContactUnitButton,
+  ContactUnits,
   Footer,
   FooterBrand,
   Hero,
   HeroContent,
-  HeroImage,
-  HeroNote,
+  HeroShowcase,
   HeroText,
   Main,
+  PaymentCard,
+  PaymentMethods,
   ProductGrid,
+  ShowcaseControls,
+  ShowcaseImage,
+  ShowcaseThumbnails,
   SearchInput,
+  ShowcaseLink,
   StatusMessage
 } from './styles'
-import banner from '../../assets/thalita-banner.jpeg'
 import boutiqueLogo from '../../assets/bella-chic-logo.jpg'
-import thalitaPhoto from '../../assets/thalita_final.jpg'
 
 
 const Home = () => {
@@ -44,6 +49,8 @@ const Home = () => {
   const [activeCategory, setActiveCategory] = useState('Todos')
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
+  const [activeShowcaseIndex, setActiveShowcaseIndex] = useState(0)
+  const [activeUnitId, setActiveUnitId] = useState(storeConfig.units[0].id)
   const closeCart = useCallback(() => setIsCartOpen(false), [])
 
   useEffect(() => {
@@ -80,6 +87,18 @@ const Home = () => {
       return matchesCategory && matchesSearch
     })
   }, [activeCategory, catalogProducts, search])
+
+  const showcaseProducts = useMemo(
+    () => catalogProducts.filter((product) => product.available !== false).slice(0, 5),
+    [catalogProducts]
+  )
+  const activeShowcaseProduct = showcaseProducts[activeShowcaseIndex % showcaseProducts.length]
+  const activeUnit = storeConfig.units.find((unit) => unit.id === activeUnitId) || storeConfig.units[0]
+  const unitContacts = storeConfig.whatsappContacts.filter((contact) => contact.unitId === activeUnit.id)
+
+  useEffect(() => {
+    if (activeShowcaseIndex >= showcaseProducts.length) setActiveShowcaseIndex(0)
+  }, [activeShowcaseIndex, showcaseProducts.length])
 
   const addToCart = (product: Product, size: string, color: string) => {
     setCartItems((currentItems) => {
@@ -128,35 +147,64 @@ const Home = () => {
         <Hero id="inicio">
           <HeroContent>
             <HeroText>
-              <span className="eyebrow">MODA FEMININA · ESCOLHIDA COM CARINHO</span>
-              <h1>Seu estilo, seu <em>encanto.</em></h1>
-              <p>Peças que acompanham seus momentos e deixam você ainda mais à vontade para ser quem é.</p>
-              <a className="primary-link" href="#colecao">Descobrir coleção <span>→</span></a>
-              <HeroNote>♡ &nbsp; Encontre peças que têm a sua cara.</HeroNote>
+              <span className="eyebrow">BELLA CHIC BOUTIQUE</span>
+              <h1>Novidades <em>Bella Chic</em></h1>
+              <a className="primary-link" href="#colecao">Comprar agora <span>→</span></a>
             </HeroText>
-            <HeroImage>
-              <img
-                src={banner}
-                alt="Modelo usando um look da Bella Chic Boutique"
-              />
-              <div className="image-caption"><span>UM TOQUE DE BELLA</span><strong>Feita para você</strong></div>
-              <span className="decorative-seal">BC<br /><small>♡</small></span>
-            </HeroImage>
+            <HeroShowcase aria-label="Mostruário de produtos em destaque">
+              {activeShowcaseProduct && (
+                <>
+                  <ShowcaseLink href="#colecao" aria-label={`Ver ${activeShowcaseProduct.name} na coleção`}>
+                    <ShowcaseImage src={activeShowcaseProduct.image} alt={activeShowcaseProduct.name} />
+                    <span className="showcase-label">DESTAQUE</span>
+                    <span className="showcase-product">
+                      <strong>{activeShowcaseProduct.name}</strong>
+                      <span>{activeShowcaseProduct.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                    </span>
+                  </ShowcaseLink>
+                  {showcaseProducts.length > 1 && (
+                    <ShowcaseControls>
+                      <button
+                        type="button"
+                        aria-label="Produto anterior"
+                        onClick={() => setActiveShowcaseIndex((index) => (index - 1 + showcaseProducts.length) % showcaseProducts.length)}
+                      >
+                        ←
+                      </button>
+                      <ShowcaseThumbnails aria-label="Escolher produto em destaque">
+                        {showcaseProducts.map((product, index) => (
+                          <button
+                            key={product.id}
+                            type="button"
+                            className={index === activeShowcaseIndex ? 'active' : ''}
+                            aria-label={`Mostrar ${product.name}`}
+                            aria-pressed={index === activeShowcaseIndex}
+                            onClick={() => setActiveShowcaseIndex(index)}
+                          >
+                            <img src={product.image} alt="" />
+                          </button>
+                        ))}
+                      </ShowcaseThumbnails>
+                      <button
+                        type="button"
+                        aria-label="Próximo produto"
+                        onClick={() => setActiveShowcaseIndex((index) => (index + 1) % showcaseProducts.length)}
+                      >
+                        →
+                      </button>
+                    </ShowcaseControls>
+                  )}
+                </>
+              )}
+            </HeroShowcase>
           </HeroContent>
         </Hero>
-
-        <Benefits aria-label="Vantagens da loja">
-          <Benefit><span>✧</span><div><strong>Escolha com carinho</strong><small>Curadoria para todos os dias</small></div></Benefit>
-          <Benefit><span>♡</span><div><strong>Atendimento próximo</strong><small>Pedido confirmado com uma pessoa</small></div></Benefit>
-          <Benefit><span>◈</span><div><strong>Pagamento facilitado</strong><small>Pix, cartão ou dinheiro</small></div></Benefit>
-        </Benefits>
 
         <Catalog id="colecao">
           <CatalogHeader>
             <div>
-              <span className="eyebrow">ENCONTRE O SEU PRÓXIMO FAVORITO</span>
-              <h2>Feito para <em>encantar</em></h2>
-              <p>Peças lindas, confortáveis e escolhidas pensando em você.</p>
+              <span className="eyebrow">BELLA CHIC</span>
+              <h2> Nossa <em>coleção</em></h2>
             </div>
             <CatalogTools>
               <label className="sr-only" htmlFor="product-search">Buscar produtos</label>
@@ -194,30 +242,88 @@ const Home = () => {
           )}
         </Catalog>
 
-        <About id="sobre">
-          <AboutImage>
-            <img src={thalitaPhoto} alt="Thalita, da Bella Chic Boutique" loading="lazy" />
-          </AboutImage>
-          <AboutText>
-            <span className="eyebrow">UM POUQUINHO SOBRE NÓS</span>
-            <h2>Moda com afeto,<br /><em>do nosso jeito.</em></h2>
-            <p>A Bella Chic Boutique acredita que se sentir bem começa nas pequenas escolhas. Cada peça da nossa coleção é selecionada com cuidado para acompanhar você em todos os momentos.</p>
-            <a href={createWhatsAppUrl('Olá! Quero conhecer a coleção da Bella Chic Boutique.', storeConfig.whatsappContacts[0].number)} target="_blank" rel="noreferrer">
-              Converse com a gente <span>↗</span>
-            </a>
-          </AboutText>
-        </About>
+        <Contact id="contato">
+          <ContactContent>
+            <ContactHeader>
+              <span className="eyebrow">BELLA CHIC BOUTIQUE</span>
+              <h2>Visite ou <em>fale com a gente</em></h2>
+            </ContactHeader>
+            <ContactUnits aria-label="Escolha uma unidade">
+              {storeConfig.units.map((unit) => (
+                <ContactUnitButton
+                  key={unit.id}
+                  type="button"
+                  $active={activeUnit.id === unit.id}
+                  aria-pressed={activeUnit.id === unit.id}
+                  onClick={() => setActiveUnitId(unit.id)}
+                >
+                  {unit.name}
+                </ContactUnitButton>
+              ))}
+            </ContactUnits>
+            <ContactUnit>
+              <div>
+                <h3>{activeUnit.name}</h3>
+                <p>{activeUnit.address}</p>
+              </div>
+              <div className="contact-actions">
+                <ContactLink
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(activeUnit.address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Como chegar ↗
+                </ContactLink>
+                {unitContacts.map((contact) => (
+                  <ContactLink
+                    key={contact.id}
+                    $primary
+                    href={createWhatsAppUrl(`Olá! Gostaria de falar com a Bella Chic Boutique - ${activeUnit.name}.`, contact.number)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    WhatsApp · {contact.label} ↗
+                  </ContactLink>
+                ))}
+              </div>
+            </ContactUnit>
+            <div className="social-links">
+              {storeConfig.instagramUrl && (
+                <ContactLink href={storeConfig.instagramUrl} target="_blank" rel="noopener noreferrer">
+                  Instagram Bella Chic ↗
+                </ContactLink>
+              )}
+            </div>
+            <div id="pagamentos" className="payments">
+              <h3>Formas de pagamento</h3>
+              <PaymentMethods>
+                {[
+                  { name: 'Pix', icon: '◇' },
+                  { name: 'Cartão de crédito', icon: '▤' },
+                  { name: 'Dinheiro', icon: 'R$' }
+                ].map((method) => (
+                  <PaymentCard
+                    key={method.name}
+                    href={createWhatsAppUrl(`Olá! Gostaria de saber sobre pagamento em ${method.name}.`, unitContacts[0].number)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Consultar pagamento em ${method.name} pelo WhatsApp`}
+                  >
+                    <span aria-hidden="true">{method.icon}</span>
+                    <strong>{method.name}</strong>
+                  </PaymentCard>
+                ))}
+              </PaymentMethods>
+              <p>Consulte condições com a atendente pelo WhatsApp.</p>
+            </div>
+          </ContactContent>
+        </Contact>
       </Main>
       <Footer>
         <FooterBrand>
           <img src={boutiqueLogo} alt="" />
         </FooterBrand>
-        <p>Escolhida com carinho, feita para você.</p>
-        <div className="social-links">
-          {storeConfig.instagramUrl && <a href={storeConfig.instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Visite nosso Instagram">Instagram ↗</a>}
-          <a href={createWhatsAppUrl('Olá! Vim pelo site da Bella Chic Boutique.', storeConfig.whatsappContacts[0].number)} target="_blank" rel="noopener noreferrer" aria-label="Fale com a Bella Chic pelo WhatsApp">WhatsApp ↗</a>
-        </div>
-        <small>© {new Date().getFullYear()} Bella Chic Boutique · Moda Acessível.</small>
+        <small>© {new Date().getFullYear()} Bella Chic Boutique · Todos os direitos reservados.</small>
       </Footer>
       <CartDrawer
         isOpen={isCartOpen}
