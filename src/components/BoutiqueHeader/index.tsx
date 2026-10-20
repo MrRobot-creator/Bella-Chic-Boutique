@@ -1,4 +1,3 @@
-import { storeConfig } from '../../config/store'
 import { HeaderBar, HeaderContent, Brand, BrandMark, Navigation, CartButton, Announcement } from './styles'
 import boutiqueLogo from '../../assets/bella-chic-logo.jpg'
 
@@ -9,12 +8,13 @@ type BoutiqueHeaderProps = {
 
 const BoutiqueHeader = ({ cartCount, onCartClick }: BoutiqueHeaderProps) => (
   <>
-    <Announcement>UM CARINHO EM CADA DETALHE · PRECINHO BELLA CHIC</Announcement>
+    <Announcement>Bem-vinda à Bella Chic Boutique · um carinho em cada detalhe</Announcement>
     <HeaderBar>
       <HeaderContent>
         <a className="brand-link" href="#inicio" aria-label="Bella Chic Boutique, início">
           <Brand>
-            <BrandMark src={boutiqueLogo} alt="Bella Chic Boutique" />
+            <BrandMark src={boutiqueLogo} alt="" />
+            <span className="brand-copy"><strong>Bella Chic</strong><small>BOUTIQUE</small></span>
           </Brand>
         </a>
         <Navigation aria-label="Navegação principal">
@@ -28,7 +28,6 @@ const BoutiqueHeader = ({ cartCount, onCartClick }: BoutiqueHeaderProps) => (
         </CartButton>
       </HeaderContent>
     </HeaderBar>
-    <span className="sr-only">{storeConfig.name}</span>
   </>
 )
 

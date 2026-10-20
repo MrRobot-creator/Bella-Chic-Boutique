@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useMemo, useState } from 'react'
+import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import BoutiqueHeader from '../../components/BoutiqueHeader'
 import CartDrawer from '../../components/CartDrawer'
 import ProductCard from '../../components/ProductCard'
@@ -44,6 +44,7 @@ const Home = () => {
   const [activeCategory, setActiveCategory] = useState('Todos')
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
+  const closeCart = useCallback(() => setIsCartOpen(false), [])
 
   useEffect(() => {
     let active = true
@@ -127,18 +128,18 @@ const Home = () => {
         <Hero id="inicio">
           <HeroContent>
             <HeroText>
-              <span className="eyebrow">MODA FEMININA · FEITA PARA VOCÊ</span>
-              <h1>Vista-se de <em>momentos</em> especiais.</h1>
-              <p>Moda acessível, porque amamos vestir você de autoestima.</p>
+              <span className="eyebrow">MODA FEMININA · ESCOLHIDA COM CARINHO</span>
+              <h1>Seu estilo, seu <em>encanto.</em></h1>
+              <p>Peças que acompanham seus momentos e deixam você ainda mais à vontade para ser quem é.</p>
               <a className="primary-link" href="#colecao">Descobrir coleção <span>→</span></a>
-              <HeroNote>♡ &nbsp; Seu estilo, seu encanto, sua Bella Chic.</HeroNote>
+              <HeroNote>♡ &nbsp; Encontre peças que têm a sua cara.</HeroNote>
             </HeroText>
             <HeroImage>
               <img
                 src={banner}
                 alt="Modelo usando um look da Bella Chic Boutique"
               />
-              <div className="image-caption"><span>COLEÇÃO</span><strong>Black Friday</strong></div>
+              <div className="image-caption"><span>UM TOQUE DE BELLA</span><strong>Feita para você</strong></div>
               <span className="decorative-seal">BC<br /><small>♡</small></span>
             </HeroImage>
           </HeroContent>
@@ -221,7 +222,7 @@ const Home = () => {
       <CartDrawer
         isOpen={isCartOpen}
         items={cartItems}
-        onClose={() => setIsCartOpen(false)}
+        onClose={closeCart}
         onChangeQuantity={updateQuantity}
         onRemove={removeFromCart}
       />

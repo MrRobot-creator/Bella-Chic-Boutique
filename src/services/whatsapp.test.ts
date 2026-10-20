@@ -1,4 +1,4 @@
-import { createOrderMessage, createWhatsAppUrl } from './whatsapp'
+import { createOrderMessage, createOrderReference, createWhatsAppUrl } from './whatsapp'
 import { CartItem } from '../types/store'
 
 const items: CartItem[] = [
@@ -106,7 +106,7 @@ describe('WhatsApp order checkout', () => {
   })
 
   it('generates a five-digit numeric order reference', () => {
-    const reference = require('./whatsapp').createOrderReference()
+    const reference = createOrderReference()
 
     expect(reference).toMatch(/^\d{5}$/)
   })

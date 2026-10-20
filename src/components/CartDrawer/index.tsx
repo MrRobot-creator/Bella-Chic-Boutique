@@ -55,6 +55,23 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
     }
   }, [selectedUnitId, selectedContactId])
 
+  useEffect(() => {
+    if (!isOpen) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+
+    document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen, onClose])
+
   if (!isOpen) return null
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -104,22 +121,25 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
         ) : (
           <>
             <Items>
-              {items.map(({ product, size, color, quantity }) => (
-                <ItemRow key={`${product.id}-${size}-${color}`}>
-                  <ItemImage src={product.image} alt="" />
-                  <ItemDetails>
-                    <h3>{product.name}</h3>
-                    <p>Tam. {size} · {color}</p>
-                    <strong>{formatPrice(product.price * quantity)}</strong>
-                    <div className="quantity">
-                      <button type="button" aria-label={`Diminuir quantidade de ${product.name}`} onClick={() => onChangeQuantity(product.id, size, color, quantity - 1)}>−</button>
-                      <span>{quantity}</span>
-                      <button type="button" aria-label={`Aumentar quantidade de ${product.name}`} onClick={() => onChangeQuantity(product.id, size, color, quantity + 1)}>+</button>
-                      <RemoveButton type="button" onClick={() => onRemove(product.id, size, color)}>Remover</RemoveButton>
-                    </div>
-                  </ItemDetails>
-                </ItemRow>
-              ))}
+              {items.map(({ product, size, color, quantity }) => {
+                const selectedColor = product.colors.find((option) => option.name === color)
+                return (
+                  <ItemRow key={`${product.id}-${size}-${color}`}>
+                    <ItemImage src={selectedColor?.image || product.image} alt="" />
+                    <ItemDetails>
+                      <h3>{product.name}</h3>
+                      <p>Tam. {size} · {color}</p>
+                      <strong>{formatPrice(product.price * quantity)}</strong>
+                      <div className="quantity">
+                        <button type="button" aria-label={`Diminuir quantidade de ${product.name}`} onClick={() => onChangeQuantity(product.id, size, color, quantity - 1)}>−</button>
+                        <span>{quantity}</span>
+                        <button type="button" aria-label={`Aumentar quantidade de ${product.name}`} onClick={() => onChangeQuantity(product.id, size, color, quantity + 1)}>+</button>
+                        <RemoveButton type="button" onClick={() => onRemove(product.id, size, color)}>Remover</RemoveButton>
+                      </div>
+                    </ItemDetails>
+                  </ItemRow>
+                )
+              })}
             </Items>
 
             <Summary>

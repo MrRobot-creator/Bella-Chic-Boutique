@@ -1,4 +1,4 @@
-import { ChangeEvent, useState } from 'react'
+import { ChangeEvent, useEffect, useState } from 'react'
 import { Product } from '../../types/store'
 import {
   AddButton,
@@ -27,6 +27,11 @@ const ProductCard = ({ product, onAdd }: ProductCardProps) => {
   const [color, setColor] = useState(product.colors[0].name)
   const selectedColor = product.colors.find((option) => option.name === color)
   const image = selectedColor?.image || product.image
+
+  useEffect(() => {
+    if (!product.sizes.includes(size)) setSize(product.sizes[0])
+    if (!product.colors.some((option) => option.name === color)) setColor(product.colors[0].name)
+  }, [color, product.colors, product.sizes, size])
 
   return (
     <Card>
