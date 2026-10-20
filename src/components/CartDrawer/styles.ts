@@ -29,11 +29,22 @@ export const Drawer = styled.aside`
   .delivery-address label { display: block; margin: 11px 0; color: #735f60; font-size: 11px; }
   .delivery-address label:last-child { margin-bottom: 0; }
   .delivery-address .optional { color: #a39394; font-size: 10px; font-weight: 400; }
+  .delivery-address .address-status, .delivery-address .address-hint { display: block; margin-top: 6px; color: #9b8b8c; font-size: 10px; line-height: 1.5; }
+  .delivery-address .address-hint { color: #a39394; }
+  .address-suggestions { max-height: 190px; margin-top: 7px; padding: 4px; overflow-y: auto; border: 1px solid #ebdede; background: #fff; list-style: none; }
+  .address-suggestions button { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 9px; background: transparent; color: #735f60; font: inherit; text-align: left; }
+  .address-suggestions button:hover, .address-suggestions button:focus-visible { outline: none; background: #f8eeee; }
+  .address-suggestions strong { font-size: 11px; font-weight: 600; }
+  .address-suggestions span { color: #9b8b8c; font-size: 9px; }
+  .delivery-fee { margin: 13px 0 4px; padding: 10px; background: #f8eeee; color: #735f60; font-size: 11px; }
+  .delivery-fee strong { color: #684b50; }
+  .delivery-address > label select { margin-top: 6px; }
   .payment-option { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 11px 0; color: #574849; font-size: 12px; cursor: pointer; }
   .payment-option input { accent-color: #a76f79; }
   .payment-option span { width: 100%; margin-left: 22px; color: #9d8e8f; font-size: 10px; }
   .payment-option.unavailable { color: #a39696; cursor: not-allowed; }
   .secure-note { margin: 12px 0 4px; color: #9b8c8d; font-size: 10px; line-height: 1.5; text-align: center; }
+  button:disabled { cursor: not-allowed; opacity: .55; }
   @media (max-width: 420px) { padding: 20px 16px; }
 `
 

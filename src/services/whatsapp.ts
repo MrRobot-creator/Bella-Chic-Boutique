@@ -15,6 +15,7 @@ type OrderDetails = {
   complement: string
   neighborhood: string
   postalCode: string
+  deliveryCity: string
   referencePoint: string
   deliveryNotes: string
   deliveryFee: number | null
@@ -32,6 +33,7 @@ export const createOrderMessage = (items: CartItem[], order: OrderDetails) => {
     ? [
         `Endereço: ${order.street}, ${order.houseNumber}${order.complement ? `, ${order.complement}` : ''}`,
         `Bairro: ${order.neighborhood}`,
+        `Município/região: ${order.deliveryCity}`,
         order.postalCode ? `CEP: ${order.postalCode}` : '',
         order.referencePoint ? `Ponto de referência: ${order.referencePoint}` : '',
         order.deliveryNotes ? `Observação: ${order.deliveryNotes}` : ''

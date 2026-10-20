@@ -21,7 +21,11 @@ Copie `.env.example` para `.env.local` e preencha os dados públicos da loja:
 
 Reinicie `npm start` após alterar `.env.local`. Essa variável é incorporada ao site público no build, então não coloque senhas ou credenciais secretas nela. Os contatos das duas unidades e seus endereços são configurados em `src/config/store.ts`.
 
-No checkout, a cliente escolhe a unidade e o WhatsApp de atendimento. Os números disponíveis são filtrados pela unidade escolhida, e o pedido encaminha para o contato selecionado com os dados da loja, cliente e produtos. Os endereços e contatos atuais ficam em `src/config/store.ts`.
+No checkout, a cliente escolhe a unidade e o WhatsApp de atendimento. Os números disponíveis são filtrados pela unidade escolhida, e o pedido encaminha para o contato selecionado com os dados da loja, cliente e produtos.
+
+O autocomplete gratuito do endereço usa o ViaCEP: depois de escolher o município e digitar pelo menos três letras da rua, o checkout mostra sugestões de logradouros; ao preencher um CEP válido de oito dígitos, rua e bairro são completados. Não é necessária chave de API. A consulta de logradouros do ViaCEP retorna até 50 correspondências, das quais a loja apresenta as seis primeiras.
+
+O frete é calculado a partir da unidade selecionada: R$ 12,00 dentro de Belém ou Ananindeua, R$ 15,00 entre essas cidades e R$ 20,00 para Marituba ou Icoaraci. O total e a taxa seguem no pedido enviado pelo WhatsApp.
 
 O checkout não processa pagamentos nem gera QR Code Pix ou boleto bancário. O cliente escolhe a forma de pagamento, envia o pedido profissional pelo WhatsApp e combina com a atendente o pagamento, frete e confirmação do pedido. O endereço, número da casa, bairro e ponto de referência são solicitados apenas para pedidos com entrega.
 

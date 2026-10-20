@@ -1,4 +1,15 @@
-import { ChangeEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  ChangeEvent,
+  KeyboardEvent as ReactKeyboardEvent,
+  MouseEvent as ReactMouseEvent,
+  PointerEvent as ReactPointerEvent,
+  TransitionEvent as ReactTransitionEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import BoutiqueHeader from '../../components/BoutiqueHeader'
 import CartDrawer from '../../components/CartDrawer'
 import ProductCard from '../../components/ProductCard'
@@ -11,8 +22,10 @@ import {
   Catalog,
   CatalogHeader,
   CatalogTools,
-  CategoryList,
-  CategoryPill,
+  CategoryMenu,
+  CategoryMenuButton,
+  CategoryMenuOption,
+  CategoryMenuPanel,
   Contact,
   ContactContent,
   ContactHeader,
@@ -22,6 +35,13 @@ import {
   ContactUnits,
   Footer,
   FooterBrand,
+  FooterBottom,
+  FooterContent,
+  FooterContact,
+  FooterContactButton,
+  FooterMessage,
+  FooterNavigation,
+  FooterSocialLink,
   Hero,
   HeroContent,
   HeroShowcase,
@@ -30,11 +50,11 @@ import {
   PaymentCard,
   PaymentMethods,
   ProductGrid,
-  ShowcaseControls,
   ShowcaseImage,
-  ShowcaseThumbnails,
+  ShowcaseTrack,
   SearchInput,
   ShowcaseLink,
+  ShowcaseViewport,
   StatusMessage
 } from './styles'
 import boutiqueLogo from '../../assets/bella-chic-logo.jpg'
@@ -47,10 +67,16 @@ const Home = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState('Todos')
+  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
-  const [activeShowcaseIndex, setActiveShowcaseIndex] = useState(0)
+  const [activeShowcaseIndex, setActiveShowcaseIndex] = useState(1)
+  const [showcaseDragOffset, setShowcaseDragOffset] = useState(0)
+  const [showcaseTransitionEnabled, setShowcaseTransitionEnabled] = useState(true)
   const [activeUnitId, setActiveUnitId] = useState(storeConfig.units[0].id)
+  const categoryMenuRef = useRef<HTMLDivElement>(null)
+  const showcasePointerStart = useRef<{ x: number; y: number; pointerId: number } | null>(null)
+  const suppressShowcaseClick = useRef(false)
   const closeCart = useCallback(() => setIsCartOpen(false), [])
 
   useEffect(() => {
@@ -92,13 +118,141 @@ const Home = () => {
     () => catalogProducts.filter((product) => product.available !== false).slice(0, 5),
     [catalogProducts]
   )
-  const activeShowcaseProduct = showcaseProducts[activeShowcaseIndex % showcaseProducts.length]
+  const showcaseSlides = useMemo(
+    () => showcaseProducts.length > 1
+      ? [showcaseProducts[showcaseProducts.length - 1], ...showcaseProducts, showcaseProducts[0]]
+      : showcaseProducts,
+    [showcaseProducts]
+  )
   const activeUnit = storeConfig.units.find((unit) => unit.id === activeUnitId) || storeConfig.units[0]
   const unitContacts = storeConfig.whatsappContacts.filter((contact) => contact.unitId === activeUnit.id)
 
   useEffect(() => {
-    if (activeShowcaseIndex >= showcaseProducts.length) setActiveShowcaseIndex(0)
+    if (showcaseProducts.length < 2) return undefined
+
+    const rotation = window.setInterval(() => {
+      if (
+        document.visibilityState === 'visible' &&
+        !showcasePointerStart.current &&
+        !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ) {
+        setActiveShowcaseIndex((index) => index >= showcaseProducts.length + 1 ? 1 : index + 1)
+      }
+    }, 5000)
+
+    return () => window.clearInterval(rotation)
+  }, [showcaseProducts.length])
+
+  useEffect(() => {
+    if (showcaseProducts.length < 2) {
+      setActiveShowcaseIndex(0)
+      return
+    }
+    if (activeShowcaseIndex < 1 || activeShowcaseIndex > showcaseProducts.length + 1) {
+      setShowcaseTransitionEnabled(false)
+      setActiveShowcaseIndex(1)
+      window.requestAnimationFrame(() => setShowcaseTransitionEnabled(true))
+    }
   }, [activeShowcaseIndex, showcaseProducts.length])
+
+  const handleShowcaseTransitionEnd = (event: ReactTransitionEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget || event.propertyName !== 'transform') return
+    if (showcaseProducts.length < 2) return
+    const clonePosition = activeShowcaseIndex === 0
+      ? showcaseProducts.length
+      : activeShowcaseIndex === showcaseProducts.length + 1 ? 1 : null
+    if (clonePosition === null) return
+
+    setShowcaseTransitionEnabled(false)
+    setActiveShowcaseIndex(clonePosition)
+    window.requestAnimationFrame(() => setShowcaseTransitionEnabled(true))
+  }
+
+  const handleShowcasePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return
+    showcasePointerStart.current = { x: event.clientX, y: event.clientY, pointerId: event.pointerId }
+    setShowcaseTransitionEnabled(false)
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const handleShowcasePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = showcasePointerStart.current
+    if (!start || start.pointerId !== event.pointerId || showcaseProducts.length < 2) return
+
+    const horizontalDistance = event.clientX - start.x
+    const verticalDistance = event.clientY - start.y
+    if (Math.abs(verticalDistance) > Math.abs(horizontalDistance) && Math.abs(verticalDistance) > 12) {
+      showcasePointerStart.current = null
+      setShowcaseDragOffset(0)
+      setShowcaseTransitionEnabled(true)
+      return
+    }
+    setShowcaseDragOffset(horizontalDistance)
+  }
+
+  const handleShowcasePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = showcasePointerStart.current
+    if (!start || start.pointerId !== event.pointerId) return
+    showcasePointerStart.current = null
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+
+    const horizontalDistance = event.clientX - start.x
+    const verticalDistance = event.clientY - start.y
+    const didDrag = Math.abs(horizontalDistance) >= 45 && Math.abs(horizontalDistance) > Math.abs(verticalDistance)
+    if (didDrag && showcaseProducts.length > 1) {
+      suppressShowcaseClick.current = true
+      window.setTimeout(() => {
+        suppressShowcaseClick.current = false
+      }, 0)
+      setActiveShowcaseIndex((index) => {
+        if (horizontalDistance < 0) return index >= showcaseProducts.length ? 0 : index + 1
+        return index <= 1 ? 0 : index - 1
+      })
+    }
+    setShowcaseDragOffset(0)
+    setShowcaseTransitionEnabled(true)
+  }
+
+  const handleShowcasePointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (showcasePointerStart.current?.pointerId !== event.pointerId) return
+    showcasePointerStart.current = null
+    setShowcaseDragOffset(0)
+    setShowcaseTransitionEnabled(true)
+  }
+
+  const handleShowcaseKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (showcaseProducts.length < 2) return
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault()
+      setActiveShowcaseIndex((index) => index <= 1 ? 0 : index - 1)
+    }
+    if (event.key === 'ArrowRight') {
+      event.preventDefault()
+      setActiveShowcaseIndex((index) => index >= showcaseProducts.length ? 0 : index + 1)
+    }
+  }
+
+  useEffect(() => {
+    if (!isCategoryMenuOpen) return undefined
+
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (event.target instanceof Node && !categoryMenuRef.current?.contains(event.target)) {
+        setIsCategoryMenuOpen(false)
+      }
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsCategoryMenuOpen(false)
+    }
+
+    document.addEventListener('mousedown', closeOnOutsideClick)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [isCategoryMenuOpen])
 
   const addToCart = (product: Product, size: string, color: string) => {
     setCartItems((currentItems) => {
@@ -149,52 +303,51 @@ const Home = () => {
             <HeroText>
               <span className="eyebrow">BELLA CHIC BOUTIQUE</span>
               <h1>Novidades <em>Bella Chic</em></h1>
-              <a className="primary-link" href="#colecao">Comprar agora <span>→</span></a>
+              <a className="primary-link" href="#colecao">Ver coleção <span>→</span></a>
             </HeroText>
             <HeroShowcase aria-label="Mostruário de produtos em destaque">
-              {activeShowcaseProduct && (
-                <>
-                  <ShowcaseLink href="#colecao" aria-label={`Ver ${activeShowcaseProduct.name} na coleção`}>
-                    <ShowcaseImage src={activeShowcaseProduct.image} alt={activeShowcaseProduct.name} />
-                    <span className="showcase-label">DESTAQUE</span>
-                    <span className="showcase-product">
-                      <strong>{activeShowcaseProduct.name}</strong>
-                      <span>{activeShowcaseProduct.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-                    </span>
-                  </ShowcaseLink>
-                  {showcaseProducts.length > 1 && (
-                    <ShowcaseControls>
-                      <button
-                        type="button"
-                        aria-label="Produto anterior"
-                        onClick={() => setActiveShowcaseIndex((index) => (index - 1 + showcaseProducts.length) % showcaseProducts.length)}
+              {showcaseSlides.length > 0 && (
+                <ShowcaseViewport
+                  aria-roledescription="carrossel"
+                  aria-label="Mostruário de produtos; arraste para os lados para navegar"
+                  onPointerDown={handleShowcasePointerDown}
+                  onPointerMove={handleShowcasePointerMove}
+                  onPointerUp={handleShowcasePointerUp}
+                  onPointerCancel={handleShowcasePointerCancel}
+                  onKeyDown={handleShowcaseKeyDown}
+                >
+                  <ShowcaseTrack
+                    $position={showcaseSlides.length > 1 ? activeShowcaseIndex : 0}
+                    $dragOffset={showcaseDragOffset}
+                    $transitionEnabled={showcaseTransitionEnabled}
+                    onTransitionEnd={handleShowcaseTransitionEnd}
+                  >
+                    {showcaseSlides.map((product, index) => (
+                      <ShowcaseLink
+                        key={`${product.id}-${index}`}
+                        href="#colecao"
+                        aria-label={`Ver ${product.name} na coleção`}
+                        aria-roledescription="slide"
+                        aria-hidden={index !== activeShowcaseIndex}
+                        tabIndex={index === activeShowcaseIndex ? 0 : -1}
+                        onDragStart={(event: ReactMouseEvent<HTMLAnchorElement>) => event.preventDefault()}
+                        onClick={(event: ReactMouseEvent<HTMLAnchorElement>) => {
+                          if (!suppressShowcaseClick.current) return
+                          event.preventDefault()
+                          event.stopPropagation()
+                          suppressShowcaseClick.current = false
+                        }}
                       >
-                        ←
-                      </button>
-                      <ShowcaseThumbnails aria-label="Escolher produto em destaque">
-                        {showcaseProducts.map((product, index) => (
-                          <button
-                            key={product.id}
-                            type="button"
-                            className={index === activeShowcaseIndex ? 'active' : ''}
-                            aria-label={`Mostrar ${product.name}`}
-                            aria-pressed={index === activeShowcaseIndex}
-                            onClick={() => setActiveShowcaseIndex(index)}
-                          >
-                            <img src={product.image} alt="" />
-                          </button>
-                        ))}
-                      </ShowcaseThumbnails>
-                      <button
-                        type="button"
-                        aria-label="Próximo produto"
-                        onClick={() => setActiveShowcaseIndex((index) => (index + 1) % showcaseProducts.length)}
-                      >
-                        →
-                      </button>
-                    </ShowcaseControls>
-                  )}
-                </>
+                        <ShowcaseImage src={product.image} alt={product.name} draggable={false} />
+                        <span className="showcase-label">DESTAQUE</span>
+                        <span className="showcase-product">
+                          <strong>{product.name}</strong>
+                          <span>{product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                        </span>
+                      </ShowcaseLink>
+                    ))}
+                  </ShowcaseTrack>
+                </ShowcaseViewport>
               )}
             </HeroShowcase>
           </HeroContent>
@@ -217,19 +370,38 @@ const Home = () => {
               />
             </CatalogTools>
           </CatalogHeader>
-          <CategoryList aria-label="Filtrar por categoria">
-            {availableCategories.map((category) => (
-              <CategoryPill
-                key={category}
-                type="button"
-                $active={activeCategory === category}
-                aria-pressed={activeCategory === category}
-                onClick={() => setActiveCategory(category)}
-              >
-                {category}
-              </CategoryPill>
-            ))}
-          </CategoryList>
+          <CategoryMenu ref={categoryMenuRef}>
+            <CategoryMenuButton
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={isCategoryMenuOpen}
+              onClick={() => setIsCategoryMenuOpen((open) => !open)}
+            >
+              <span className="hamburger" aria-hidden="true"><i /><i /><i /></span>
+              <span>Categorias</span>
+              <span className="active-category">{activeCategory}</span>
+            </CategoryMenuButton>
+            {isCategoryMenuOpen && (
+              <CategoryMenuPanel role="menu" aria-label="Filtrar por categoria">
+                {availableCategories.map((category) => (
+                  <CategoryMenuOption
+                    key={category}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={activeCategory === category}
+                    $active={activeCategory === category}
+                    onClick={() => {
+                      setActiveCategory(category)
+                      setIsCategoryMenuOpen(false)
+                    }}
+                  >
+                    {category}
+                    {activeCategory === category && <span aria-hidden="true">✓</span>}
+                  </CategoryMenuOption>
+                ))}
+              </CategoryMenuPanel>
+            )}
+          </CategoryMenu>
           {status && <StatusMessage role="status">{status}</StatusMessage>}
           {catalogLoading && <StatusMessage role="status">Carregando catálogo...</StatusMessage>}
           {catalogError && <StatusMessage role="alert">{catalogError}</StatusMessage>}
@@ -282,7 +454,10 @@ const Home = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    WhatsApp · {contact.label} ↗
+                    <svg aria-hidden="true" viewBox="0 0 24 24" className="contact-icon">
+                      <path d="M20.2 3.8A11.4 11.4 0 0 0 2.3 17.6L.8 23l5.5-1.4A11.4 11.4 0 0 0 20.2 3.8ZM12 20.6a9.4 9.4 0 0 1-4.8-1.3l-.4-.2-3.3.9.9-3.2-.2-.4A9.4 9.4 0 1 1 12 20.6Zm5.2-7c-.3-.2-1.7-.9-2-.9-.3-.1-.5-.2-.7.2l-.9 1.1c-.2.2-.3.3-.6.1a7.7 7.7 0 0 1-2.3-1.4 8.6 8.6 0 0 1-1.6-2c-.2-.3 0-.5.1-.6l.5-.6.3-.5c.1-.2 0-.4 0-.6l-.9-2.1c-.2-.5-.4-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.7s1.2 3.1 1.4 3.3c.2.2 2.3 3.5 5.5 4.8.8.3 1.4.5 1.9.6.8.2 1.5.2 2 .1.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.3.1-1.4-.1-.1-.3-.2-.6-.3Z" />
+                    </svg>
+                    <span>WhatsApp · {contact.label} ↗</span>
                   </ContactLink>
                 ))}
               </div>
@@ -290,7 +465,12 @@ const Home = () => {
             <div className="social-links">
               {storeConfig.instagramUrl && (
                 <ContactLink href={storeConfig.instagramUrl} target="_blank" rel="noopener noreferrer">
-                  Instagram Bella Chic ↗
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="contact-icon instagram-icon">
+                    <rect x="3" y="3" width="18" height="18" rx="5" />
+                    <circle cx="12" cy="12" r="4" />
+                    <circle className="instagram-dot" cx="17.5" cy="6.8" r="1" />
+                  </svg>
+                  <span>Instagram Bella Chic ↗</span>
                 </ContactLink>
               )}
             </div>
@@ -298,9 +478,9 @@ const Home = () => {
               <h3>Formas de pagamento</h3>
               <PaymentMethods>
                 {[
-                  { name: 'Pix', icon: '◇' },
-                  { name: 'Cartão de crédito', icon: '▤' },
-                  { name: 'Dinheiro', icon: 'R$' }
+                  { name: 'Pix', icon: 'pix' },
+                  { name: 'Cartão de crédito', icon: 'card' },
+                  { name: 'Dinheiro', icon: 'cash' }
                 ].map((method) => (
                   <PaymentCard
                     key={method.name}
@@ -309,8 +489,31 @@ const Home = () => {
                     rel="noopener noreferrer"
                     aria-label={`Consultar pagamento em ${method.name} pelo WhatsApp`}
                   >
-                    <span aria-hidden="true">{method.icon}</span>
+                    <span className={`payment-visual ${method.icon}`} aria-hidden="true">
+                      {method.icon === 'pix' && (
+                        <svg viewBox="0 0 48 48">
+                          <path d="m24 3 8 8-8 8-8-8 8-8Zm0 26 8 8-8 8-8-8 8-8ZM3 24l8-8 8 8-8 8-8-8Zm26 0 8-8 8 8-8 8-8-8Z" />
+                        </svg>
+                      )}
+                      {method.icon === 'card' && (
+                        <svg viewBox="0 0 64 44">
+                          <rect x="2" y="2" width="60" height="40" rx="6" />
+                          <path className="card-stripe" d="M2 13h60v8H2z" />
+                          <rect className="card-chip" x="10" y="27" width="11" height="8" rx="2" />
+                          <path className="card-contactless" d="M29 29c3 2 3 5 0 7m4-9c5 3 5 8 0 11" />
+                        </svg>
+                      )}
+                      {method.icon === 'cash' && (
+                        <svg viewBox="0 0 48 48">
+                          <rect x="4" y="12" width="35" height="25" rx="3" />
+                          <path d="M9 18a5 5 0 0 0 0 13m25-13a5 5 0 0 1 0 13" />
+                          <circle cx="22" cy="24.5" r="5" />
+                          <path d="m12 8 29 1v22" />
+                        </svg>
+                      )}
+                    </span>
                     <strong>{method.name}</strong>
+                    <span className="payment-action">Consultar pelo WhatsApp ↗</span>
                   </PaymentCard>
                 ))}
               </PaymentMethods>
@@ -320,10 +523,43 @@ const Home = () => {
         </Contact>
       </Main>
       <Footer>
-        <FooterBrand>
-          <img src={boutiqueLogo} alt="" />
-        </FooterBrand>
-        <small>© {new Date().getFullYear()} Bella Chic Boutique · Todos os direitos reservados.</small>
+        <FooterContent>
+          <div className="footer-about">
+            <FooterBrand>
+              <img src={boutiqueLogo} alt="Bella Chic Boutique" />
+            </FooterBrand>
+            <FooterMessage>Moda com afeto, do nosso jeito.</FooterMessage>
+            <FooterSocialLink href={storeConfig.instagramUrl} target="_blank" rel="noopener noreferrer">
+              Instagram <span aria-hidden="true">↗</span>
+            </FooterSocialLink>
+          </div>
+          <FooterNavigation aria-label="Links do rodapé">
+            <strong>Explore</strong>
+            <a href="#inicio">Início</a>
+            <a href="#colecao">Nossa coleção</a>
+            <a href="#contato">Contato e pagamentos</a>
+          </FooterNavigation>
+          <FooterContact>
+            <strong>Fale com a gente</strong>
+            <p>Estamos em Belém e Ananindeua para ajudar você a escolher sua próxima peça.</p>
+            <FooterContactButton
+              href={createWhatsAppUrl(
+                'Olá! Gostaria de falar com a Bella Chic Boutique.',
+                storeConfig.whatsappContacts[0].number
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M20.2 3.8A11.4 11.4 0 0 0 2.3 17.6L.8 23l5.5-1.4A11.4 11.4 0 0 0 20.2 3.8ZM12 20.6a9.4 9.4 0 0 1-4.8-1.3l-.4-.2-3.3.9.9-3.2-.2-.4A9.4 9.4 0 1 1 12 20.6Z" />
+              </svg>
+              Chamar no WhatsApp <span aria-hidden="true">↗</span>
+            </FooterContactButton>
+          </FooterContact>
+        </FooterContent>
+        <FooterBottom>
+          <span>© {new Date().getFullYear()} Bella Chic Boutique · Todos os direitos reservados.</span>
+        </FooterBottom>
       </Footer>
       <CartDrawer
         isOpen={isCartOpen}

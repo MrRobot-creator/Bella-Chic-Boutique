@@ -1,7 +1,15 @@
-import { FormEvent, MouseEvent, useEffect, useState } from 'react'
+import { ChangeEvent, FormEvent, MouseEvent, useEffect, useRef, useState } from 'react'
 import { storeConfig } from '../../config/store'
 import { CartItem, PaymentMethod } from '../../types/store'
 import { createOrderMessage, createOrderReference, createWhatsAppUrl } from '../../services/whatsapp'
+import {
+  calculateDeliveryFee,
+  DeliveryCity,
+  identifyDeliveryCity,
+  lookupViaCepPostalCode,
+  searchViaCepAddresses,
+  ViaCepAddress
+} from '../../services/delivery'
 import {
   CloseButton,
   Drawer,
@@ -42,11 +50,115 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
   const [postalCode, setPostalCode] = useState('')
   const [referencePoint, setReferencePoint] = useState('')
   const [deliveryNotes, setDeliveryNotes] = useState('')
+  const [deliveryCity, setDeliveryCity] = useState<DeliveryCity | ''>('')
+  const [addressSuggestions, setAddressSuggestions] = useState<ViaCepAddress[]>([])
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false)
+  const [addressLookupMessage, setAddressLookupMessage] = useState('')
   const [payment, setPayment] = useState<PaymentMethod>('Cartão de crédito')
+  const cepLookupRequest = useRef<AbortController | null>(null)
+  const selectedStreetFromLookup = useRef('')
   const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
   const selectedUnit = storeConfig.units.find((unit) => unit.id === selectedUnitId) || storeConfig.units[0]
   const availableContacts = storeConfig.whatsappContacts.filter((contact) => contact.unitId === selectedUnit.id)
   const selectedContact = availableContacts.find((contact) => contact.id === selectedContactId) || availableContacts[0]
+  const deliveryFee = fulfillment === 'Entrega'
+    ? deliveryCity ? calculateDeliveryFee(selectedUnit.city, deliveryCity) : null
+    : 0
+
+  useEffect(() => {
+    if (
+      !isOpen ||
+      fulfillment !== 'Entrega' ||
+      !deliveryCity ||
+      street.trim().length < 3 ||
+      street.trim() === selectedStreetFromLookup.current
+    ) {
+      setAddressSuggestions([])
+      setIsSearchingAddress(false)
+      return undefined
+    }
+
+    const controller = new AbortController()
+    const debounce = window.setTimeout(() => {
+      setIsSearchingAddress(true)
+      setAddressLookupMessage('')
+      searchViaCepAddresses(deliveryCity, street, controller.signal)
+        .then((addresses) => {
+          setAddressSuggestions(addresses.slice(0, 6))
+          if (!addresses.length) setAddressLookupMessage('Nenhum endereço encontrado. Você pode continuar preenchendo manualmente.')
+        })
+        .catch((error: Error) => {
+          if (error.name !== 'AbortError') {
+            setAddressSuggestions([])
+            setAddressLookupMessage(`Não foi possível buscar endereços no ViaCEP: ${error.message}`)
+          }
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setIsSearchingAddress(false)
+        })
+    }, 450)
+
+    return () => {
+      window.clearTimeout(debounce)
+      controller.abort()
+    }
+  }, [deliveryCity, fulfillment, isOpen, street])
+
+  useEffect(() => () => cepLookupRequest.current?.abort(), [])
+
+  const chooseAddress = (address: ViaCepAddress) => {
+    selectedStreetFromLookup.current = address.logradouro
+    setStreet(address.logradouro)
+    setNeighborhood(address.bairro)
+    setPostalCode(address.cep)
+    setAddressSuggestions([])
+    setAddressLookupMessage('Endereço preenchido pelo ViaCEP.')
+  }
+
+  const handlePostalCodeChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value
+    const digits = value.replace(/\D/g, '').slice(0, 8)
+    const formatted = digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits
+    setPostalCode(formatted)
+    selectedStreetFromLookup.current = ''
+
+    if (digits.length !== 8) {
+      cepLookupRequest.current?.abort()
+      return
+    }
+
+    cepLookupRequest.current?.abort()
+    const controller = new AbortController()
+    cepLookupRequest.current = controller
+    setAddressLookupMessage('')
+
+    lookupViaCepPostalCode(digits, controller.signal)
+      .then((address) => {
+        if (controller.signal.aborted) return
+        if (!address) {
+          setAddressLookupMessage('CEP não encontrado. Confira o número ou preencha o endereço manualmente.')
+          return
+        }
+
+        if (address.logradouro) {
+          selectedStreetFromLookup.current = address.logradouro
+          setStreet(address.logradouro)
+        }
+        if (address.bairro) setNeighborhood(address.bairro)
+        const detectedCity = identifyDeliveryCity(address.localidade, address.bairro)
+        setDeliveryCity(
+          detectedCity === 'Belém' && deliveryCity === 'Icoaraci'
+            ? 'Icoaraci'
+            : detectedCity || ''
+        )
+        setAddressLookupMessage('Endereço preenchido pelo CEP.')
+      })
+      .catch((error: Error) => {
+        if (error.name !== 'AbortError') {
+          setAddressLookupMessage(`Não foi possível consultar o CEP no ViaCEP: ${error.message}`)
+        }
+      })
+  }
 
   useEffect(() => {
     const contactsForUnit = storeConfig.whatsappContacts.filter((contact) => contact.unitId === selectedUnitId)
@@ -76,6 +188,11 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (fulfillment === 'Entrega' && (!deliveryCity || deliveryFee === null)) {
+      setAddressLookupMessage('Selecione o município de entrega para calcular o frete antes de confirmar o pedido.')
+      return
+    }
+
     const reference = createOrderReference()
     const orderMessage = createOrderMessage(items, {
       reference,
@@ -91,9 +208,10 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
       complement: fulfillment === 'Entrega' ? complement.trim() : '',
       neighborhood: fulfillment === 'Entrega' ? neighborhood.trim() : '',
       postalCode: fulfillment === 'Entrega' ? postalCode.trim() : '',
+      deliveryCity: fulfillment === 'Entrega' ? deliveryCity : '',
       referencePoint: fulfillment === 'Entrega' ? referencePoint.trim() : '',
       deliveryNotes: fulfillment === 'Entrega' ? deliveryNotes.trim() : '',
-      deliveryFee: fulfillment === 'Entrega' ? null : 0,
+      deliveryFee,
       payment,
       subtotal: total
     })
@@ -144,8 +262,17 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
 
             <Summary>
               <div className="subtotal"><span>Subtotal</span><span>{formatPrice(total)}</span></div>
-              <p>Frete e prazo de entrega confirmados com a atendente pelo WhatsApp.</p>
-              <Total><span>Total dos produtos</span><strong>{formatPrice(total)}</strong></Total>
+              <p>
+                {fulfillment !== 'Entrega'
+                  ? 'Retirada na loja sem taxa de entrega.'
+                  : deliveryFee === null
+                    ? 'Selecione o município para calcular o frete.'
+                    : `Taxa de entrega para ${deliveryCity}: ${formatPrice(deliveryFee)}.`}
+              </p>
+              <Total>
+                <span>Total {fulfillment === 'Entrega' ? '(com entrega)' : '(retirada)'}</span>
+                <strong>{deliveryFee === null ? 'Aguardando município' : formatPrice(total + deliveryFee)}</strong>
+              </Total>
             </Summary>
 
             <form className="checkout-form" onSubmit={handleSubmit}>
@@ -185,7 +312,37 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
                   <legend>Endereço para entrega</legend>
                   <label>
                     Rua / Avenida
-                    <input value={street} onChange={(event) => setStreet(event.target.value)} autoComplete="address-line1" placeholder="Nome da rua ou avenida" required />
+                    <input
+                      value={street}
+                      onChange={(event) => {
+                        selectedStreetFromLookup.current = ''
+                        setStreet(event.target.value)
+                        setAddressLookupMessage('')
+                      }}
+                      autoComplete="address-line1"
+                      placeholder={deliveryCity ? 'Digite ao menos 3 letras para buscar' : 'Selecione primeiro o município'}
+                      required
+                    />
+                    {isSearchingAddress && <span className="address-status" role="status">Buscando endereços…</span>}
+                    {addressSuggestions.length > 0 && (
+                      <ul className="address-suggestions" role="listbox" aria-label="Sugestões de endereço ViaCEP">
+                        {addressSuggestions.map((address) => (
+                          <li key={`${address.cep}-${address.logradouro}`} role="presentation">
+                            <button
+                              type="button"
+                              role="option"
+                              aria-selected="false"
+                              onClick={() => chooseAddress(address)}
+                            >
+                              <strong>{address.logradouro}</strong>
+                              <span>{[address.bairro, address.localidade, address.cep].filter(Boolean).join(' · ')}</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {addressLookupMessage && <span className="address-status" role="status">{addressLookupMessage}</span>}
+                    <span className="address-hint">Sugestões pelo ViaCEP após informar município e 3 letras do logradouro.</span>
                   </label>
                   <label>
                     Número da casa
@@ -200,8 +357,33 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
                     <input value={neighborhood} onChange={(event) => setNeighborhood(event.target.value)} autoComplete="address-level3" placeholder="Seu bairro" required />
                   </label>
                   <label>
+                    Município / região
+                    <select
+                      value={deliveryCity}
+                      onChange={(event) => setDeliveryCity(event.target.value as DeliveryCity | '')}
+                      required
+                    >
+                      <option value="">Selecione o município</option>
+                      <option value="Belém">Belém</option>
+                      <option value="Ananindeua">Ananindeua</option>
+                      <option value="Marituba">Marituba</option>
+                      <option value="Icoaraci">Icoaraci</option>
+                    </select>
+                  </label>
+                  {deliveryFee !== null && (
+                    <p className="delivery-fee" role="status">
+                      Entrega de {selectedUnit.city} para {deliveryCity}: <strong>{formatPrice(deliveryFee)}</strong>
+                    </p>
+                  )}
+                  <label>
                     CEP <span className="optional">(opcional)</span>
-                    <input value={postalCode} onChange={(event) => setPostalCode(event.target.value)} autoComplete="postal-code" inputMode="numeric" placeholder="00000-000" />
+                    <input
+                      value={postalCode}
+                      onChange={handlePostalCodeChange}
+                      autoComplete="postal-code"
+                      inputMode="numeric"
+                      placeholder="00000-000"
+                    />
                   </label>
                   <label>
                     Ponto de referência <span className="optional">(opcional)</span>
@@ -228,7 +410,7 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
                   Pix <span>a atendente envia os dados para pagamento no WhatsApp</span>
                 </label>
               </fieldset>
-              <WhatsAppButton type="submit">
+              <WhatsAppButton type="submit" disabled={fulfillment === 'Entrega' && deliveryFee === null}>
                 Confirmar pedido com a atendente
                 <span aria-hidden="true">↗</span>
               </WhatsAppButton>

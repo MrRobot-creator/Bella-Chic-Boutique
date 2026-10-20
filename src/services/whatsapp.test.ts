@@ -36,9 +36,10 @@ describe('WhatsApp order checkout', () => {
       complement: 'Apto 402',
       neighborhood: 'Centro',
       postalCode: '66050-000',
+      deliveryCity: 'Belém',
       referencePoint: 'Praça central',
       deliveryNotes: 'Deixar na portaria',
-      deliveryFee: null,
+      deliveryFee: 15,
       payment: 'Pix',
       subtotal: 379.8
     })
@@ -57,14 +58,15 @@ describe('WhatsApp order checkout', () => {
     expect(message).toContain('Atendente: Cidade Nova — atendente 2 (+5591986066894)')
     expect(message).toContain('Endereço: Rua das Flores, 10')
     expect(message).toContain('Bairro: Centro')
+    expect(message).toContain('Município/região: Belém')
     expect(message).toContain('CEP: 66050-000')
     expect(message).toContain('Apto 402')
     expect(message).toContain('Ponto de referência: Praça central')
     expect(message).toContain('Observação: Deixar na portaria')
     expect(message).toContain('Aguardo as instruções de pagamento Pix da atendente.')
     expect(normalizedMessage).toContain('Subtotal: R$ 379,80')
-    expect(normalizedMessage).toContain('Taxa de entrega: a confirmar com a atendente')
-    expect(normalizedMessage).toContain('TOTAL: a confirmar após calcular o frete')
+    expect(normalizedMessage).toContain('Taxa de entrega: R$ 15,00')
+    expect(normalizedMessage).toContain('TOTAL: R$ 394,80')
     expect(message).not.toContain('E-mail:')
   })
 
@@ -83,6 +85,7 @@ describe('WhatsApp order checkout', () => {
       complement: '',
       neighborhood: '',
       postalCode: '',
+      deliveryCity: '',
       referencePoint: '',
       deliveryNotes: '',
       deliveryFee: 0,

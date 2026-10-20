@@ -4,12 +4,14 @@ export const storeConfig = {
     {
       id: 'galeria-portuense',
       name: 'Galeria Portuense',
-      address: 'Tv. Padre Eutíquio, 105 - Batista Campos'
+      address: 'Tv. Padre Eutíquio, 105 - Batista Campos',
+      city: 'Belém' as const
     },
     {
       id: 'cidade-nova-04',
       name: 'Cidade Nova 04',
-      address: 'Av. Dr. Nonato Sanova, 161A - Cidade Nova, Ananindeua'
+      address: 'Av. Dr. Nonato Sanova, 161A - Cidade Nova, Ananindeua',
+      city: 'Ananindeua' as const
     }
   ],
   whatsappContacts: [
