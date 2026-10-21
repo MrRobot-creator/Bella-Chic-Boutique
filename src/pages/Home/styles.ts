@@ -150,10 +150,11 @@ export const StoreCarousel = styled.div`
   overflow: hidden;
   background: #f8e8eb;
   border-radius: 8px;
-  height: clamp(240px, 35vw, 320px);
+  height: clamp(260px, 38vw, 340px);
+  box-shadow: 0 4px 16px rgba(121, 86, 93, 0.08);
   @media (max-width: 640px) {
-    border-radius: 0;
-    height: 260px;
+    border-radius: 6px;
+    height: 240px;
   }
 `
 
@@ -195,7 +196,7 @@ export const StoreSlideImage = styled.img`
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
   background: #f8e8eb;
 `
@@ -222,9 +223,9 @@ export const ContactContent = styled.div`
     .store-carousel { border-radius: 0; }
     .store-carousel > img { height: 320px; object-fit: cover; }
   }
-  .store-caption { position: absolute; right: 0; bottom: 53px; left: 0; display: flex; flex-direction: column; gap: 5px; padding: 42px 20px 16px; background: linear-gradient(transparent, #241b1bd9); color: white; }
-  .store-caption strong { font: 22px Georgia, serif; }
-  .store-caption span { font-size: 11px; }
+  .store-caption { position: absolute; right: 0; bottom: 48px; left: 0; display: flex; flex-direction: column; gap: 4px; padding: 32px 18px 14px; background: linear-gradient(transparent, rgba(36, 27, 27, 0.45)); color: white; }
+  .store-caption strong { font: 20px Georgia, serif; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+  .store-caption span { font-size: 11px; opacity: 0.95; }
   .store-controls { position: absolute; right: 14px; bottom: 12px; left: 14px; display: flex; align-items: center; justify-content: space-between; }
   .store-controls > button { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid #ffffffa8; border-radius: 50%; background: #ffffffea; color: #634b4f; cursor: pointer; transition: transform .2s, background .2s; }
   .store-controls > button:hover { transform: scale(1.08); background: white; }

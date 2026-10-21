@@ -115,6 +115,19 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
     setAddressLookupMessage('Endereço preenchido pelo ViaCEP.')
   }
 
+  const handlePhoneChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value.replace(/\D/g, '').slice(0, 11)
+    let formatted = value
+    if (value.length > 2 && value.length <= 6) {
+      formatted = `(${value.slice(0, 2)}) ${value.slice(2)}`
+    } else if (value.length > 6 && value.length <= 10) {
+      formatted = `(${value.slice(0, 2)}) ${value.slice(2, 6)}-${value.slice(6)}`
+    } else if (value.length > 10) {
+      formatted = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`
+    }
+    setPhone(formatted)
+  }
+
   const handlePostalCodeChange = (event: ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value
     const digits = value.replace(/\D/g, '').slice(0, 8)
@@ -298,7 +311,7 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
               </label>
               <label>
                 Seu WhatsApp
-                <input value={phone} onChange={(event) => setPhone(event.target.value)} type="tel" autoComplete="tel" placeholder="(11) 99999-9999" required />
+                <input value={phone} onChange={handlePhoneChange} type="tel" autoComplete="tel" placeholder="(91) 99999-9999" required />
               </label>
               <label>
                 Como deseja receber?
