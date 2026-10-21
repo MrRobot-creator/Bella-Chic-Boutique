@@ -1,5 +1,59 @@
 import styled from 'styled-components'
 
+export const ProductWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 1200px;
+  margin: auto;
+  padding: 20px;
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+    .thumbnail {
+      flex-direction: row;
+      max-height: unset;
+      overflow-x: auto;
+      justify-content: center;
+    }
+    img {
+      max-width: 90%;
+      margin: auto;
+    }
+    padding: 16px;
+  }
+`
+
+export const GalleryArea = styled.div`
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  border: 1px solid #eee;
+  background: #fff;
+  margin-bottom: 24px;
+  img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    border-radius: 6px;
+  }
+  .main-image {
+    flex: 1 1 calc(60% - 10px);
+  }
+  .thumbnail {
+    flex: 1 1 calc(40% - 10px);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: scroll;
+    max-height: 400px;
+  }
+`
+
 export const Card = styled.article`
   display: flex;
   height: 100%;
@@ -193,26 +247,21 @@ export const DialogBackdrop = styled.div`
 
 export const DialogContent = styled.div`
   position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, .85fr);
-  width: min(880px, 100%);
-  max-height: min(760px, calc(100vh - 40px));
-  min-height: 0;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  width: min(540px, 100%);
+  max-height: min(90vh, calc(100vh - 40px));
+  overflow-y: auto;
   background: #fff;
+  border-radius: 12px;
   box-shadow: 0 24px 70px #1c121440;
   animation: rise-in .22s ease-out;
   @keyframes rise-in { from { transform: translateY(8px); } to { transform: translateY(0); } }
-  @media (max-width: 680px) {
-    grid-template-columns: minmax(0, 1fr) minmax(250px, .9fr);
-  }
   @media (max-width: 560px) {
-    grid-template-columns: 1fr;
     width: 100%;
     height: 100dvh;
     max-height: 100dvh;
-    min-height: 0;
-    overflow-y: auto;
+    border-radius: 0;
   }
 `
 
@@ -222,14 +271,56 @@ export const DialogImageArea = styled.div<{ $zoomed: boolean }>`
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  min-height: 420px;
+  height: 380px;
   overflow: hidden;
   background: linear-gradient(145deg, #f7eeee, #fffaf9);
   cursor: ${({ $zoomed }) => ($zoomed ? 'grab' : 'zoom-in')};
   &:active { cursor: ${({ $zoomed }) => ($zoomed ? 'grabbing' : 'zoom-in')}; }
   .sold-out { position: absolute; inset: 0; display: grid; place-items: center; background: #392c2c80; color: #fff; font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
-  @media (max-width: 680px) { min-height: 360px; }
-  @media (max-width: 560px) { min-height: 0; height: min(52vh, 460px); }
+  @media (max-width: 560px) { height: 300px; }
+`
+
+export const DialogThumbnails = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #fdf9f8;
+  border-top: 1px solid #f1e9e7;
+  border-bottom: 1px solid #f1e9e7;
+  overflow-x: auto;
+  max-width: 100%;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #e0d0cf;
+    border-radius: 4px;
+  }
+`
+
+export const DialogThumbnailButton = styled.button<{ $active: boolean }>`
+  flex: 0 0 58px;
+  width: 58px;
+  height: 66px;
+  padding: 0;
+  border: 2px solid ${({ $active }) => ($active ? '#8c6066' : '#e6dddd')};
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition: border-color .2s, transform .2s, box-shadow .2s;
+  box-shadow: ${({ $active }) => ($active ? '0 4px 12px rgba(140, 96, 102, .2)' : 'none')};
+  &:hover { transform: scale(1.05); }
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 `
 
 export const DialogImageButton = styled.button`

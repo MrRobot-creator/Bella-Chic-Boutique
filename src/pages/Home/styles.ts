@@ -110,7 +110,11 @@ export const ContactContent = styled.div`
   .about-copy h2 em { color: #b77c85; font-weight: 400; }
   .about-copy p { margin-top: 16px; color: #79696b; font-size: 13px; line-height: 1.9; }
   .store-carousel { position: relative; overflow: hidden; background: #eadbdc; border-radius: 8px; }
-  .store-carousel > img { display: block; width: 100%; height: clamp(240px, 45vw, 390px); object-fit: contain; background: #eadbdc; transition: opacity .25s; }
+  .store-carousel > img { display: block; width: 100%; height: clamp(280px, 50vw, 390px); object-fit: cover; object-position: center; transition: opacity .25s; }
+  @media (max-width: 640px) {
+    .store-carousel { border-radius: 0; }
+    .store-carousel > img { height: 320px; object-fit: cover; }
+  }
   .store-caption { position: absolute; right: 0; bottom: 53px; left: 0; display: flex; flex-direction: column; gap: 5px; padding: 42px 20px 16px; background: linear-gradient(transparent, #241b1bd9); color: white; }
   .store-caption strong { font: 22px Georgia, serif; }
   .store-caption span { font-size: 11px; }
