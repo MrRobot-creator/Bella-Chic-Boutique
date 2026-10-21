@@ -9,6 +9,25 @@ export const Hero = styled.section`
   overflow: hidden;
   background: #fbf7f4;
   scroll-margin-top: 82px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -120px -80px auto -80px;
+    height: 280px;
+    background: radial-gradient(circle at 20% 30%, rgba(185, 139, 145, 0.18), transparent 55%),
+      radial-gradient(circle at 72% 45%, rgba(201, 155, 161, 0.15), transparent 58%);
+    pointer-events: none;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: auto -120px -160px -120px;
+    height: 320px;
+    background: radial-gradient(circle at 50% 30%, rgba(185, 139, 145, 0.14), transparent 60%);
+    pointer-events: none;
+  }
 `
 
 export const HeroContent = styled.div`
@@ -38,6 +57,9 @@ export const HeroContent = styled.div`
 `
 
 export const HeroText = styled.div`
+  z-index: 1;
+  position: relative;
+
   .eyebrow { color: #a47479; font-size: 8px; font-weight: 600; letter-spacing: 1.6px; }
   h1 { max-width: 420px; margin: 13px 0 0; color: #503b3f; font: clamp(32px, 3.8vw, 48px)/1.08 Georgia, serif; letter-spacing: -1.2px; }
   h1 em { color: #b77c85; font-weight: 400; }
@@ -166,12 +188,14 @@ export const ContactContent = styled.div`
     transition: all 0.3s ease;
   }
   .exchange-policy.open {
-    max-height: 420px;
+    max-height: 480px;
     transform: translateY(0);
     opacity: 1;
     pointer-events: auto;
     overflow: visible;
     transition: max-height .35s ease, opacity .25s ease, border-color .3s ease, background .3s ease, box-shadow .3s ease;
+    padding: 22px 24px;
+    margin-bottom: 24px;
   }
 
   .exchange-policy.highlighted {
@@ -183,11 +207,16 @@ export const ContactContent = styled.div`
   .exchange-policy.open.highlighted {
     background: #fff9fa;
   }
+  .exchange-policy-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
   .exchange-policy .policy-badge {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    margin-bottom: 12px;
     padding: 4px 10px;
     border-radius: 999px;
     background: #f8eeee;
@@ -197,10 +226,33 @@ export const ContactContent = styled.div`
     letter-spacing: 0.5px;
     text-transform: uppercase;
   }
+  .policy-close-btn {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: 1px solid #e7d7d8;
+    border-radius: 50%;
+    background: #fff;
+    color: #79565d;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .policy-close-btn:hover {
+    background: #79565d;
+    color: #fff;
+    border-color: #79565d;
+  }
+  .exchange-policy h3 {
+    margin-bottom: 12px;
+    color: #533f42;
+    font: 18px Georgia, serif;
+  }
   .exchange-policy ul { display: grid; gap: 10px; margin: 0; padding-left: 20px; color: #79696b; font-size: 12.5px; line-height: 1.7; }
   .exchange-policy li::marker { color: #b77c85; }
   .exchange-policy .policy-note {
-    margin-top: 14px;
+    margin-top: 16px;
     color: #9d6c74;
     font-size: 11px;
     font-style: italic;
@@ -353,6 +405,11 @@ export const Catalog = styled.section`
 
 export const CatalogHeader = styled.div`
   display: flex;
+
+  @media (prefers-reduced-motion: no-preference) {
+    opacity: 1;
+    transform: translateY(0);
+  }
   align-items: flex-end;
   justify-content: space-between;
   gap: 24px;

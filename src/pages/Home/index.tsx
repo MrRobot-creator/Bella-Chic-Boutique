@@ -543,17 +543,27 @@ const Home = () => {
               className={`payments exchange-policy ${selectedPaymentInfo === 'Link de pagamento' ? 'highlighted' : ''} ${isExchangePolicyOpen ? 'open' : 'closed'}`}
               aria-hidden={!isExchangePolicyOpen}
               tabIndex={-1}
-            role="region"
-            aria-label="Condições de troca e devolução"
+              role="region"
+              aria-label="Condições de troca e devolução"
             >
+              <div className="exchange-policy-header">
+                <span className="policy-badge">Política Oficial</span>
+                <button
+                  type="button"
+                  className="policy-close-btn"
+                  onClick={() => setIsExchangePolicyOpen(false)}
+                  aria-label="Fechar política de trocas"
+                >
+                  ✕
+                </button>
+              </div>
               <h3>Condições de troca e devolução</h3>
-              {selectedPaymentInfo === 'Link de pagamento'} 
               <ul>
                 <li>Não trocamos peças promocionais, nem adquiridas em live shop.</li>
                 <li>O prazo para solicitação de troca é de até 5 dias corridos após o recebimento.</li>
                 <li>A taxa de entrega/frete da troca é por conta da cliente.</li>
               </ul>
-              {selectedPaymentInfo === 'Link de pagamento'}
+              <span className="policy-note">Dúvidas? Fale com nossa equipe pelo WhatsApp.</span>
             </div>
             <div id="pagamentos" className="payments">
               <h3>Formas de pagamento</h3>

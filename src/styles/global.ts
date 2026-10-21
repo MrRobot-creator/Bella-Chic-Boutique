@@ -13,6 +13,10 @@ const GlobalStyle = createGlobalStyle`
   body {
     background-color: #fff;
     color: #503b3f;
+    background-image: radial-gradient(circle at 10% 10%, rgba(185, 139, 145, 0.08), transparent 40%),
+      radial-gradient(circle at 90% 20%, rgba(201, 155, 161, 0.09), transparent 45%),
+      radial-gradient(circle at 60% 85%, rgba(185, 139, 145, 0.06), transparent 50%);
+    background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
   }
 
