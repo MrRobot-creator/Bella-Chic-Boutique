@@ -70,6 +70,32 @@ describe('WhatsApp order checkout', () => {
     expect(message).not.toContain('E-mail:')
   })
 
+  it('formats payment details correctly for Link de pagamento', () => {
+    const message = createOrderMessage(items, {
+      reference: 'BELLA789',
+      name: 'Carla',
+      phone: '91988887777',
+      unitName: 'Galeria Portuense',
+      unitAddress: 'Tv. Padre Eutíquio, 105',
+      attendant: 'Galeria Portuense',
+      storePhone: '5591980648559',
+      fulfillment: 'Retirada na loja',
+      street: '',
+      houseNumber: '',
+      complement: '',
+      neighborhood: '',
+      postalCode: '',
+      deliveryCity: '',
+      referencePoint: '',
+      deliveryNotes: '',
+      deliveryFee: 0,
+      payment: 'Link de pagamento',
+      subtotal: 379.8
+    })
+
+    expect(message).toContain('Link de pagamento — aguardo o envio do link seguro pela atendente.')
+  })
+
   it('omits delivery address fields for store pickup', () => {
     const message = createOrderMessage(items, {
       reference: 'BELLA456',

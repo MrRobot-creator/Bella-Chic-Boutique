@@ -19,4 +19,4 @@ export type CartItem = {
   quantity: number
 }
 
-export type PaymentMethod = 'Pix' | 'Cartão de crédito' | 'Dinheiro'
+export type PaymentMethod = 'Pix' | 'Cartão de crédito' | 'Dinheiro' | 'Link de pagamento'

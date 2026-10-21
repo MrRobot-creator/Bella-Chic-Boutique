@@ -86,7 +86,8 @@ export const ShowcaseImage = styled.img`
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   transition: transform .45s;
 `
 
@@ -94,7 +95,9 @@ export const ShowcaseLink = styled.a`
   position: relative;
   flex: 0 0 100%;
   width: 100%;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   aspect-ratio: 1.16 / 1;
   overflow: hidden;
   border: 1px solid #f0e4e2;
@@ -127,9 +130,84 @@ export const ContactContent = styled.div`
   width: min(950px, 100%);
   margin: 0 auto;
   > .social-links { display: flex; margin-top: 17px; }
+  .about-store { display: grid; grid-template-columns: .85fr 1.15fr; align-items: center; gap: clamp(28px, 6vw, 72px); margin-bottom: 56px; padding-bottom: 48px; border-bottom: 1px solid #eadbdc; }
+  .about-copy .eyebrow { color: #a47479; font-size: 9px; letter-spacing: 1.8px; }
+  .about-copy h2 { margin-top: 10px; color: #533f42; font: clamp(30px, 4vw, 42px)/1.12 Georgia, serif; }
+  .about-copy h2 em { color: #b77c85; font-weight: 400; }
+  .about-copy p { margin-top: 16px; color: #79696b; font-size: 13px; line-height: 1.9; }
+  .store-carousel { position: relative; overflow: hidden; background: #eadbdc; }
+  .store-carousel > img { display: block; width: 100%; height: clamp(260px, 35vw, 390px); object-fit: cover; transition: opacity .25s; }
+  .store-caption { position: absolute; right: 0; bottom: 53px; left: 0; display: flex; flex-direction: column; gap: 5px; padding: 42px 20px 16px; background: linear-gradient(transparent, #241b1bd9); color: white; }
+  .store-caption strong { font: 22px Georgia, serif; }
+  .store-caption span { font-size: 11px; }
+  .store-controls { position: absolute; right: 14px; bottom: 12px; left: 14px; display: flex; align-items: center; justify-content: space-between; }
+  .store-controls > button { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid #ffffffa8; border-radius: 50%; background: #ffffffea; color: #634b4f; cursor: pointer; transition: transform .2s, background .2s; }
+  .store-controls > button:hover { transform: scale(1.08); background: white; }
+  .store-dots { display: flex; gap: 8px; }
+  .store-dots button { width: 9px; height: 9px; padding: 0; border: 1px solid white; border-radius: 50%; background: transparent; cursor: pointer; }
+  .store-dots button[aria-current="true"] { background: white; }
+  .store-controls button:focus-visible { outline: 2px solid #76535a; outline-offset: 3px; }
+  @media (max-width: 640px) { .about-store { grid-template-columns: 1fr; gap: 24px; margin-bottom: 40px; padding-bottom: 36px; } }
   .payments { margin-top: 42px; padding-top: 30px; border-top: 1px solid #eadbdc; }
   .payments h3 { margin-bottom: 15px; color: #5a4347; font: 22px Georgia, serif; }
   .payments > p { margin-top: 12px; color: #8c7c7d; font-size: 11px; }
+  .exchange-policy {
+    position: relative;
+    border-radius: 4px;
+    max-height: 0;
+    margin-top: 0;
+    transform: translateY(-6px);
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    padding: 16px 20px;
+    background: #fffdfb;
+    border: 1px solid #eadbdc;
+    transition: all 0.3s ease;
+  }
+  .exchange-policy.open {
+    max-height: 420px;
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+    overflow: visible;
+    transition: max-height .35s ease, opacity .25s ease, border-color .3s ease, background .3s ease, box-shadow .3s ease;
+  }
+
+  .exchange-policy.highlighted {
+    border-color: #c99ba1;
+    background: #fff9fa;
+    box-shadow: 0 4px 18px rgba(121, 86, 93, 0.08);
+  }
+
+  .exchange-policy.open.highlighted {
+    background: #fff9fa;
+  }
+  .exchange-policy .policy-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #f8eeee;
+    color: #8c5b63;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .exchange-policy ul { display: grid; gap: 10px; margin: 0; padding-left: 20px; color: #79696b; font-size: 12.5px; line-height: 1.7; }
+  .exchange-policy li::marker { color: #b77c85; }
+  .exchange-policy .policy-note {
+    margin-top: 14px;
+    color: #9d6c74;
+    font-size: 11px;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
 `
 
 export const ContactHeader = styled.div`
@@ -193,24 +271,43 @@ export const ContactLink = styled.a<{ $primary?: boolean }>`
 
 export const PaymentMethods = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
+  @media (max-width: 680px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   @media (max-width: 500px) { gap: 7px; }
 `
 
-export const PaymentCard = styled.a`
+export const PaymentCard = styled.button<{ $active?: boolean }>`
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
   flex-direction: column;
   gap: 7px;
   min-height: 132px;
   padding: 12px;
-  border: 1px solid #eadbdc;
-  background: #fffdfb;
+  border: 1px solid ${({ $active }) => ($active ? '#79565d' : '#eadbdc')};
+  border-radius: 4px;
+  background: ${({ $active }) => ($active ? '#fff7f8' : '#fffdfb')};
   color: #604a4e;
-  text-decoration: none;
-  transition: transform .2s, border-color .2s, box-shadow .2s;
-  &:hover { transform: translateY(-2px); border-color: #cba9ad; box-shadow: 0 6px 18px #79575912; }
+  cursor: pointer;
+  width: 100%;
+  font: inherit;
+  transition: all 0.2s ease;
+  box-shadow: ${({ $active }) => ($active ? '0 3px 12px rgba(121, 86, 93, 0.12)' : 'none')};
+
+  &:hover {
+    border-color: #ab7d84;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(121, 86, 93, 0.08);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #79565d;
+    outline-offset: 2px;
+  }
+
   .payment-visual {
     display: grid;
     place-items: center;
@@ -219,6 +316,7 @@ export const PaymentCard = styled.a`
     border-radius: 3px;
     background: #f8eeee;
     color: #9d6c74;
+    transition: background 0.2s ease, color 0.2s ease;
   }
   .payment-visual svg { display: block; width: 38px; height: 38px; fill: currentColor; }
   .payment-visual.card { background: #f4e4e5; }
@@ -228,8 +326,10 @@ export const PaymentCard = styled.a`
   .payment-visual.card .card-chip { fill: #e6c991; }
   .payment-visual.card .card-contactless { fill: none; stroke: #fff; stroke-linecap: round; stroke-width: 2; }
   .payment-visual.cash svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
-  strong { font: 13px Georgia, serif; }
-  .payment-action { margin-top: auto; color: #98777c; font-size: 8px; }
+  .payment-visual.link { background: #faeff0; }
+  .payment-visual.link svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2.2; }
+  strong { font: 13px Georgia, serif; text-align: center; color: #533f42; }
+  small { font-size: 10px; color: #a47479; text-align: center; }
   @media (max-width: 500px) {
     align-items: center;
     min-height: 120px;
@@ -239,7 +339,7 @@ export const PaymentCard = styled.a`
     .payment-visual svg { width: 32px; height: 32px; }
     .payment-visual.card svg { width: 46px; height: 33px; }
     strong { font-size: 11px; text-align: center; }
-    .payment-action { font-size: 7px; text-align: center; }
+    small { font-size: 9px; }
   }
 `
 

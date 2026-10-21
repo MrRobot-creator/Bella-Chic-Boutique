@@ -1,4 +1,4 @@
-import { HeaderBar, HeaderContent, Brand, BrandMark, Navigation, CartButton, Announcement } from './styles'
+import { HeaderBar, HeaderContent, Brand, BrandMark, CartButton, Announcement } from './styles'
 import boutiqueLogo from '../../assets/bella-chic-logo.jpg'
 
 type BoutiqueHeaderProps = {
@@ -17,10 +17,6 @@ const BoutiqueHeader = ({ cartCount, onCartClick }: BoutiqueHeaderProps) => (
             <span className="brand-copy"><strong>Bella Chic</strong><small>BOUTIQUE</small></span>
           </Brand>
         </a>
-        <Navigation aria-label="Navegação principal">
-          <a href="#colecao">Coleção</a>
-          <a href="#contato">Contato</a>
-        </Navigation>
         <CartButton type="button" onClick={onCartClick} aria-label={`Abrir sacola, ${cartCount} itens`}>
           <span aria-hidden="true">♡</span>
           <span className="cart-label">Sacola</span>

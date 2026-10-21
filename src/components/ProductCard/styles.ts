@@ -11,6 +11,9 @@ export const Card = styled.article`
 
 export const ImageArea = styled.div`
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
   aspect-ratio: 4 / 5;
   border-radius: 3px 3px 0 0;
@@ -33,7 +36,8 @@ export const ImageTrigger = styled.button`
 export const Image = styled.img`
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   transition: transform .5s;
   ${Card}:hover & { transform: scale(1.04); }
 `
@@ -172,6 +176,9 @@ export const DialogContent = styled.div`
 
 export const DialogImageArea = styled.div`
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: 420px;
   overflow: hidden;
   background: #f5eeee;
@@ -185,7 +192,8 @@ export const DialogImage = styled.img`
   width: 100%;
   height: 100%;
   min-height: inherit;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
   @media (max-width: 560px) { min-height: 0; }
 `
 

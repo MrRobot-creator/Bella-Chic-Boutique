@@ -77,6 +77,8 @@ export const createOrderMessage = (items: CartItem[], order: OrderDetails) => {
     '\u{1F4B3} *FORMA DE PAGAMENTO*',
     order.payment === 'Pix'
       ? 'PIX — Aguardo as instruções de pagamento Pix da atendente.'
+      : order.payment === 'Link de pagamento'
+      ? 'Link de pagamento — aguardo o envio do link seguro pela atendente.'
       : `${order.payment} — confirmar detalhes com a atendente`,
     '',
     '_Pedido sujeito à confirmação de disponibilidade, frete e pagamento pela atendente._'

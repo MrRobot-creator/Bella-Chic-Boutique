@@ -409,6 +409,10 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
                   <input type="radio" name="payment" value="Pix" checked={payment === 'Pix'} onChange={() => setPayment('Pix')} />
                   Pix <span>a atendente envia os dados para pagamento no WhatsApp</span>
                 </label>
+                <label className="payment-option">
+                  <input type="radio" name="payment" value="Link de pagamento" checked={payment === 'Link de pagamento'} onChange={() => setPayment('Link de pagamento')} />
+                  Link de pagamento <span>receba o link seguro diretamente no WhatsApp</span>
+                </label>
               </fieldset>
               <WhatsAppButton type="submit" disabled={fulfillment === 'Entrega' && deliveryFee === null}>
                 Confirmar pedido com a atendente

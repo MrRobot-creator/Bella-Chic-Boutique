@@ -37,11 +37,8 @@ import {
   FooterBrand,
   FooterBottom,
   FooterContent,
-  FooterContact,
-  FooterContactButton,
-  FooterMessage,
+    FooterMessage,
   FooterNavigation,
-  FooterSocialLink,
   Hero,
   HeroContent,
   HeroShowcase,
@@ -58,6 +55,8 @@ import {
   StatusMessage
 } from './styles'
 import boutiqueLogo from '../../assets/bella-chic-logo.jpg'
+import firstUnitImage from '../../assets/thalita_final.jpg'
+import secondUnitImage from '../../assets/conjunto marrant.jpg'
 
 
 const Home = () => {
@@ -74,6 +73,49 @@ const Home = () => {
   const [showcaseDragOffset, setShowcaseDragOffset] = useState(0)
   const [showcaseTransitionEnabled, setShowcaseTransitionEnabled] = useState(true)
   const [activeUnitId, setActiveUnitId] = useState(storeConfig.units[0].id)
+  const [selectedPaymentInfo, setSelectedPaymentInfo] = useState<string | null>(null)
+  const [isExchangePolicyOpen, setIsExchangePolicyOpen] = useState(false)
+
+  useEffect(() => {
+    if (!isExchangePolicyOpen) return
+    // Mantém o foco no contexto do usuário após o clique no rodapé
+    const el = document.getElementById('trocas-devolucoes')
+    if (el) el.focus?.()
+  }, [isExchangePolicyOpen])
+
+  useEffect(() => {
+    if (!isExchangePolicyOpen) return
+
+    const exchangePolicyEl = document.getElementById('trocas-devolucoes')
+    if (!exchangePolicyEl) return
+
+    const onMouseDown = (event: MouseEvent) => {
+      const target = event.target
+      if (!(target instanceof Node)) return
+      if (!exchangePolicyEl.contains(target)) {
+        setIsExchangePolicyOpen(false)
+      }
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsExchangePolicyOpen(false)
+    }
+
+    document.addEventListener('mousedown', onMouseDown)
+    document.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [isExchangePolicyOpen])
+
+  const [activeStoreImage, setActiveStoreImage] = useState(0)
+  const [isStoreCarouselPaused, setIsStoreCarouselPaused] = useState(false)
+  const storeImages = [
+    { src: firstUnitImage, title: 'Galeria Portuense', description: 'Nossa unidade em Belém' },
+    { src: secondUnitImage, title: 'Cidade Nova 04', description: 'Nossa unidade em Ananindeua' }
+  ]
   const categoryMenuRef = useRef<HTMLDivElement>(null)
   const showcasePointerStart = useRef<{ x: number; y: number; pointerId: number } | null>(null)
   const suppressShowcaseClick = useRef(false)
@@ -126,6 +168,16 @@ const Home = () => {
   )
   const activeUnit = storeConfig.units.find((unit) => unit.id === activeUnitId) || storeConfig.units[0]
   const unitContacts = storeConfig.whatsappContacts.filter((contact) => contact.unitId === activeUnit.id)
+
+  useEffect(() => {
+    if (isStoreCarouselPaused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
+    const rotation = window.setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        setActiveStoreImage((index) => (index + 1) % storeImages.length)
+      }
+    }, 6000)
+    return () => window.clearInterval(rotation)
+  }, [isStoreCarouselPaused, storeImages.length])
 
   useEffect(() => {
     if (showcaseProducts.length < 2) return undefined
@@ -416,9 +468,36 @@ const Home = () => {
 
         <Contact id="contato">
           <ContactContent>
+            <section className="about-store" id="sobre-nos" aria-labelledby="about-title">
+              <div className="about-copy">
+                <span className="eyebrow">BELLA CHIC BOUTIQUE</span>
+                <h2 id="about-title">Moda com afeto, <em>para você.</em></h2>
+                <p>Somos uma boutique para mulheres que gostam de se sentir confiantes e especiais. Encontre peças escolhidas com carinho e venha nos visitar em uma de nossas duas unidades.</p>
+              </div>
+              <div
+                className="store-carousel"
+                aria-label="Conheça nossas unidades"
+                onMouseEnter={() => setIsStoreCarouselPaused(true)}
+                onMouseLeave={() => setIsStoreCarouselPaused(false)}
+                onFocus={() => setIsStoreCarouselPaused(true)}
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsStoreCarouselPaused(false)
+                }}
+              >
+                <img src={storeImages[activeStoreImage].src} alt={`Interior da unidade ${storeImages[activeStoreImage].title}`} />
+                <div className="store-caption"><strong>{storeImages[activeStoreImage].title}</strong><span>{storeImages[activeStoreImage].description}</span></div>
+                <div className="store-controls">
+                  <button type="button" aria-label="Unidade anterior" onClick={() => setActiveStoreImage((index) => (index + storeImages.length - 1) % storeImages.length)}>←</button>
+                  <div className="store-dots" aria-label={`Imagem ${activeStoreImage + 1} de ${storeImages.length}`}>
+                    {storeImages.map((image, index) => <button key={image.title} type="button" aria-label={`Ver ${image.title}`} aria-current={index === activeStoreImage} onClick={() => setActiveStoreImage(index)} />)}
+                  </div>
+                  <button type="button" aria-label="Próxima unidade" onClick={() => setActiveStoreImage((index) => (index + 1) % storeImages.length)}>→</button>
+                </div>
+              </div>
+            </section>
             <ContactHeader>
               <span className="eyebrow">BELLA CHIC BOUTIQUE</span>
-              <h2>Visite ou <em>fale com a gente</em></h2>
+              <h2><em>Fale com a gente</em></h2>
             </ContactHeader>
             <ContactUnits aria-label="Escolha uma unidade">
               {storeConfig.units.map((unit) => (
@@ -454,68 +533,103 @@ const Home = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <svg aria-hidden="true" viewBox="0 0 24 24" className="contact-icon">
-                      <path d="M20.2 3.8A11.4 11.4 0 0 0 2.3 17.6L.8 23l5.5-1.4A11.4 11.4 0 0 0 20.2 3.8ZM12 20.6a9.4 9.4 0 0 1-4.8-1.3l-.4-.2-3.3.9.9-3.2-.2-.4A9.4 9.4 0 1 1 12 20.6Zm5.2-7c-.3-.2-1.7-.9-2-.9-.3-.1-.5-.2-.7.2l-.9 1.1c-.2.2-.3.3-.6.1a7.7 7.7 0 0 1-2.3-1.4 8.6 8.6 0 0 1-1.6-2c-.2-.3 0-.5.1-.6l.5-.6.3-.5c.1-.2 0-.4 0-.6l-.9-2.1c-.2-.5-.4-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.7s1.2 3.1 1.4 3.3c.2.2 2.3 3.5 5.5 4.8.8.3 1.4.5 1.9.6.8.2 1.5.2 2 .1.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.3.1-1.4-.1-.1-.3-.2-.6-.3Z" />
-                    </svg>
-                    <span>WhatsApp · {contact.label} ↗</span>
+                    Falar conosco ↗
                   </ContactLink>
                 ))}
               </div>
             </ContactUnit>
-            <div className="social-links">
-              {storeConfig.instagramUrl && (
-                <ContactLink href={storeConfig.instagramUrl} target="_blank" rel="noopener noreferrer">
-                  <svg aria-hidden="true" viewBox="0 0 24 24" className="contact-icon instagram-icon">
-                    <rect x="3" y="3" width="18" height="18" rx="5" />
-                    <circle cx="12" cy="12" r="4" />
-                    <circle className="instagram-dot" cx="17.5" cy="6.8" r="1" />
-                  </svg>
-                  <span>Instagram Bella Chic ↗</span>
-                </ContactLink>
-              )}
+            <div
+              id="trocas-devolucoes"
+              className={`payments exchange-policy ${selectedPaymentInfo === 'Link de pagamento' ? 'highlighted' : ''} ${isExchangePolicyOpen ? 'open' : 'closed'}`}
+              aria-hidden={!isExchangePolicyOpen}
+              tabIndex={-1}
+            role="region"
+            aria-label="Condições de troca e devolução"
+            >
+              <h3>Condições de troca e devolução</h3>
+              {selectedPaymentInfo === 'Link de pagamento'} 
+              <ul>
+                <li>Não trocamos peças promocionais, nem adquiridas em live shop.</li>
+                <li>O prazo para solicitação de troca é de até 5 dias corridos após o recebimento.</li>
+                <li>A taxa de entrega/frete da troca é por conta da cliente.</li>
+              </ul>
+              {selectedPaymentInfo === 'Link de pagamento'}
             </div>
             <div id="pagamentos" className="payments">
               <h3>Formas de pagamento</h3>
               <PaymentMethods>
                 {[
-                  { name: 'Pix', icon: 'pix' },
-                  { name: 'Cartão de crédito', icon: 'card' },
-                  { name: 'Dinheiro', icon: 'cash' }
-                ].map((method) => (
-                  <PaymentCard
-                    key={method.name}
-                    href={createWhatsAppUrl(`Olá! Gostaria de saber sobre pagamento em ${method.name}.`, unitContacts[0].number)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`Consultar pagamento em ${method.name} pelo WhatsApp`}
-                  >
-                    <span className={`payment-visual ${method.icon}`} aria-hidden="true">
-                      {method.icon === 'pix' && (
-                        <svg viewBox="0 0 48 48">
-                          <path d="m24 3 8 8-8 8-8-8 8-8Zm0 26 8 8-8 8-8-8 8-8ZM3 24l8-8 8 8-8 8-8-8Zm26 0 8-8 8 8-8 8-8-8Z" />
-                        </svg>
-                      )}
-                      {method.icon === 'card' && (
-                        <svg viewBox="0 0 64 44">
-                          <rect x="2" y="2" width="60" height="40" rx="6" />
-                          <path className="card-stripe" d="M2 13h60v8H2z" />
-                          <rect className="card-chip" x="10" y="27" width="11" height="8" rx="2" />
-                          <path className="card-contactless" d="M29 29c3 2 3 5 0 7m4-9c5 3 5 8 0 11" />
-                        </svg>
-                      )}
-                      {method.icon === 'cash' && (
-                        <svg viewBox="0 0 48 48">
-                          <rect x="4" y="12" width="35" height="25" rx="3" />
-                          <path d="M9 18a5 5 0 0 0 0 13m25-13a5 5 0 0 1 0 13" />
-                          <circle cx="22" cy="24.5" r="5" />
-                          <path d="m12 8 29 1v22" />
-                        </svg>
-                      )}
-                    </span>
-                    <strong>{method.name}</strong>
-                    <span className="payment-action">Consultar pelo WhatsApp ↗</span>
-                  </PaymentCard>
-                ))}
+                  {
+                    name: 'Pix',
+                    icon: 'pix',
+                    subtitle: 'Instantâneo e prático'
+                  },
+                  {
+                    name: 'Cartão de crédito',
+                    icon: 'card',
+                    subtitle: 'À vista ou parcelado'
+                  },
+                  {
+                    name: 'Dinheiro',
+                    icon: 'cash',
+                    subtitle: 'Pagamento na retirada/entrega'
+                  },
+                  {
+                    name: 'Link de pagamento',
+                    icon: 'link',
+                    subtitle: 'Pague online com segurança'
+                  }
+                ].map((method) => {
+                  const isSelected = selectedPaymentInfo === method.name
+                  return (
+                    <PaymentCard
+                      key={method.name}
+                      type="button"
+                      $active={isSelected}
+                      onClick={() => {
+                        setSelectedPaymentInfo((prev) => (prev === method.name ? null : method.name))
+                        const policyElement = document.getElementById('trocas-devolucoes')
+                        if (policyElement) {
+                          policyElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+                        }
+                      }}
+                      aria-pressed={isSelected}
+                      title={`Clique para conferir as condições para ${method.name}`}
+                    >
+                      <span className={`payment-visual ${method.icon}`} aria-hidden="true">
+                        {method.icon === 'pix' && (
+                          <svg viewBox="0 0 48 48">
+                            <path d="m24 3 8 8-8 8-8-8 8-8Zm0 26 8 8-8 8-8-8 8-8ZM3 24l8-8 8 8-8 8-8-8Zm26 0 8-8 8 8-8 8-8-8Z" />
+                          </svg>
+                        )}
+                        {method.icon === 'card' && (
+                          <svg viewBox="0 0 64 44">
+                            <rect x="2" y="2" width="60" height="40" rx="6" />
+                            <path className="card-stripe" d="M2 13h60v8H2z" />
+                            <rect className="card-chip" x="10" y="27" width="11" height="8" rx="2" />
+                            <path className="card-contactless" d="M29 29c3 2 3 5 0 7m4-9c5 3 5 8 0 11" />
+                          </svg>
+                        )}
+                        {method.icon === 'cash' && (
+                          <svg viewBox="0 0 48 48">
+                            <rect x="4" y="12" width="35" height="25" rx="3" />
+                            <path d="M9 18a5 5 0 0 0 0 13m25-13a5 5 0 0 1 0 13" />
+                            <circle cx="22" cy="24.5" r="5" />
+                            <path d="m12 8 29 1v22" />
+                          </svg>
+                        )}
+                        {method.icon === 'link' && (
+                          <svg viewBox="0 0 48 48">
+                            <path d="M21 27a8 8 0 0 1 0-11l5-5a8 8 0 0 1 11 11l-3 3" />
+                            <path d="M27 21a8 8 0 0 1 0 11l-5 5a8 8 0 0 1-11-11l3-3" />
+                          </svg>
+                        )}
+                      </span>
+                      <strong>{method.name}</strong>
+                      <small>{method.subtitle}</small>
+                    </PaymentCard>
+                  )
+                })}
               </PaymentMethods>
               <p>Consulte condições com a atendente pelo WhatsApp.</p>
             </div>
@@ -529,33 +643,29 @@ const Home = () => {
               <img src={boutiqueLogo} alt="Bella Chic Boutique" />
             </FooterBrand>
             <FooterMessage>Moda com afeto, do nosso jeito.</FooterMessage>
-            <FooterSocialLink href={storeConfig.instagramUrl} target="_blank" rel="noopener noreferrer">
-              Instagram <span aria-hidden="true">↗</span>
-            </FooterSocialLink>
           </div>
           <FooterNavigation aria-label="Links do rodapé">
             <strong>Explore</strong>
+            <a href="#sobre-nos">Sobre nós</a>
             <a href="#inicio">Início</a>
             <a href="#colecao">Nossa coleção</a>
             <a href="#contato">Contato e pagamentos</a>
-          </FooterNavigation>
-          <FooterContact>
-            <strong>Fale com a gente</strong>
-            <p>Estamos em Belém e Ananindeua para ajudar você a escolher sua próxima peça.</p>
-            <FooterContactButton
-              href={createWhatsAppUrl(
-                'Olá! Gostaria de falar com a Bella Chic Boutique.',
-                storeConfig.whatsappContacts[0].number
-              )}
-              target="_blank"
-              rel="noopener noreferrer"
+            <a
+              href="#trocas-devolucoes"
+              onClick={(e) => {
+                e.preventDefault()
+                setIsExchangePolicyOpen(true)
+                setSelectedPaymentInfo((prev) => (prev ?? 'Link de pagamento'))
+
+                const policyElement = document.getElementById('trocas-devolucoes')
+                if (policyElement) {
+                  policyElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }
+              }}
             >
-              <svg aria-hidden="true" viewBox="0 0 24 24">
-                <path d="M20.2 3.8A11.4 11.4 0 0 0 2.3 17.6L.8 23l5.5-1.4A11.4 11.4 0 0 0 20.2 3.8ZM12 20.6a9.4 9.4 0 0 1-4.8-1.3l-.4-.2-3.3.9.9-3.2-.2-.4A9.4 9.4 0 1 1 12 20.6Z" />
-              </svg>
-              Chamar no WhatsApp <span aria-hidden="true">↗</span>
-            </FooterContactButton>
-          </FooterContact>
+              Trocas e devoluções
+            </a>
+            </FooterNavigation>
         </FooterContent>
         <FooterBottom>
           <span>© {new Date().getFullYear()} Bella Chic Boutique · Todos os direitos reservados.</span>
