@@ -7,89 +7,54 @@ export const Main = styled.main`
 export const Hero = styled.section`
   position: relative;
   overflow: hidden;
-  background: #fbf7f4;
+  height: min(760px, calc(100vh - 118px));
+  min-height: 520px;
+  background: #f8e8eb;
   scroll-margin-top: 82px;
 
   &::before {
     content: '';
     position: absolute;
-    inset: -120px -80px auto -80px;
-    height: 280px;
-    background: radial-gradient(circle at 20% 30%, rgba(185, 139, 145, 0.18), transparent 55%),
-      radial-gradient(circle at 72% 45%, rgba(201, 155, 161, 0.15), transparent 58%);
+    z-index: 1;
+    inset: 0;
     pointer-events: none;
+    background: linear-gradient(120deg, rgba(255, 255, 255, .2), transparent 42%, rgba(183, 124, 133, .12));
   }
 
-  &::after {
-    content: '';
-    position: absolute;
-    inset: auto -120px -160px -120px;
-    height: 320px;
-    background: radial-gradient(circle at 50% 30%, rgba(185, 139, 145, 0.14), transparent 60%);
-    pointer-events: none;
+  @media (max-width: 768px) {
+    height: 340px;
+    min-height: 260px;
+  }
+
+  @media (max-width: 480px) {
+    height: 240px;
+    min-height: 200px;
   }
 `
 
 export const HeroContent = styled.div`
   position: relative;
-  z-index: 1;
-  width: min(1240px, calc(100% - 64px));
-  min-height: 500px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: .72fr 1.28fr;
-  align-items: center;
-  gap: clamp(32px, 5vw, 72px);
-  padding: 38px 0;
-  @media (max-width: 760px) {
-    grid-template-columns: .75fr 1.25fr;
-    gap: 20px;
-    min-height: 430px;
-    padding: 28px 0;
-  }
-  @media (max-width: 560px) {
-    grid-template-columns: 1fr;
-    gap: 18px;
-    min-height: 0;
-    padding: 30px 0 26px;
-  }
-  @media (max-width: 600px) { width: calc(100% - 36px); }
-`
-
-export const HeroText = styled.div`
-  z-index: 1;
-  position: relative;
-
-  .eyebrow { color: #a47479; font-size: 8px; font-weight: 600; letter-spacing: 1.6px; }
-  h1 { max-width: 420px; margin: 13px 0 0; color: #503b3f; font: clamp(32px, 3.8vw, 48px)/1.08 Georgia, serif; letter-spacing: -1.2px; }
-  h1 em { color: #b77c85; font-weight: 400; }
-  .primary-link { display: inline-flex; align-items: center; gap: 22px; margin-top: 19px; padding: 11px 15px; border-radius: 2px; background: #78535a; color: #fff; text-decoration: none; font-size: 10px; transition: background .2s; }
-  .primary-link:hover { background: #60434a; }
-  .primary-link span { font-size: 14px; }
-  @media (max-width: 760px) {
-    text-align: left;
-    h1 { max-width: 100%; margin: 8px 0 0; font-size: clamp(24px, 6vw, 34px); }
-    .primary-link { gap: 8px; margin-top: 13px; padding: 9px 10px; font-size: 9px; white-space: nowrap; }
-  }
-  @media (max-width: 400px) { .eyebrow { font-size: 7px; letter-spacing: 1.2px; } }
+  z-index: 2;
+  width: 100%;
+  height: 100%;
 `
 
 export const HeroShowcase = styled.div`
-  display: grid;
-  gap: 0;
-  width: min(100%, 570px);
-  justify-self: end;
-  @media (max-width: 760px) { width: 100%; justify-self: center; }
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 `
 
 export const ShowcaseViewport = styled.div`
   width: 100%;
+  height: 100%;
   overflow: hidden;
   cursor: grab;
   touch-action: pan-y;
   user-select: none;
   &:active { cursor: grabbing; }
-  &:focus-visible { outline: 2px solid #8c6066; outline-offset: 3px; }
+  &:focus-visible { outline: 2px solid #8c6066; outline-offset: -5px; }
 `
 
 export const ShowcaseTrack = styled.div<{
@@ -99,6 +64,7 @@ export const ShowcaseTrack = styled.div<{
 }>`
   display: flex;
   width: 100%;
+  height: 100%;
   transform: translate3d(calc(${({ $position }) => -$position * 100}% + ${({ $dragOffset }) => $dragOffset}px), 0, 0);
   transition: ${({ $transitionEnabled }) => $transitionEnabled ? 'transform .58s cubic-bezier(.22,.72,.25,1)' : 'none'};
   will-change: transform;
@@ -110,35 +76,21 @@ export const ShowcaseImage = styled.img`
   height: 100%;
   object-fit: contain;
   object-position: center;
-  transition: transform .45s;
+  background: #f8e8eb;
+  transition: transform .7s ease;
 `
 
 export const ShowcaseLink = styled.a`
   position: relative;
   flex: 0 0 100%;
   width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  aspect-ratio: 1.16 / 1;
+  height: 100%;
+  display: block;
   overflow: hidden;
-  border: 1px solid #f0e4e2;
-  background: #f5eeee;
-  color: #634b4f;
+  background: #f8e8eb;
   text-decoration: none;
-  box-shadow: inset 0 0 0 1px #ffffff18;
+  &:focus-visible { outline: 3px solid #8c6066; outline-offset: -8px; }
   &:hover ${ShowcaseImage} { transform: scale(1.025); }
-  .showcase-label { position: absolute; top: 10px; left: 10px; padding: 5px 8px; background: #fffdfb; color: #8e6269; font-size: 7px; letter-spacing: 1.2px; }
-  .showcase-product { position: absolute; right: 0; bottom: 0; left: 0; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 44px 20px 18px; background: linear-gradient(transparent, #332628b8); color: #fff; }
-  .showcase-product strong { font: 20px Georgia, serif; }
-  .showcase-product > span { flex: 0 0 auto; font-size: 12px; }
-  @media (max-width: 760px) { aspect-ratio: 1.05 / 1; .showcase-product { padding: 36px 14px 13px; } }
-  @media (max-width: 400px) {
-    aspect-ratio: 1.08 / 1;
-    .showcase-product strong { font-size: 17px; }
-    .showcase-product { align-items: flex-end; flex-direction: row; gap: 8px; padding: 30px 11px 10px; }
-    .showcase-product > span { font-size: 10px; }
-  }
 `
 
 export const Contact = styled.section`
@@ -157,8 +109,8 @@ export const ContactContent = styled.div`
   .about-copy h2 { margin-top: 10px; color: #533f42; font: clamp(30px, 4vw, 42px)/1.12 Georgia, serif; }
   .about-copy h2 em { color: #b77c85; font-weight: 400; }
   .about-copy p { margin-top: 16px; color: #79696b; font-size: 13px; line-height: 1.9; }
-  .store-carousel { position: relative; overflow: hidden; background: #eadbdc; }
-  .store-carousel > img { display: block; width: 100%; height: clamp(260px, 35vw, 390px); object-fit: cover; transition: opacity .25s; }
+  .store-carousel { position: relative; overflow: hidden; background: #eadbdc; border-radius: 8px; }
+  .store-carousel > img { display: block; width: 100%; height: clamp(240px, 45vw, 390px); object-fit: contain; background: #eadbdc; transition: opacity .25s; }
   .store-caption { position: absolute; right: 0; bottom: 53px; left: 0; display: flex; flex-direction: column; gap: 5px; padding: 42px 20px 16px; background: linear-gradient(transparent, #241b1bd9); color: white; }
   .store-caption strong { font: 22px Georgia, serif; }
   .store-caption span { font-size: 11px; }

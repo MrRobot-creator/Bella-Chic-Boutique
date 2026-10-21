@@ -1,4 +1,12 @@
-import { ChangeEvent, MouseEvent as ReactMouseEvent, useEffect, useRef, useState } from 'react'
+import {
+  ChangeEvent,
+  MouseEvent as ReactMouseEvent,
+  WheelEvent as ReactWheelEvent,
+  PointerEvent as ReactPointerEvent,
+  useEffect,
+  useRef,
+  useState
+} from 'react'
 import { Product } from '../../types/store'
 import {
   AddButton,
@@ -11,12 +19,17 @@ import {
   DialogDescription,
   DialogImage,
   DialogImageArea,
+  DialogImageButton,
   DialogPrice,
+  DialogQuickShopLabel,
+  DialogZoomButton,
   DialogTitle,
   DialogVariantGroup,
   DialogVariants,
   DialogBackdrop,
   ImageArea,
+  BuyButton,
+  CardActions,
   Image,
   ImageTrigger,
   OldPrice,
@@ -35,15 +48,79 @@ type ProductCardProps = {
 const formatPrice = (value: number) =>
   value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
+const ZOOM_SCALE = 1.65
+
 const ProductCard = ({ product, onAdd }: ProductCardProps) => {
   const [size, setSize] = useState(product.sizes[0] || '')
   const [color, setColor] = useState(product.colors[0]?.name || '')
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const [modalMode, setModalMode] = useState<'quickshop' | 'details' | null>(null)
+  const [isZoomed, setIsZoomed] = useState(false)
+  const [imageOffset, setImageOffset] = useState({ x: 0, y: 0 })
+  const zoomPointerStart = useRef<{ x: number; y: number; offsetX: number; offsetY: number; pointerId: number } | null>(null)
+  const imageAreaRef = useRef<HTMLDivElement>(null)
+  const suppressZoomClick = useRef(false)
+  const isModalOpen = modalMode !== null
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLElement | null>(null)
   const selectedColor = product.colors.find((option) => option.name === color)
   const image = selectedColor?.image || product.image
+
+  const closeDetails = () => {
+    setModalMode(null)
+    setIsZoomed(false)
+    setImageOffset({ x: 0, y: 0 })
+  }
+
+  const toggleZoom = () => {
+    setIsZoomed((current) => !current)
+    setImageOffset({ x: 0, y: 0 })
+  }
+
+  const handleZoomPointerDown = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!isZoomed || !event.isPrimary) return
+    event.preventDefault()
+    zoomPointerStart.current = {
+      x: event.clientX,
+      y: event.clientY,
+      offsetX: imageOffset.x,
+      offsetY: imageOffset.y,
+      pointerId: event.pointerId
+    }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const handleZoomPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const start = zoomPointerStart.current
+    if (!start || start.pointerId !== event.pointerId) return
+    const area = imageAreaRef.current
+    if (!area) return
+    const maxX = area.clientWidth * (ZOOM_SCALE - 1) / 2
+    const maxY = area.clientHeight * (ZOOM_SCALE - 1) / 2
+    setImageOffset({
+      x: Math.max(-maxX, Math.min(maxX, start.offsetX + event.clientX - start.x)),
+      y: Math.max(-maxY, Math.min(maxY, start.offsetY + event.clientY - start.y))
+    })
+  }
+
+  const handleZoomPointerEnd = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const start = zoomPointerStart.current
+    if (!start || start.pointerId !== event.pointerId) return
+    zoomPointerStart.current = null
+    const distance = Math.hypot(event.clientX - start.x, event.clientY - start.y)
+    if (distance > 8) suppressZoomClick.current = true
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+  }
+
+  const handleZoomClick = () => {
+    if (suppressZoomClick.current) {
+      suppressZoomClick.current = false
+      return
+    }
+    toggleZoom()
+  }
 
   useEffect(() => {
     if (!product.sizes.includes(size)) setSize(product.sizes[0] || '')
@@ -53,7 +130,7 @@ const ProductCard = ({ product, onAdd }: ProductCardProps) => {
   }, [color, product.colors, product.sizes, size])
 
   useEffect(() => {
-    if (!isDetailsOpen) return undefined
+    if (!isModalOpen) return undefined
 
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -61,7 +138,7 @@ const ProductCard = ({ product, onAdd }: ProductCardProps) => {
 
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setIsDetailsOpen(false)
+        closeDetails()
         return
       }
       if (event.key !== 'Tab') return
@@ -95,16 +172,24 @@ const ProductCard = ({ product, onAdd }: ProductCardProps) => {
       document.removeEventListener('keydown', closeOnEscape)
       triggerRef.current?.focus()
     }
-  }, [isDetailsOpen])
+  }, [isModalOpen])
 
-  const openDetails = () => {
+  const openModal = (mode: 'quickshop' | 'details') => {
     triggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    setIsDetailsOpen(true)
+    setIsZoomed(false)
+    setImageOffset({ x: 0, y: 0 })
+    setModalMode(mode)
   }
 
   const addSelectedProduct = () => {
     onAdd(product, size, color)
-    setIsDetailsOpen(false)
+    closeDetails()
+  }
+
+  const handleImageWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+    if (Math.abs(event.deltaY) < 2) return
+    setIsZoomed(event.deltaY < 0)
+    setImageOffset({ x: 0, y: 0 })
   }
 
   return (
@@ -114,7 +199,7 @@ const ProductCard = ({ product, onAdd }: ProductCardProps) => {
           <ImageTrigger
             type="button"
             aria-label={`Ver detalhes de ${product.name}`}
-            onClick={openDetails}
+            onClick={() => openModal('details')}
           >
             <Image
               src={image}
@@ -156,15 +241,24 @@ const ProductCard = ({ product, onAdd }: ProductCardProps) => {
               </ColorChoices>
             </div>
           )}
-          <ViewDetailsButton type="button" onClick={openDetails}>
-            Ver peça <span aria-hidden="true">→</span>
-          </ViewDetailsButton>
+          <CardActions>
+            <ViewDetailsButton type="button" onClick={() => openModal('details')}>
+              Ver detalhes <span aria-hidden="true">→</span>
+            </ViewDetailsButton>
+            <BuyButton
+              type="button"
+              disabled={product.available === false}
+              onClick={() => openModal('quickshop')}
+            >
+              {product.available === false ? 'Esgotado' : 'Comprar'}
+            </BuyButton>
+          </CardActions>
         </ProductInfo>
       </Card>
 
-      {isDetailsOpen && (
+      {isModalOpen && (
         <DialogBackdrop onMouseDown={(event: ReactMouseEvent<HTMLDivElement>) => {
-          if (event.target === event.currentTarget) setIsDetailsOpen(false)
+          if (event.target === event.currentTarget) closeDetails()
         }}>
           <DialogContent
             ref={dialogRef}
@@ -173,11 +267,33 @@ const ProductCard = ({ product, onAdd }: ProductCardProps) => {
             aria-labelledby={`product-title-${product.id}`}
             onMouseDown={(event: ReactMouseEvent<HTMLDivElement>) => event.stopPropagation()}
           >
-            <DialogImageArea>
-              <DialogImage
-                src={image}
-                alt={`${product.name}${selectedColor ? ` - ${selectedColor.name}` : ''}`}
-              />
+            <DialogImageArea ref={imageAreaRef} $zoomed={isZoomed} onWheel={handleImageWheel}>
+              <DialogImageButton
+                type="button"
+                aria-label={isZoomed ? 'Reduzir imagem' : 'Ampliar imagem'}
+                onClick={handleZoomClick}
+                onPointerDown={handleZoomPointerDown}
+                onPointerMove={handleZoomPointerMove}
+                onPointerUp={handleZoomPointerEnd}
+                onPointerCancel={handleZoomPointerEnd}
+              >
+                <DialogImage
+                  $zoomed={isZoomed}
+                  $offsetX={imageOffset.x}
+                  $offsetY={imageOffset.y}
+                  style={{ transform: `translate(${imageOffset.x}px, ${imageOffset.y}px) scale(${isZoomed ? ZOOM_SCALE : 1})` }}
+                  src={image}
+                  alt={`${product.name}${selectedColor ? ` - ${selectedColor.name}` : ''}`}
+                />
+              </DialogImageButton>
+              <DialogZoomButton
+                type="button"
+                aria-label={isZoomed ? 'Reduzir imagem' : 'Ampliar imagem'}
+                aria-pressed={isZoomed}
+                onClick={toggleZoom}
+              >
+                {isZoomed ? '−' : '+'}
+              </DialogZoomButton>
               {product.tag && <Tag>{product.tag}</Tag>}
               {product.available === false && <span className="sold-out">Esgotado</span>}
             </DialogImageArea>
@@ -186,17 +302,18 @@ const ProductCard = ({ product, onAdd }: ProductCardProps) => {
                 ref={closeButtonRef}
                 type="button"
                 aria-label={`Fechar detalhes de ${product.name}`}
-                onClick={() => setIsDetailsOpen(false)}
+                onClick={closeDetails}
               >
                 ×
               </DialogCloseButton>
+              {modalMode === 'quickshop' && <DialogQuickShopLabel>COMPRA RÁPIDA</DialogQuickShopLabel>}
               <span className="category">{product.category}</span>
               <DialogTitle id={`product-title-${product.id}`}>{product.name}</DialogTitle>
               <DialogPrice>
                 <Price>{formatPrice(product.price)}</Price>
                 {product.oldPrice && <OldPrice>{formatPrice(product.oldPrice)}</OldPrice>}
               </DialogPrice>
-              <DialogDescription>{product.description}</DialogDescription>
+              {modalMode === 'details' && <DialogDescription>{product.description}</DialogDescription>}
 
               {product.colors.length > 0 && (
                 <DialogVariantGroup>

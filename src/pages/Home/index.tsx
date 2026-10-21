@@ -42,7 +42,6 @@ import {
   Hero,
   HeroContent,
   HeroShowcase,
-  HeroText,
   Main,
   PaymentCard,
   PaymentMethods,
@@ -55,8 +54,10 @@ import {
   StatusMessage
 } from './styles'
 import boutiqueLogo from '../../assets/bella-chic-logo.jpg'
-import firstUnitImage from '../../assets/thalita_final.jpg'
-import secondUnitImage from '../../assets/conjunto marrant.jpg'
+import banner1Image from '../../assets/banner 1.jpeg'
+import banner2Image from '../../assets/banner 2.jpeg'
+import lojaGaleriaImage from '../../assets/loja galeria.jpeg'
+import lojaCnImage from '../../assets/loja cn.jpeg'
 
 
 const Home = () => {
@@ -113,8 +114,8 @@ const Home = () => {
   const [activeStoreImage, setActiveStoreImage] = useState(0)
   const [isStoreCarouselPaused, setIsStoreCarouselPaused] = useState(false)
   const storeImages = [
-    { src: firstUnitImage, title: 'Galeria Portuense', description: 'Nossa unidade em Belém' },
-    { src: secondUnitImage, title: 'Cidade Nova 04', description: 'Nossa unidade em Ananindeua' }
+    { src: lojaGaleriaImage, title: 'Galeria Portuense', description: 'Nossa unidade em Belém' },
+    { src: lojaCnImage, title: 'Cidade Nova 04', description: 'Nossa unidade em Ananindeua' }
   ]
   const categoryMenuRef = useRef<HTMLDivElement>(null)
   const showcasePointerStart = useRef<{ x: number; y: number; pointerId: number } | null>(null)
@@ -156,15 +157,18 @@ const Home = () => {
     })
   }, [activeCategory, catalogProducts, search])
 
-  const showcaseProducts = useMemo(
-    () => catalogProducts.filter((product) => product.available !== false).slice(0, 5),
-    [catalogProducts]
+  const bannerSlides = useMemo(
+    () => [
+      { id: 1, image: banner1Image, title: 'Banner 1' },
+      { id: 2, image: banner2Image, title: 'Banner 2' }
+    ],
+    []
   )
   const showcaseSlides = useMemo(
-    () => showcaseProducts.length > 1
-      ? [showcaseProducts[showcaseProducts.length - 1], ...showcaseProducts, showcaseProducts[0]]
-      : showcaseProducts,
-    [showcaseProducts]
+    () => bannerSlides.length > 1
+      ? [bannerSlides[bannerSlides.length - 1], ...bannerSlides, bannerSlides[0]]
+      : bannerSlides,
+    [bannerSlides]
   )
   const activeUnit = storeConfig.units.find((unit) => unit.id === activeUnitId) || storeConfig.units[0]
   const unitContacts = storeConfig.whatsappContacts.filter((contact) => contact.unitId === activeUnit.id)
@@ -180,7 +184,7 @@ const Home = () => {
   }, [isStoreCarouselPaused, storeImages.length])
 
   useEffect(() => {
-    if (showcaseProducts.length < 2) return undefined
+    if (bannerSlides.length < 2) return undefined
 
     const rotation = window.setInterval(() => {
       if (
@@ -188,31 +192,31 @@ const Home = () => {
         !showcasePointerStart.current &&
         !window.matchMedia('(prefers-reduced-motion: reduce)').matches
       ) {
-        setActiveShowcaseIndex((index) => index >= showcaseProducts.length + 1 ? 1 : index + 1)
+        setActiveShowcaseIndex((index) => index >= bannerSlides.length + 1 ? 1 : index + 1)
       }
     }, 5000)
 
     return () => window.clearInterval(rotation)
-  }, [showcaseProducts.length])
+  }, [bannerSlides.length])
 
   useEffect(() => {
-    if (showcaseProducts.length < 2) {
+    if (bannerSlides.length < 2) {
       setActiveShowcaseIndex(0)
       return
     }
-    if (activeShowcaseIndex < 1 || activeShowcaseIndex > showcaseProducts.length + 1) {
+    if (activeShowcaseIndex < 1 || activeShowcaseIndex > bannerSlides.length + 1) {
       setShowcaseTransitionEnabled(false)
       setActiveShowcaseIndex(1)
       window.requestAnimationFrame(() => setShowcaseTransitionEnabled(true))
     }
-  }, [activeShowcaseIndex, showcaseProducts.length])
+  }, [activeShowcaseIndex, bannerSlides.length])
 
   const handleShowcaseTransitionEnd = (event: ReactTransitionEvent<HTMLDivElement>) => {
     if (event.target !== event.currentTarget || event.propertyName !== 'transform') return
-    if (showcaseProducts.length < 2) return
+    if (bannerSlides.length < 2) return
     const clonePosition = activeShowcaseIndex === 0
-      ? showcaseProducts.length
-      : activeShowcaseIndex === showcaseProducts.length + 1 ? 1 : null
+      ? bannerSlides.length
+      : activeShowcaseIndex === bannerSlides.length + 1 ? 1 : null
     if (clonePosition === null) return
 
     setShowcaseTransitionEnabled(false)
@@ -229,7 +233,7 @@ const Home = () => {
 
   const handleShowcasePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const start = showcasePointerStart.current
-    if (!start || start.pointerId !== event.pointerId || showcaseProducts.length < 2) return
+    if (!start || start.pointerId !== event.pointerId || bannerSlides.length < 2) return
 
     const horizontalDistance = event.clientX - start.x
     const verticalDistance = event.clientY - start.y
@@ -253,13 +257,13 @@ const Home = () => {
     const horizontalDistance = event.clientX - start.x
     const verticalDistance = event.clientY - start.y
     const didDrag = Math.abs(horizontalDistance) >= 45 && Math.abs(horizontalDistance) > Math.abs(verticalDistance)
-    if (didDrag && showcaseProducts.length > 1) {
+    if (didDrag && bannerSlides.length > 1) {
       suppressShowcaseClick.current = true
       window.setTimeout(() => {
         suppressShowcaseClick.current = false
       }, 0)
       setActiveShowcaseIndex((index) => {
-        if (horizontalDistance < 0) return index >= showcaseProducts.length ? 0 : index + 1
+        if (horizontalDistance < 0) return index >= bannerSlides.length ? 0 : index + 1
         return index <= 1 ? 0 : index - 1
       })
     }
@@ -275,14 +279,14 @@ const Home = () => {
   }
 
   const handleShowcaseKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (showcaseProducts.length < 2) return
+    if (bannerSlides.length < 2) return
     if (event.key === 'ArrowLeft') {
       event.preventDefault()
       setActiveShowcaseIndex((index) => index <= 1 ? 0 : index - 1)
     }
     if (event.key === 'ArrowRight') {
       event.preventDefault()
-      setActiveShowcaseIndex((index) => index >= showcaseProducts.length ? 0 : index + 1)
+      setActiveShowcaseIndex((index) => index >= bannerSlides.length ? 0 : index + 1)
     }
   }
 
@@ -352,11 +356,6 @@ const Home = () => {
       <Main>
         <Hero id="inicio">
           <HeroContent>
-            <HeroText>
-              <span className="eyebrow">BELLA CHIC BOUTIQUE</span>
-              <h1>Novidades <em>Bella Chic</em></h1>
-              <a className="primary-link" href="#colecao">Ver coleção <span>→</span></a>
-            </HeroText>
             <HeroShowcase aria-label="Mostruário de produtos em destaque">
               {showcaseSlides.length > 0 && (
                 <ShowcaseViewport
@@ -374,11 +373,11 @@ const Home = () => {
                     $transitionEnabled={showcaseTransitionEnabled}
                     onTransitionEnd={handleShowcaseTransitionEnd}
                   >
-                    {showcaseSlides.map((product, index) => (
+                    {showcaseSlides.map((slide, index) => (
                       <ShowcaseLink
-                        key={`${product.id}-${index}`}
+                        key={`${slide.id}-${index}`}
                         href="#colecao"
-                        aria-label={`Ver ${product.name} na coleção`}
+                        aria-label={`Ver ${slide.title} na coleção`}
                         aria-roledescription="slide"
                         aria-hidden={index !== activeShowcaseIndex}
                         tabIndex={index === activeShowcaseIndex ? 0 : -1}
@@ -390,12 +389,7 @@ const Home = () => {
                           suppressShowcaseClick.current = false
                         }}
                       >
-                        <ShowcaseImage src={product.image} alt={product.name} draggable={false} />
-                        <span className="showcase-label">DESTAQUE</span>
-                        <span className="showcase-product">
-                          <strong>{product.name}</strong>
-                          <span>{product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-                        </span>
+                        <ShowcaseImage src={slide.image} alt={slide.title} draggable={false} />
                       </ShowcaseLink>
                     ))}
                   </ShowcaseTrack>
