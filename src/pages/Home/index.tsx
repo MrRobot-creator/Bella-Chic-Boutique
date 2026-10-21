@@ -1,5 +1,6 @@
 import {
   ChangeEvent,
+  FocusEvent as ReactFocusEvent,
   KeyboardEvent as ReactKeyboardEvent,
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
@@ -19,6 +20,7 @@ import { fetchCatalogProducts } from '../../services/catalog'
 import { createWhatsAppUrl } from '../../services/whatsapp'
 import { CartItem, Product } from '../../types/store'
 import {
+  AnnouncementBar,
   Catalog,
   CatalogHeader,
   CatalogTools,
@@ -51,6 +53,12 @@ import {
   SearchInput,
   ShowcaseLink,
   ShowcaseViewport,
+  FloatingWhatsApp,
+  StoreCarousel,
+  StoreViewport,
+  StoreTrack,
+  StoreSlideItem,
+  StoreSlideImage,
   StatusMessage
 } from './styles'
 import boutiqueLogo from '../../assets/bella-chic-logo.jpg'
@@ -111,12 +119,120 @@ const Home = () => {
     }
   }, [isExchangePolicyOpen])
 
-  const [activeStoreImage, setActiveStoreImage] = useState(0)
+  const [activeStoreIndex, setActiveStoreIndex] = useState(1)
+  const [storeDragOffset, setStoreDragOffset] = useState(0)
+  const [storeTransitionEnabled, setStoreTransitionEnabled] = useState(true)
+  const storePointerStart = useRef<{ x: number; y: number; pointerId: number } | null>(null)
+  const suppressStoreClick = useRef(false)
   const [isStoreCarouselPaused, setIsStoreCarouselPaused] = useState(false)
-  const storeImages = [
-    { src: lojaGaleriaImage, title: 'Galeria Portuense', description: 'Nossa unidade em Belém' },
-    { src: lojaCnImage, title: 'Cidade Nova 04', description: 'Nossa unidade em Ananindeua' }
-  ]
+
+  const storeImages = useMemo(
+    () => [
+      { src: lojaGaleriaImage, title: 'Galeria Portuense', description: 'Nossa unidade em Belém' },
+      { src: lojaCnImage, title: 'Cidade Nova 04', description: 'Nossa unidade em Ananindeua' }
+    ],
+    []
+  )
+  const storeSlides = useMemo(
+    () => storeImages.length > 1
+      ? [storeImages[storeImages.length - 1], ...storeImages, storeImages[0]]
+      : storeImages,
+    [storeImages]
+  )
+
+  const activeStoreSlideIndex = storeImages.length > 1
+    ? (activeStoreIndex === 0 ? storeImages.length - 1 : activeStoreIndex === storeImages.length + 1 ? 0 : activeStoreIndex - 1)
+    : 0
+  const activeStore = storeImages[activeStoreSlideIndex] || storeImages[0]
+
+  useEffect(() => {
+    if (isStoreCarouselPaused || window.matchMedia('(prefers-reduced-motion: reduce)').matches || storeImages.length < 2) return undefined
+    const rotation = window.setInterval(() => {
+      if (document.visibilityState === 'visible' && !storePointerStart.current) {
+        setActiveStoreIndex((index) => index >= storeImages.length + 1 ? 1 : index + 1)
+      }
+    }, 5000)
+    return () => window.clearInterval(rotation)
+  }, [isStoreCarouselPaused, storeImages.length])
+
+  useEffect(() => {
+    if (storeImages.length < 2) {
+      setActiveStoreIndex(0)
+      return
+    }
+    if (activeStoreIndex < 1 || activeStoreIndex > storeImages.length + 1) {
+      setStoreTransitionEnabled(false)
+      setActiveStoreIndex(1)
+      window.requestAnimationFrame(() => setStoreTransitionEnabled(true))
+    }
+  }, [activeStoreIndex, storeImages.length])
+
+  const handleStoreTransitionEnd = (event: ReactTransitionEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget || event.propertyName !== 'transform') return
+    if (storeImages.length < 2) return
+    const clonePosition = activeStoreIndex === 0
+      ? storeImages.length
+      : activeStoreIndex === storeImages.length + 1 ? 1 : null
+    if (clonePosition === null) return
+
+    setStoreTransitionEnabled(false)
+    setActiveStoreIndex(clonePosition)
+    window.requestAnimationFrame(() => setStoreTransitionEnabled(true))
+  }
+
+  const handleStorePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) return
+    storePointerStart.current = { x: event.clientX, y: event.clientY, pointerId: event.pointerId }
+    setStoreTransitionEnabled(false)
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const handleStorePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = storePointerStart.current
+    if (!start || start.pointerId !== event.pointerId || storeImages.length < 2) return
+
+    const horizontalDistance = event.clientX - start.x
+    const verticalDistance = event.clientY - start.y
+    if (Math.abs(verticalDistance) > Math.abs(horizontalDistance) && Math.abs(verticalDistance) > 12) {
+      storePointerStart.current = null
+      setStoreDragOffset(0)
+      setStoreTransitionEnabled(true)
+      return
+    }
+    setStoreDragOffset(horizontalDistance)
+  }
+
+  const handleStorePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const start = storePointerStart.current
+    if (!start || start.pointerId !== event.pointerId) return
+    storePointerStart.current = null
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+
+    const horizontalDistance = event.clientX - start.x
+    const verticalDistance = event.clientY - start.y
+    const didDrag = Math.abs(horizontalDistance) >= 45 && Math.abs(horizontalDistance) > Math.abs(verticalDistance)
+    if (didDrag && storeImages.length > 1) {
+      suppressStoreClick.current = true
+      window.setTimeout(() => {
+        suppressStoreClick.current = false
+      }, 0)
+      setActiveStoreIndex((index) => {
+        if (horizontalDistance < 0) return index >= storeImages.length ? 0 : index + 1
+        return index <= 1 ? 0 : index - 1
+      })
+    }
+    setStoreDragOffset(0)
+    setStoreTransitionEnabled(true)
+  }
+
+  const handleStorePointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (storePointerStart.current?.pointerId !== event.pointerId) return
+    storePointerStart.current = null
+    setStoreDragOffset(0)
+    setStoreTransitionEnabled(true)
+  }
   const categoryMenuRef = useRef<HTMLDivElement>(null)
   const showcasePointerStart = useRef<{ x: number; y: number; pointerId: number } | null>(null)
   const suppressShowcaseClick = useRef(false)
@@ -146,16 +262,25 @@ const Home = () => {
     [catalogProducts]
   )
 
+  const [sortBy, setSortBy] = useState('featured')
+
   const visibleProducts = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase('pt-BR')
-    return catalogProducts.filter((product) => {
+    const filtered = catalogProducts.filter((product) => {
       const matchesCategory = activeCategory === 'Todos' || product.category === activeCategory
       const matchesSearch =
         !normalizedSearch ||
         `${product.name} ${product.category} ${product.description}`.toLocaleLowerCase('pt-BR').includes(normalizedSearch)
       return matchesCategory && matchesSearch
     })
-  }, [activeCategory, catalogProducts, search])
+
+    return [...filtered].sort((a, b) => {
+      if (sortBy === 'price-asc') return a.price - b.price
+      if (sortBy === 'price-desc') return b.price - a.price
+      if (sortBy === 'name') return a.name.localeCompare(b.name, 'pt-BR')
+      return 0
+    })
+  }, [activeCategory, catalogProducts, search, sortBy])
 
   const bannerSlides = useMemo(
     () => [
@@ -172,16 +297,6 @@ const Home = () => {
   )
   const activeUnit = storeConfig.units.find((unit) => unit.id === activeUnitId) || storeConfig.units[0]
   const unitContacts = storeConfig.whatsappContacts.filter((contact) => contact.unitId === activeUnit.id)
-
-  useEffect(() => {
-    if (isStoreCarouselPaused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
-    const rotation = window.setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        setActiveStoreImage((index) => (index + 1) % storeImages.length)
-      }
-    }, 6000)
-    return () => window.clearInterval(rotation)
-  }, [isStoreCarouselPaused, storeImages.length])
 
   useEffect(() => {
     if (bannerSlides.length < 2) return undefined
@@ -349,6 +464,10 @@ const Home = () => {
 
   return (
     <>
+      <AnnouncementBar>
+        <span>✨ Frete grátis para Belém e Ananindeua nas compras acima de R$ 250 • Parcelamento em até 3x sem juros</span>
+        <a href="#contato">Fale conosco ↗</a>
+      </AnnouncementBar>
       <BoutiqueHeader
         cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
         onCartClick={() => setIsCartOpen(true)}
@@ -407,13 +526,26 @@ const Home = () => {
             </div>
             <CatalogTools>
               <label className="sr-only" htmlFor="product-search">Buscar produtos</label>
-              <SearchInput
-                id="product-search"
-                type="search"
-                placeholder="Buscar uma peça..."
-                value={search}
-                onChange={(event: ChangeEvent<HTMLInputElement>) => setSearch(event.target.value)}
-              />
+              <div className="catalog-tools-row">
+                <SearchInput
+                  id="product-search"
+                  type="search"
+                  placeholder="Buscar uma peça..."
+                  value={search}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => setSearch(event.target.value)}
+                />
+                <select
+                  aria-label="Ordenar produtos"
+                  className="sort-select"
+                  value={sortBy}
+                  onChange={(event) => setSortBy(event.target.value)}
+                >
+                  <option value="featured">✨ Destaques</option>
+                  <option value="price-asc">💵 Menor Preço</option>
+                  <option value="price-desc">💎 Maior Preço</option>
+                  <option value="name">🔤 Nome (A-Z)</option>
+                </select>
+              </div>
             </CatalogTools>
           </CatalogHeader>
           <CategoryMenu ref={categoryMenuRef}>
@@ -465,29 +597,56 @@ const Home = () => {
             <section className="about-store" id="sobre-nos" aria-labelledby="about-title">
               <div className="about-copy">
                 <span className="eyebrow">BELLA CHIC BOUTIQUE</span>
-                <h2 id="about-title">Moda com afeto, <em>para você.</em></h2>
+                <h2 id="about-title">Moda acessível, <em>porque te amamos te vestir de auto estima.</em></h2>
                 <p>Somos uma boutique para mulheres que gostam de se sentir confiantes e especiais. Encontre peças escolhidas com carinho e venha nos visitar em uma de nossas duas unidades.</p>
               </div>
-              <div
-                className="store-carousel"
+              <StoreCarousel
                 aria-label="Conheça nossas unidades"
                 onMouseEnter={() => setIsStoreCarouselPaused(true)}
                 onMouseLeave={() => setIsStoreCarouselPaused(false)}
                 onFocus={() => setIsStoreCarouselPaused(true)}
-                onBlur={(event) => {
+                onBlur={(event: ReactFocusEvent<HTMLDivElement>) => {
                   if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsStoreCarouselPaused(false)
                 }}
               >
-                <img src={storeImages[activeStoreImage].src} alt={`Interior da unidade ${storeImages[activeStoreImage].title}`} />
-                <div className="store-caption"><strong>{storeImages[activeStoreImage].title}</strong><span>{storeImages[activeStoreImage].description}</span></div>
+                <StoreViewport
+                  tabIndex={0}
+                  onPointerDown={handleStorePointerDown}
+                  onPointerMove={handleStorePointerMove}
+                  onPointerUp={handleStorePointerUp}
+                  onPointerCancel={handleStorePointerCancel}
+                  aria-label="Carrossel de unidades"
+                >
+                  <StoreTrack
+                    $position={activeStoreIndex}
+                    $dragOffset={storeDragOffset}
+                    $transitionEnabled={storeTransitionEnabled}
+                    onTransitionEnd={handleStoreTransitionEnd}
+                  >
+                    {storeSlides.map((slide, index) => (
+                      <StoreSlideItem key={`${slide.title}-${index}`}>
+                        <StoreSlideImage src={slide.src} alt={`Interior da unidade ${slide.title}`} />
+                      </StoreSlideItem>
+                    ))}
+                  </StoreTrack>
+                </StoreViewport>
+                <div className="store-caption"><strong>{activeStore.title}</strong><span>{activeStore.description}</span></div>
                 <div className="store-controls">
-                  <button type="button" aria-label="Unidade anterior" onClick={() => setActiveStoreImage((index) => (index + storeImages.length - 1) % storeImages.length)}>←</button>
-                  <div className="store-dots" aria-label={`Imagem ${activeStoreImage + 1} de ${storeImages.length}`}>
-                    {storeImages.map((image, index) => <button key={image.title} type="button" aria-label={`Ver ${image.title}`} aria-current={index === activeStoreImage} onClick={() => setActiveStoreImage(index)} />)}
+                  <button type="button" aria-label="Unidade anterior" onClick={() => setActiveStoreIndex((index) => index <= 1 ? storeImages.length : index - 1)}>←</button>
+                  <div className="store-dots" aria-label={`Imagem ${activeStoreSlideIndex + 1} de ${storeImages.length}`}>
+                    {storeImages.map((image, index) => (
+                      <button
+                        key={image.title}
+                        type="button"
+                        aria-label={`Ver ${image.title}`}
+                        aria-current={index === activeStoreSlideIndex}
+                        onClick={() => setActiveStoreIndex(index + 1)}
+                      />
+                    ))}
                   </div>
-                  <button type="button" aria-label="Próxima unidade" onClick={() => setActiveStoreImage((index) => (index + 1) % storeImages.length)}>→</button>
+                  <button type="button" aria-label="Próxima unidade" onClick={() => setActiveStoreIndex((index) => index >= storeImages.length + 1 ? 1 : index + 1)}>→</button>
                 </div>
-              </div>
+              </StoreCarousel>
             </section>
             <ContactHeader>
               <span className="eyebrow">BELLA CHIC BOUTIQUE</span>
@@ -682,6 +841,14 @@ const Home = () => {
         onChangeQuantity={updateQuantity}
         onRemove={removeFromCart}
       />
+      <FloatingWhatsApp
+        href={createWhatsAppUrl("Olá! Gostaria de tirar dúvidas sobre as peças da Bella Chic Boutique.", storeConfig.whatsappContacts[0].number)}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Fale conosco pelo WhatsApp"
+      >
+        💬 Fale no WhatsApp
+      </FloatingWhatsApp>
     </>
   )
 }

@@ -249,8 +249,8 @@ export const DialogContent = styled.div`
   position: relative;
   display: flex;
   flex-direction: column;
-  width: min(540px, 100%);
-  max-height: min(90vh, calc(100vh - 40px));
+  width: min(500px, 100%);
+  max-height: calc(100vh - 24px);
   overflow-y: auto;
   background: #fff;
   border-radius: 12px;
@@ -271,13 +271,14 @@ export const DialogImageArea = styled.div<{ $zoomed: boolean }>`
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  height: 380px;
+  width: 100%;
+  height: 480px;
   overflow: hidden;
-  background: linear-gradient(145deg, #f7eeee, #fffaf9);
+  background: #faf6f5;
   cursor: ${({ $zoomed }) => ($zoomed ? 'grab' : 'zoom-in')};
   &:active { cursor: ${({ $zoomed }) => ($zoomed ? 'grabbing' : 'zoom-in')}; }
   .sold-out { position: absolute; inset: 0; display: grid; place-items: center; background: #392c2c80; color: #fff; font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
-  @media (max-width: 560px) { height: 300px; }
+  @media (max-width: 560px) { height: 380px; }
 `
 
 export const DialogThumbnails = styled.div`
@@ -319,7 +320,8 @@ export const DialogThumbnailButton = styled.button<{ $active: boolean }>`
   img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    background: #fdf9f8;
   }
 `
 
@@ -343,7 +345,7 @@ export const DialogImage = styled.img<{ $zoomed?: boolean; $offsetX?: number; $o
   width: 100%;
   height: 100%;
   min-height: inherit;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
   transform: translate(${({ $offsetX = 0 }) => `${$offsetX}px`}, ${({ $offsetY = 0 }) => `${$offsetY}px`}) scale(${({ $zoomed }) => ($zoomed ? 1.65 : 1)});
   transition: transform .35s ease;
@@ -379,13 +381,11 @@ export const DialogVariants = styled.div`
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  gap: 17px;
-  padding: 42px 34px 30px;
-  overflow-y: auto;
-  @media (max-width: 560px) { justify-content: flex-start; }
+  gap: 16px;
+  padding: 20px 24px 24px;
+  overflow-y: visible;
   .category { color: #a88183; font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; }
-  @media (max-width: 680px) { padding: 42px 24px 24px; }
-  @media (max-width: 560px) { gap: 13px; padding: 26px 22px 24px; }
+  @media (max-width: 560px) { gap: 12px; padding: 16px 18px 20px; }
 `
 
 export const DialogQuickShopLabel = styled.span`

@@ -24,6 +24,8 @@ import {
   DialogQuickShopLabel,
   DialogZoomButton,
   DialogTitle,
+  DialogThumbnails,
+  DialogThumbnailButton,
   DialogVariantGroup,
   DialogVariants,
   DialogBackdrop,
@@ -53,6 +55,7 @@ const ZOOM_SCALE = 1.65
 const ProductCard = ({ product, onAdd }: ProductCardProps) => {
   const [size, setSize] = useState(product.sizes[0] || '')
   const [color, setColor] = useState(product.colors[0]?.name || '')
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [modalMode, setModalMode] = useState<'quickshop' | 'details' | null>(null)
   const [isZoomed, setIsZoomed] = useState(false)
   const [imageOffset, setImageOffset] = useState({ x: 0, y: 0 })
@@ -64,7 +67,8 @@ const ProductCard = ({ product, onAdd }: ProductCardProps) => {
   const dialogRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLElement | null>(null)
   const selectedColor = product.colors.find((option) => option.name === color)
-  const image = selectedColor?.image || product.image
+  const images = product.images?.length ? product.images : [product.image]
+  const image = images[activeImageIndex] || selectedColor?.image || product.image
 
   const closeDetails = () => {
     setModalMode(null)
@@ -297,6 +301,26 @@ const ProductCard = ({ product, onAdd }: ProductCardProps) => {
               {product.tag && <Tag>{product.tag}</Tag>}
               {product.available === false && <span className="sold-out">Esgotado</span>}
             </DialogImageArea>
+            {images.length > 1 && (
+              <DialogThumbnails aria-label="Ângulos e miniaturas do produto">
+                {images.map((imgSrc, index) => (
+                  <DialogThumbnailButton
+                    key={index}
+                    type="button"
+                    $active={index === activeImageIndex}
+                    onClick={() => {
+                      setActiveImageIndex(index)
+                      setIsZoomed(false)
+                      setImageOffset({ x: 0, y: 0 })
+                    }}
+                    aria-label={`Ver ângulo ${index + 1} de ${product.name}`}
+                    aria-pressed={index === activeImageIndex}
+                  >
+                    <img src={imgSrc} alt={`${product.name} ângulo ${index + 1}`} loading="lazy" />
+                  </DialogThumbnailButton>
+                ))}
+              </DialogThumbnails>
+            )}
             <DialogVariants>
               <DialogCloseButton
                 ref={closeButtonRef}

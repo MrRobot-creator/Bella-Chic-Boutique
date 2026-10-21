@@ -1,5 +1,57 @@
 import styled from 'styled-components'
 
+export const AnnouncementBar = styled.div`
+  background: #76535a;
+  color: #fff;
+  font-size: 11.5px;
+  text-align: center;
+  padding: 8px 16px;
+  letter-spacing: .3px;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  a {
+    color: #ffd8de;
+    text-decoration: underline;
+    &:hover { color: #fff; }
+  }
+  @media (max-width: 600px) {
+    font-size: 10px;
+    padding: 7px 12px;
+  }
+`
+
+export const FloatingWhatsApp = styled.a`
+  position: fixed;
+  z-index: 99;
+  bottom: 24px;
+  right: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: #25d366;
+  color: white;
+  font: 12px/1 sans-serif;
+  font-weight: 600;
+  box-shadow: 0 4px 20px rgba(37, 211, 102, 0.35);
+  text-decoration: none;
+  transition: transform .2s ease, box-shadow .2s ease;
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 24px rgba(37, 211, 102, 0.45);
+  }
+  @media (max-width: 600px) {
+    bottom: 16px;
+    right: 16px;
+    padding: 10px 16px;
+    font-size: 11px;
+  }
+`
+
 export const Main = styled.main`
   .no-products { padding: 50px 0; color: #867778; text-align: center; font-size: 14px; }
 `
@@ -91,6 +143,61 @@ export const ShowcaseLink = styled.a`
   text-decoration: none;
   &:focus-visible { outline: 3px solid #8c6066; outline-offset: -8px; }
   &:hover ${ShowcaseImage} { transform: scale(1.025); }
+`
+
+export const StoreCarousel = styled.div`
+  position: relative;
+  overflow: hidden;
+  background: #f8e8eb;
+  border-radius: 8px;
+  height: clamp(240px, 35vw, 320px);
+  @media (max-width: 640px) {
+    border-radius: 0;
+    height: 260px;
+  }
+`
+
+export const StoreViewport = styled.div`
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  &:active { cursor: grabbing; }
+  &:focus-visible { outline: 2px solid #8c6066; outline-offset: -3px; }
+`
+
+export const StoreTrack = styled.div<{
+  $position: number
+  $dragOffset: number
+  $transitionEnabled: boolean
+}>`
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transform: translate3d(calc(${({ $position }) => -$position * 100}% + ${({ $dragOffset }) => $dragOffset}px), 0, 0);
+  transition: ${({ $transitionEnabled }) => $transitionEnabled ? 'transform .58s cubic-bezier(.22,.72,.25,1)' : 'none'};
+  will-change: transform;
+`
+
+export const StoreSlideItem = styled.div`
+  position: relative;
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: hidden;
+  background: #f8e8eb;
+`
+
+export const StoreSlideImage = styled.img`
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  background: #f8e8eb;
 `
 
 export const Contact = styled.section`
@@ -377,6 +484,23 @@ export const CatalogHeader = styled.div`
 
 export const CatalogTools = styled.div`
   @media (max-width: 760px) { width: 100%; }
+  .catalog-tools-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    @media (max-width: 760px) { flex-direction: column; width: 100%; }
+  }
+  .sort-select {
+    padding: 13px 18px;
+    border: 1px solid #ebdfdf;
+    border-radius: 999px;
+    background: #fff;
+    color: #584648;
+    font-size: 12px;
+    outline-color: #c39198;
+    cursor: pointer;
+    @media (max-width: 760px) { width: 100%; }
+  }
 `
 
 export const SearchInput = styled.input`
