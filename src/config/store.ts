@@ -5,13 +5,15 @@ export const storeConfig = {
       id: 'galeria-portuense',
       name: 'Galeria Portuense',
       address: 'Tv. Padre Eutíquio, 105 - Batista Campos',
-      city: 'Belém' as const
+      city: 'Belém' as const,
+      hours: 'Segunda a sexta: 10h às 19:30 • Sábado: 10h às 18h • Domingo: Fechado'
     },
     {
       id: 'cidade-nova-04',
       name: 'Cidade Nova 04',
       address: 'Av. Dr. Nonato Sanova, 161A - Cidade Nova, Ananindeua',
-      city: 'Ananindeua' as const
+      city: 'Ananindeua' as const,
+      hours: 'Segunda a sexta: 10h às 19h • Sábado: 10h às 17h • Domingo: Fechado (sujeito a abertura, conferir no Instagram)'
     }
   ],
   whatsappContacts: [

@@ -5,6 +5,7 @@ type OrderDetails = {
   reference: string
   name: string
   phone: string
+  email?: string
   unitName: string
   unitAddress: string
   attendant: string
@@ -21,6 +22,8 @@ type OrderDetails = {
   deliveryFee: number | null
   payment: PaymentMethod
   subtotal: number
+  discount?: number
+  couponCode?: string
 }
 
 export const createOrderMessage = (items: CartItem[], order: OrderDetails) => {
@@ -52,6 +55,8 @@ export const createOrderMessage = (items: CartItem[], order: OrderDetails) => {
     '\u{1F464} *DADOS DO CLIENTE*',
     `Nome: ${order.name}`,
     `Telefone: ${order.phone}`,
+    order.email ? `E-mail: ${order.email}` : '',
+    order.couponCode ? `Cupom aplicado: ${order.couponCode} (-10%)` : '',
     '',
     separator,
     '\u{1F3E0} *UNIDADE E ATENDIMENTO*',
@@ -70,8 +75,9 @@ export const createOrderMessage = (items: CartItem[], order: OrderDetails) => {
     separator,
     '\u{1F4B0} *RESUMO DOS VALORES*',
     `Subtotal: ${formatPrice(order.subtotal)}`,
+    (order.discount ?? 0) > 0 ? `Desconto (Cupom ${order.couponCode}): -${formatPrice(order.discount!)}` : '',
     `Taxa de entrega: ${deliveryFee === null ? 'a confirmar com a atendente' : formatPrice(deliveryFee)}`,
-    `TOTAL: ${deliveryFee === null ? 'a confirmar após calcular o frete' : formatPrice(order.subtotal + deliveryFee)}`,
+    `TOTAL: ${deliveryFee === null ? 'a confirmar após calcular o frete' : formatPrice(order.subtotal - (order.discount ?? 0) + deliveryFee)}`,
     '',
     separator,
     '\u{1F4B3} *FORMA DE PAGAMENTO*',

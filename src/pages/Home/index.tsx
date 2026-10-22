@@ -668,6 +668,11 @@ const Home = () => {
               <div>
                 <h3>{activeUnit.name}</h3>
                 <p>{activeUnit.address}</p>
+                {activeUnit.hours && (
+                  <p style={{ marginTop: '8px', color: '#7a5a60', fontSize: '11px', lineHeight: '1.5', fontWeight: 500 }}>
+                    🕒 Horário: {activeUnit.hours}
+                  </p>
+                )}
               </div>
               <div className="contact-actions">
                 <ContactLink

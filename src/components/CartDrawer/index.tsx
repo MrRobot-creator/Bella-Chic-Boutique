@@ -2,6 +2,7 @@ import { ChangeEvent, FormEvent, MouseEvent, useEffect, useRef, useState } from 
 import { storeConfig } from '../../config/store'
 import { CartItem, PaymentMethod } from '../../types/store'
 import { createOrderMessage, createOrderReference, createWhatsAppUrl } from '../../services/whatsapp'
+import { validateCoupon, recordCouponUsage as recordCouponUsageService } from '../../services/coupon'
 import {
   calculateDeliveryFee,
   DeliveryCity,
@@ -40,6 +41,10 @@ const formatPrice = (value: number) =>
 const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: CartDrawerProps) => {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
+  const [couponCode, setCouponCode] = useState('')
+  const [couponApplied, setCouponApplied] = useState(false)
+  const [couponMessage, setCouponMessage] = useState('')
   const [selectedUnitId, setSelectedUnitId] = useState(storeConfig.units[0].id)
   const [selectedContactId, setSelectedContactId] = useState(storeConfig.whatsappContacts[0].id)
   const [fulfillment, setFulfillment] = useState('Entrega')
@@ -58,12 +63,20 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
   const cepLookupRequest = useRef<AbortController | null>(null)
   const selectedStreetFromLookup = useRef('')
   const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
+  const discount = couponApplied ? total * 0.10 : 0
   const selectedUnit = storeConfig.units.find((unit) => unit.id === selectedUnitId) || storeConfig.units[0]
   const availableContacts = storeConfig.whatsappContacts.filter((contact) => contact.unitId === selectedUnit.id)
   const selectedContact = availableContacts.find((contact) => contact.id === selectedContactId) || availableContacts[0]
   const deliveryFee = fulfillment === 'Entrega'
     ? deliveryCity ? calculateDeliveryFee(selectedUnit.city, deliveryCity) : null
     : 0
+  const finalTotal = total - discount + (deliveryFee === null ? 0 : deliveryFee)
+
+  const handleApplyCoupon = () => {
+    const result = validateCoupon(email, couponCode)
+    setCouponMessage(result.message)
+    setCouponApplied(result.valid)
+  }
 
   useEffect(() => {
     if (
@@ -206,11 +219,16 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
       return
     }
 
+    if (couponApplied) {
+      recordCouponUsageService(email, 'Bella10')
+    }
+
     const reference = createOrderReference()
     const orderMessage = createOrderMessage(items, {
       reference,
       name: name.trim(),
       phone: phone.trim(),
+      email: email.trim(),
       unitName: selectedUnit.name,
       unitAddress: selectedUnit.address,
       attendant: selectedContact.label,
@@ -226,7 +244,9 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
       deliveryNotes: fulfillment === 'Entrega' ? deliveryNotes.trim() : '',
       deliveryFee,
       payment,
-      subtotal: total
+      subtotal: total,
+      discount,
+      couponCode: couponApplied ? 'Bella10' : ''
     })
     window.location.assign(createWhatsAppUrl(orderMessage, selectedContact.number))
   }
@@ -275,6 +295,12 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
 
             <Summary>
               <div className="subtotal"><span>Subtotal</span><span>{formatPrice(total)}</span></div>
+              {couponApplied && (
+                <div className="subtotal" style={{ color: '#25a244', marginTop: '4px' }}>
+                  <span>Desconto (Cupom Bella10 - 10%)</span>
+                  <span>-{formatPrice(discount)}</span>
+                </div>
+              )}
               <p>
                 {fulfillment !== 'Entrega'
                   ? 'Retirada na loja sem taxa de entrega.'
@@ -284,7 +310,7 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
               </p>
               <Total>
                 <span>Total {fulfillment === 'Entrega' ? '(com entrega)' : '(retirada)'}</span>
-                <strong>{deliveryFee === null ? 'Aguardando município' : formatPrice(total + deliveryFee)}</strong>
+                <strong>{deliveryFee === null ? 'Aguardando município' : formatPrice(finalTotal)}</strong>
               </Total>
             </Summary>
 
@@ -312,6 +338,55 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
               <label>
                 Seu WhatsApp
                 <input value={phone} onChange={handlePhoneChange} type="tel" autoComplete="tel" placeholder="(91) 99999-9999" required />
+              </label>
+              <label>
+                Seu e-mail (para cadastro e cupom)
+                <input
+                  value={email}
+                  onChange={(event) => {
+                    setEmail(event.target.value)
+                    if (couponApplied) {
+                      setCouponApplied(false)
+                      setCouponMessage('E-mail alterado. Aplique o cupom novamente.')
+                    }
+                  }}
+                  type="email"
+                  autoComplete="email"
+                  placeholder="seu@email.com"
+                  required
+                />
+              </label>
+              <label>
+                Cupom de desconto
+                <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                  <input
+                    value={couponCode}
+                    onChange={(event) => setCouponCode(event.target.value)}
+                    placeholder="Ex.: Bella10"
+                    style={{ flex: 1, margin: '0' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    style={{
+                      padding: '0 16px',
+                      background: '#75525a',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '2px',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    Aplicar
+                  </button>
+                </div>
+                {couponMessage && (
+                  <span className="address-status" role="status" style={{ color: couponApplied ? '#25a244' : '#a45c69', marginTop: '4px', display: 'block' }}>
+                    {couponMessage}
+                  </span>
+                )}
               </label>
               <label>
                 Como deseja receber?
