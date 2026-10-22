@@ -133,7 +133,7 @@ export const ProductInfo = styled.div`
     h3 { font-size: 16px; }
     .category { font-size: 8px; letter-spacing: .8px; }
     .prices { margin: 9px 0 8px; }
-    .color-row { gap: 4px; margin: 8px 0 11px; font-size: 10px; }
+    .color-row { flex-wrap: wrap; gap: 6px; margin: 8px 0 11px; font-size: 10px; }
   }
 `
 
@@ -159,6 +159,7 @@ export const Select = styled.select`
 export const ColorChoices = styled.div`
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
 `
 
@@ -170,6 +171,8 @@ export const ColorChoice = styled.button<{ $color: string; $selected: boolean }>
   border-radius: 50%;
   background: ${({ $color }) => $color};
   box-shadow: ${({ $selected }) => ($selected ? '0 0 0 2px #fff, 0 0 0 3px #bd9297' : 'none')};
+  cursor: pointer;
+  &:focus-visible { outline: 2px solid #8c6066; outline-offset: 3px; }
 `
 
 export const AddButton = styled.button`
@@ -192,8 +195,12 @@ export const CardActions = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   margin-top: auto;
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
 `
 
 export const ViewDetailsButton = styled.button`
@@ -229,7 +236,7 @@ export const BuyButton = styled.button`
   &:hover { background: #60434a; transform: translateY(-1px); box-shadow: 0 8px 16px rgba(120, 83, 90, .18); }
   &:disabled { cursor: not-allowed; background: #e5dddd; color: #958789; box-shadow: none; transform: none; }
   &:focus-visible { outline: 2px solid #8c6066; outline-offset: 3px; }
-  @media (max-width: 480px) { min-height: 35px; padding: 8px 7px; font-size: 10px; white-space: nowrap; }
+  @media (max-width: 480px) { min-height: 40px; padding: 9px 12px; font-size: 11px; white-space: nowrap; }
 `
 
 export const DialogBackdrop = styled.div`

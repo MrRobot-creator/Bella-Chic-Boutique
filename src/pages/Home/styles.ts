@@ -196,7 +196,7 @@ export const StoreSlideImage = styled.img`
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
   background: #f8e8eb;
 `
@@ -218,11 +218,6 @@ export const ContactContent = styled.div`
   .about-copy h2 em { color: #b77c85; font-weight: 400; }
   .about-copy p { margin-top: 16px; color: #79696b; font-size: 13px; line-height: 1.9; }
   .store-carousel { position: relative; overflow: hidden; background: #eadbdc; border-radius: 8px; }
-  .store-carousel > img { display: block; width: 100%; height: clamp(280px, 50vw, 390px); object-fit: cover; object-position: center; transition: opacity .25s; }
-  @media (max-width: 640px) {
-    .store-carousel { border-radius: 0; }
-    .store-carousel > img { height: 320px; object-fit: cover; }
-  }
   .store-caption { position: absolute; right: 0; bottom: 48px; left: 0; display: flex; flex-direction: column; gap: 4px; padding: 32px 18px 14px; background: linear-gradient(transparent, rgba(36, 27, 27, 0.45)); color: white; }
   .store-caption strong { font: 20px Georgia, serif; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
   .store-caption span { font-size: 11px; opacity: 0.95; }
@@ -583,7 +578,7 @@ export const ProductGrid = styled.div`
   gap: 25px 22px;
   @media (min-width: 1400px) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   @media (max-width: 900px) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 14px; }
-  @media (max-width: 370px) { gap: 12px 9px; }
+  @media (max-width: 370px) { grid-template-columns: 1fr; gap: 16px; }
 `
 
 export const Footer = styled.footer`

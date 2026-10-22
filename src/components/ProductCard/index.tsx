@@ -68,7 +68,9 @@ const ProductCard = ({ product, onAdd }: ProductCardProps) => {
   const triggerRef = useRef<HTMLElement | null>(null)
   const selectedColor = product.colors.find((option) => option.name === color)
   const images = product.images?.length ? product.images : [product.image]
-  const image = images[activeImageIndex] || selectedColor?.image || product.image
+  const image = activeImageIndex === 0
+    ? selectedColor?.image || images[0]
+    : images[activeImageIndex] || product.image
 
   const closeDetails = () => {
     setModalMode(null)
@@ -78,6 +80,13 @@ const ProductCard = ({ product, onAdd }: ProductCardProps) => {
 
   const toggleZoom = () => {
     setIsZoomed((current) => !current)
+    setImageOffset({ x: 0, y: 0 })
+  }
+
+  const selectColor = (selectedColorName: string) => {
+    setColor(selectedColorName)
+    setActiveImageIndex(0)
+    setIsZoomed(false)
     setImageOffset({ x: 0, y: 0 })
   }
 
@@ -239,7 +248,7 @@ const ProductCard = ({ product, onAdd }: ProductCardProps) => {
                     aria-label={`Pré-visualizar ${option.name}`}
                     aria-pressed={option.name === color}
                     title={option.name}
-                    onClick={() => setColor(option.name)}
+                    onClick={() => selectColor(option.name)}
                   />
                 ))}
               </ColorChoices>
@@ -316,7 +325,11 @@ const ProductCard = ({ product, onAdd }: ProductCardProps) => {
                     aria-label={`Ver ângulo ${index + 1} de ${product.name}`}
                     aria-pressed={index === activeImageIndex}
                   >
-                    <img src={imgSrc} alt={`${product.name} ângulo ${index + 1}`} loading="lazy" />
+                    <img
+                      src={index === 0 ? selectedColor?.image || imgSrc : imgSrc}
+                      alt={`${product.name} ângulo ${index + 1}`}
+                      loading="lazy"
+                    />
                   </DialogThumbnailButton>
                 ))}
               </DialogThumbnails>
@@ -355,7 +368,7 @@ const ProductCard = ({ product, onAdd }: ProductCardProps) => {
                         aria-label={option.name}
                         aria-pressed={option.name === color}
                         title={option.name}
-                        onClick={() => setColor(option.name)}
+                        onClick={() => selectColor(option.name)}
                       />
                     ))}
                   </ColorChoices>
