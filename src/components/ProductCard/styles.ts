@@ -266,8 +266,8 @@ export const DialogContent = styled.div`
   @keyframes rise-in { from { transform: translateY(8px); } to { transform: translateY(0); } }
   @media (max-width: 560px) {
     width: 100%;
-    height: 100dvh;
     max-height: 100dvh;
+    height: auto;
     border-radius: 0;
   }
 `
@@ -286,7 +286,12 @@ export const DialogImageArea = styled.div<{ $zoomed: boolean }>`
   cursor: ${({ $zoomed }) => ($zoomed ? 'grab' : 'zoom-in')};
   &:active { cursor: ${({ $zoomed }) => ($zoomed ? 'grabbing' : 'zoom-in')}; }
   .sold-out { position: absolute; inset: 0; display: grid; place-items: center; background: #392c2c80; color: #fff; font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
-  @media (max-width: 560px) { height: 320px; }
+  @media (max-width: 560px) {
+    height: 260px;
+  }
+  @media (max-height: 600px) {
+    height: 170px;
+  }
 `
 
 export const DialogThumbnails = styled.div`
@@ -393,7 +398,11 @@ export const DialogVariants = styled.div`
   padding: 20px 24px 24px;
   overflow-y: visible;
   .category { color: #a88183; font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; }
-  @media (max-width: 560px) { gap: 12px; padding: 16px 18px 20px; }
+  @media (max-width: 560px) {
+    gap: 12px;
+    padding: 14px 18px 18px;
+    flex: 0 0 auto;
+  }
 `
 
 export const DialogQuickShopLabel = styled.span`
