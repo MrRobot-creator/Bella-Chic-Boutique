@@ -26,13 +26,14 @@ export const HeaderContent = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: nowrap;
 
   .brand-link { text-decoration: none; }
   @media (max-width: 700px) {
     width: calc(100% - 32px);
-    min-height: 0;
-    padding: 10px 0 0;
-    flex-wrap: wrap;
+    min-height: 72px;
+    padding: 0;
+    flex-wrap: nowrap;
   }
 `
 

@@ -1,25 +1,26 @@
 import styled from 'styled-components'
 
 export const AnnouncementBar = styled.div`
-  background: #76535a;
+  background: linear-gradient(135deg, #76535a 0%, #a96f79 50%, #503b3f 100%);
   color: #fff;
-  font-size: 11.5px;
+  font-size: 12px;
   text-align: center;
-  padding: 8px 16px;
-  letter-spacing: .3px;
-  font-weight: 400;
+  padding: 10px 20px;
+  letter-spacing: .5px;
+  font-weight: 500;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
   a {
     color: #ffd8de;
     text-decoration: underline;
     &:hover { color: #fff; }
   }
   @media (max-width: 600px) {
-    font-size: 10px;
-    padding: 7px 12px;
+    font-size: 10.5px;
+    padding: 8px 14px;
   }
 `
 
