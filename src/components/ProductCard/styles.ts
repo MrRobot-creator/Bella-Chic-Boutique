@@ -256,8 +256,8 @@ export const DialogContent = styled.div`
   position: relative;
   display: flex;
   flex-direction: column;
-  width: min(500px, 100%);
-  max-height: calc(100vh - 24px);
+  width: min(520px, 100%);
+  max-height: calc(100vh - 32px);
   overflow-y: auto;
   background: #fff;
   border-radius: 12px;
@@ -279,18 +279,20 @@ export const DialogImageArea = styled.div<{ $zoomed: boolean }>`
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 420px;
+  height: 520px;
   overflow: hidden;
   background: #faf6f5;
-  padding: 8px;
+  padding: 0;
   cursor: ${({ $zoomed }) => ($zoomed ? 'grab' : 'zoom-in')};
   &:active { cursor: ${({ $zoomed }) => ($zoomed ? 'grabbing' : 'zoom-in')}; }
   .sold-out { position: absolute; inset: 0; display: grid; place-items: center; background: #392c2c80; color: #fff; font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
   @media (max-width: 560px) {
-    height: 260px;
+    height: 390px;
+    padding: 0;
   }
   @media (max-height: 600px) {
-    height: 170px;
+    height: 220px;
+    padding: 0;
   }
 `
 
