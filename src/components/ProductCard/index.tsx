@@ -38,7 +38,8 @@ import {
   Price,
   ProductInfo,
   Select,
-  Tag,
+  Badge,
+  WishlistButton,
   ViewDetailsButton
 } from './styles'
 
@@ -62,6 +63,21 @@ const ProductCard = ({ product, onAdd }: ProductCardProps) => {
   const zoomPointerStart = useRef<{ x: number; y: number; offsetX: number; offsetY: number; pointerId: number } | null>(null)
   const imageAreaRef = useRef<HTMLDivElement>(null)
   const suppressZoomClick = useRef(false)
+  const [isWishlist, setIsWishlist] = useState(false)
+
+  // Wishlist functionality with local storage
+    useEffect(() => {
+      const savedWishlist = localStorage.getItem(`wishlist-${product.id}`)
+      if (savedWishlist) {
+        setIsWishlist(savedWishlist === 'true')
+      }
+    }, [product.id])
+  
+    const toggleWishlist = (e: ReactMouseEvent) => {
+      e.stopPropagation()
+      setIsWishlist(!isWishlist)
+      localStorage.setItem(`wishlist-${product.id}`, (!isWishlist).toString())
+    }
   const isModalOpen = modalMode !== null
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -220,7 +236,19 @@ const ProductCard = ({ product, onAdd }: ProductCardProps) => {
               loading="lazy"
             />
           </ImageTrigger>
-          {product.tag && <Tag>{product.tag}</Tag>}
+          {product.tag && (
+            <Badge $variant={product.tag.toLowerCase().includes('novo') ? 'new' : product.tag.toLowerCase().includes('vendido') || product.tag.toLowerCase().includes('destaque') ? 'bestseller' : 'limited'}>
+              {product.tag}
+            </Badge>
+          )}
+          <WishlistButton
+            type="button"
+            className={isWishlist ? 'active' : ''}
+            onClick={toggleWishlist}
+            aria-label={isWishlist ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+          >
+            {isWishlist ? '♥' : '♡'}
+          </WishlistButton>
           {product.available === false && <span className="sold-out">Esgotado</span>}
           {product.oldPrice && (
             <span className="discount">
@@ -307,7 +335,11 @@ const ProductCard = ({ product, onAdd }: ProductCardProps) => {
               >
                 {isZoomed ? '−' : '+'}
               </DialogZoomButton>
-              {product.tag && <Tag>{product.tag}</Tag>}
+              {product.tag && (
+                <Badge $variant={product.tag.toLowerCase().includes('novo') ? 'new' : product.tag.toLowerCase().includes('vendido') || product.tag.toLowerCase().includes('destaque') ? 'bestseller' : 'limited'}>
+                  {product.tag}
+                </Badge>
+              )}
               {product.available === false && <span className="sold-out">Esgotado</span>}
             </DialogImageArea>
             {images.length > 1 && (

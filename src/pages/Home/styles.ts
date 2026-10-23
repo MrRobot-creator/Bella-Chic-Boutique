@@ -675,7 +675,67 @@ export const FooterBottom = styled.div`
   @media (max-width: 520px) {
     align-items: flex-start;
     flex-direction: column;
-    gap: 7px;
+    gap: 10px;
     font-size: 8px;
+  }
+`
+
+export const DeveloperCredit = styled.div`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 10px;
+  color: #cdbabc;
+
+  a {
+    color: #fffaf8;
+    text-decoration: underline;
+    transition: color 0.2s;
+    &:hover {
+      color: #e9bcc3;
+    }
+  }
+`
+
+export const PortfolioButton = styled.a`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 1px solid rgba(217, 168, 175, 0.4);
+  border-radius: 20px;
+  background: linear-gradient(135deg, #7a5059 0%, #633f47 100%);
+  color: #fffaf8;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+    opacity: 0.95;
+    transition: transform 0.25s ease;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(135deg, #8a5d66 0%, #704750 100%);
+    border-color: rgba(233, 188, 195, 0.8);
+    color: #ffffff;
+    box-shadow: 0 5px 14px rgba(0, 0, 0, 0.25);
+
+    svg {
+      transform: scale(1.1);
+      opacity: 1;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid #f2d8dc;
+    outline-offset: 3px;
   }
 `

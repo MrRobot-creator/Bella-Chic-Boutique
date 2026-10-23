@@ -101,16 +101,51 @@ export const Image = styled.img`
   ${Card}:hover & { transform: scale(1.04); }
 `
 
-export const Tag = styled.span`
+export const WishlistButton = styled.button`
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
+  border: 1px solid #f1e9e7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all .2s ease;
+  color: #a45c69;
+  font-size: 18px;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(121, 87, 89, .1);
+  &:hover { background: #fff; transform: scale(1.1); color: #86575e; }
+  &.active { color: #d64d5a; background: #fff; border-color: #d64d5a; }
+`
+
+export const Badge = styled.span<{ $variant: 'new' | 'bestseller' | 'limited' }>`
   position: absolute;
   top: 14px;
   left: 14px;
-  padding: 6px 9px;
-  background: #fff;
-  color: #86575e;
+  z-index: 5;
+  padding: 4px 8px;
+  border-radius: 4px;
   font-size: 9px;
-  letter-spacing: .5px;
+  font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: .5px;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  ${props => {
+    switch (props.$variant) {
+      case 'new': return 'background: #86575e;';
+      case 'bestseller': return 'background: #a45c69;';
+      case 'limited': return 'background: #4a393b;';
+      default: return 'background: #86575e;';
+    }
+  }}
 `
 
 export const ProductInfo = styled.div`

@@ -6,10 +6,16 @@ describe('Coupon and Account service', () => {
     localStorage.clear()
   })
 
-  it('validates Bella10 coupon successfully for a new email', () => {
-    const result = validateCoupon('cliente@teste.com', 'Bella10')
+  it('validates Bella10 coupon successfully for a new email with cart total >= 300', () => {
+    const result = validateCoupon('cliente@teste.com', 'Bella10', 300)
     expect(result.valid).toBe(true)
     expect(result.message).toContain('aplicado com sucesso')
+  })
+
+  it('rejects Bella10 coupon when cart total is below 300', () => {
+    const result = validateCoupon('cliente@teste.com', 'Bella10', 250)
+    expect(result.valid).toBe(false)
+    expect(result.message).toContain('a partir de R$ 300,00')
   })
 
   it('rejects invalid coupon codes', () => {
@@ -26,10 +32,10 @@ describe('Coupon and Account service', () => {
 
   it('prevents reusing Bella10 coupon for the same email address', () => {
     const email = 'cliente@teste.com'
-    expect(validateCoupon(email, 'Bella10').valid).toBe(true)
+    expect(validateCoupon(email, 'Bella10', 300).valid).toBe(true)
     recordCouponUsage(email, 'Bella10')
 
-    const secondTry = validateCoupon(email, 'Bella10')
+    const secondTry = validateCoupon(email, 'Bella10', 300)
     expect(secondTry.valid).toBe(false)
     expect(secondTry.message).toContain('já foi utilizado')
   })

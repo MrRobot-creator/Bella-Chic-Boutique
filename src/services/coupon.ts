@@ -33,7 +33,7 @@ export const recordCouponUsage = (emailStr: string, coupon: string): void => {
   }
 }
 
-export const validateCoupon = (emailStr: string, couponCode: string) => {
+export const validateCoupon = (emailStr: string, couponCode: string, cartTotal: number = 0) => {
   const email = emailStr.trim()
   const code = couponCode.trim()
 
@@ -43,6 +43,10 @@ export const validateCoupon = (emailStr: string, couponCode: string) => {
 
   if (!code || code.toLowerCase() !== 'bella10') {
     return { valid: false, message: 'Cupom inválido. Utilize o cupom Bella10.' }
+  }
+
+  if (cartTotal < 300) {
+    return { valid: false, message: 'O cupom Bella10 é válido apenas para compras a partir de R$ 300,00.' }
   }
 
   if (hasUsedCoupon(email, 'bella10')) {

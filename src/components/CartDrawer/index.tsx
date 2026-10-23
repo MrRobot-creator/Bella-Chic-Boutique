@@ -73,7 +73,7 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
   const finalTotal = total - discount + (deliveryFee === null ? 0 : deliveryFee)
 
   const handleApplyCoupon = () => {
-    const result = validateCoupon(email, couponCode)
+    const result = validateCoupon(email, couponCode, total)
     setCouponMessage(result.message)
     setCouponApplied(result.valid)
   }

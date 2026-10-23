@@ -41,6 +41,8 @@ import {
   FooterContent,
   FooterSocialLink,
   FooterNavigation,
+  DeveloperCredit,
+  PortfolioButton,
   Hero,
   HeroContent,
   HeroShowcase,
@@ -465,7 +467,7 @@ const Home = () => {
   return (
     <>
       <AnnouncementBar>
-        <span>✨ Frete grátis para Belém e Ananindeua nas compras acima de R$ 300!</span>
+        <span>✨ use o cupom BELLA10 para primeira compra acima de R$ 300!</span>
       </AnnouncementBar>
       <BoutiqueHeader
         cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
@@ -848,6 +850,19 @@ const Home = () => {
         </FooterContent>
         <FooterBottom>
           <span>© {new Date().getFullYear()} Bella Chic Boutique · Todos os direitos reservados.</span>
+          <DeveloperCredit>
+            Desenvolvido por:{' '}
+            <PortfolioButton
+              href="https://matheus-nobre-portfolio.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z" />
+              </svg>
+              Matheus Nobre
+            </PortfolioButton>
+          </DeveloperCredit>
         </FooterBottom>
       </Footer>
       <CartDrawer
