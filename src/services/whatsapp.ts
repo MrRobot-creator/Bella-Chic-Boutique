@@ -1,5 +1,6 @@
 import { CartItem, PaymentMethod } from '../types/store'
 import { storeConfig } from '../config/store'
+import { getSizeFitLabel } from '../utils/productSize'
 
 type OrderDetails = {
   reference: string
@@ -29,7 +30,7 @@ type OrderDetails = {
 export const createOrderMessage = (items: CartItem[], order: OrderDetails) => {
   const lines = items.map(
     ({ product, size, color, quantity }) =>
-      `${quantity}x ${product.name}\n  Tamanho: ${size} | Cor: ${color}`
+      `${quantity}x ${product.name}\n  Tamanho: ${size}${getSizeFitLabel(product) ? ` (${getSizeFitLabel(product)})` : ''} | Cor: ${color}`
   )
 
   const deliveryAddress = order.fulfillment === 'Entrega'

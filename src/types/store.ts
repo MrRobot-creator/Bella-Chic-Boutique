@@ -8,6 +8,7 @@ export type Product = {
   image: string
   images?: string[]
   sizes: string[]
+  sizeFit?: string
   colors: { name: string; hex: string; image?: string }[]
   tag?: string
   available?: boolean

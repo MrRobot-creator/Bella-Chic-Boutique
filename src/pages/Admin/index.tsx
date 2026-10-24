@@ -30,7 +30,9 @@ type ProductDraft = {
   price: string
   oldPrice: string
   image: string
+  images: string[]
   sizes: string
+  sizeFit: string
   colors: ColorDraft[]
   tag: string
   available: boolean
@@ -49,7 +51,9 @@ const blankDraft: ProductDraft = {
   price: '',
   oldPrice: '',
   image: '',
+  images: [],
   sizes: '',
+  sizeFit: '',
   colors: [{ name: '', hex: '#e5a1ad', image: '' }],
   tag: '',
   available: true
@@ -62,7 +66,9 @@ const draftFromProduct = (product: Product): ProductDraft => ({
   price: String(product.price),
   oldPrice: product.oldPrice === undefined ? '' : String(product.oldPrice),
   image: product.image,
+  images: (product.images || []).filter((image) => image !== product.image),
   sizes: product.sizes.join(', '),
+  sizeFit: product.sizeFit || '',
   colors: product.colors.map((color) => ({
     name: color.name,
     hex: color.hex,
@@ -72,8 +78,31 @@ const draftFromProduct = (product: Product): ProductDraft => ({
   available: product.available !== false
 })
 
-const errorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : 'Ocorreu um erro inesperado.'
+const errorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message
+  if (typeof error === 'string') return error
+  if (typeof error !== 'object' || error === null) return 'Ocorreu um erro inesperado.'
+
+  const details = error as { code?: unknown; message?: unknown; details?: unknown; hint?: unknown }
+  const message = typeof details.message === 'string' ? details.message : ''
+  const extraDetails = typeof details.details === 'string' ? details.details : ''
+  const hint = typeof details.hint === 'string' ? details.hint : ''
+  const code = typeof details.code === 'string' ? details.code : ''
+  const diagnostic = `${message} ${extraDetails} ${hint}`.toLocaleLowerCase('pt-BR')
+
+  const supabaseMessage = [message, extraDetails, hint].filter(Boolean).join(' ')
+  if (diagnostic.includes('size_fit')) {
+    return `${supabaseMessage} Execute supabase/product-size-fit.sql no SQL Editor do Supabase e tente novamente.`
+  }
+  if (diagnostic.includes('images')) {
+    return `${supabaseMessage} Execute supabase/product-gallery.sql no SQL Editor do Supabase e tente novamente.`
+  }
+  if (code === 'PGRST204' || code === '42703') {
+    return `${supabaseMessage} O banco parece estar sem uma coluna esperada pelo painel; confira se as migrações do catálogo foram executadas no SQL Editor do Supabase.`
+  }
+
+  return supabaseMessage || 'Ocorreu um erro inesperado.'
+}
 
 const Admin = () => {
   const [session, setSession] = useState<Session | null>(null)
@@ -87,6 +116,7 @@ const Admin = () => {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [uploadingGalleryImages, setUploadingGalleryImages] = useState(false)
   const [uploadingColorIndex, setUploadingColorIndex] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -206,9 +236,30 @@ const Admin = () => {
     }
   }
 
+  const handleGalleryImagesUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || [])
+    event.target.value = ''
+    if (!files.length) return
+
+    setError('')
+    setNotice('')
+    setUploadingGalleryImages(true)
+    try {
+      for (const file of files) {
+        const imageUrl = await uploadProductImage(file)
+        setDraft((current) => ({ ...current, images: [...current.images, imageUrl] }))
+      }
+      setNotice(`${files.length} ${files.length === 1 ? 'foto de outro ângulo enviada' : 'fotos de outros ângulos enviadas'} ao Supabase Storage.`)
+    } catch (uploadError) {
+      setError(`Não foi possível enviar todas as fotos dos ângulos: ${errorMessage(uploadError)}`)
+    } finally {
+      setUploadingGalleryImages(false)
+    }
+  }
+
   const handleSaveProduct = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (uploadingImage || uploadingColorIndex !== null) {
+    if (uploadingImage || uploadingGalleryImages || uploadingColorIndex !== null) {
       setError('Aguarde o envio das imagens terminar antes de salvar a peça.')
       return
     }
@@ -246,14 +297,20 @@ const Admin = () => {
       return
     }
 
+    const mainImage = draft.image.trim() || colors.find((color) => color.image)?.image || draft.images[0] || ''
     const product: CatalogProductInput = {
       name: draft.name.trim(),
       category: draft.category.trim(),
       description: draft.description.trim(),
       price,
       oldPrice,
-      image: draft.image.trim() || colors.find((color) => color.image)?.image || '',
+      image: mainImage,
+      images: [
+        mainImage,
+        ...draft.images.filter((image) => image.trim() && image.trim() !== mainImage)
+      ].filter(Boolean),
       sizes,
+      sizeFit: draft.sizeFit.trim() || undefined,
       colors,
       tag: draft.tag.trim() || undefined,
       available: draft.available
@@ -350,15 +407,42 @@ const Admin = () => {
                   <input type="url" value={draft.image} onChange={(event) => setDraft({ ...draft, image: event.target.value })} placeholder="Cole uma URL ou envie uma imagem abaixo" required={!draft.image.trim() && draft.colors.some((color) => !color.image.trim())} />
                 </label>
                 <label className="wide">Enviar foto do dispositivo (PNG, JPG ou WebP; até 5 MB)
-                  <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleImageUpload} disabled={uploadingImage || uploadingColorIndex !== null} />
+                  <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleImageUpload} disabled={uploadingImage || uploadingGalleryImages || uploadingColorIndex !== null} />
                   {uploadingImage && <span role="status">Enviando imagem para o Supabase...</span>}
                   {draft.image && <img className="image-preview" src={draft.image} alt="Pré-visualização da imagem do produto" />}
+                </label>
+                <label className="wide">Enviar fotos de outros ângulos (opcional; PNG, JPG ou WebP; até 5 MB por foto)
+                  <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={handleGalleryImagesUpload} disabled={uploadingImage || uploadingGalleryImages || uploadingColorIndex !== null} />
+                  {uploadingGalleryImages && <span role="status">Enviando fotos dos ângulos para o Supabase...</span>}
+                  {!!draft.images.length && (
+                    <span className="gallery-image-previews">
+                      {draft.images.map((image, index) => (
+                        <span className="gallery-image-item" key={`${image}-${index}`}>
+                          <img src={image} alt={`Pré-visualização do ângulo ${index + 1}`} />
+                          <AdminButton type="button" className="secondary" disabled={uploadingGalleryImages} onClick={() => setDraft((current) => ({
+                            ...current,
+                            images: current.images.filter((_item, imageIndex) => imageIndex !== index)
+                          }))}>Remover ângulo {index + 1}</AdminButton>
+                        </span>
+                      ))}
+                    </span>
+                  )}
                 </label>
                 <label className="wide">Descrição
                   <textarea value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} required />
                 </label>
                 <label className="wide">Tamanhos disponíveis (separados por vírgula)
                   <input value={draft.sizes} onChange={(event) => setDraft({ ...draft, sizes: event.target.value })} placeholder="P, M, G, GG" required />
+                </label>
+                <label className="wide">Numeração que o tamanho único veste (opcional)
+                  <input
+                    value={draft.sizeFit}
+                    onChange={(event) => setDraft({ ...draft, sizeFit: event.target.value })}
+                    placeholder="38-42"
+                    aria-describedby="size-fit-help"
+                    maxLength={40}
+                  />
+                  <span id="size-fit-help">Preencha quando o tamanho cadastrado for único; na loja aparecerá como “Veste do 38 ao 42”.</span>
                 </label>
                 <div className="wide color-list">
                   <strong>Cores e fotos por cor</strong>
@@ -391,7 +475,7 @@ const Admin = () => {
                       </label>
                       <div className="wide color-image-actions">
                         <label>Enviar foto para esta cor (opcional)
-                          <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => handleColorImageUpload(index, event)} disabled={uploadingImage || uploadingColorIndex !== null} />
+                                  <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => handleColorImageUpload(index, event)} disabled={uploadingImage || uploadingGalleryImages || uploadingColorIndex !== null} />
                         </label>
                         {color.image && <img className="color-image-preview" src={color.image} alt={`Pré-visualização da cor ${color.name || index + 1}`} />}
                         {draft.colors.length > 1 && (
@@ -419,7 +503,7 @@ const Admin = () => {
                   Produto disponível para compra
                 </label>
                 <div className="wide actions">
-                  <AdminButton type="submit" disabled={saving || uploadingImage || uploadingColorIndex !== null}>{uploadingImage || uploadingColorIndex !== null ? 'Enviando imagem...' : saving ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Adicionar peça'}</AdminButton>
+                  <AdminButton type="submit" disabled={saving || uploadingImage || uploadingGalleryImages || uploadingColorIndex !== null}>{uploadingImage || uploadingGalleryImages || uploadingColorIndex !== null ? 'Enviando imagem...' : saving ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Adicionar peça'}</AdminButton>
                   {editingId !== null && <AdminButton type="button" className="secondary" onClick={resetDraft}>Cancelar edição</AdminButton>}
                 </div>
               </AdminForm>
@@ -434,7 +518,7 @@ const Admin = () => {
                       <img src={product.image} alt="" />
                       <div>
                         <h3>{product.name}</h3>
-                        <p>{product.category} · {product.sizes.join(', ')} · {product.colors.map((color) => color.name).join(', ')}</p>
+                        <p>{product.category} · {product.sizes.join(', ')}{product.sizeFit ? ` (veste ${product.sizeFit})` : ''} · {product.colors.map((color) => color.name).join(', ')}</p>
                         {product.available === false && <span className="sold-out">Esgotado</span>}
                       </div>
                       <div className="actions">

@@ -18,7 +18,9 @@ type CatalogRow = {
   price: number
   old_price: number | null
   image: string
+  images: string[] | null
   sizes: string[]
+  size_fit: string | null
   colors: Product['colors']
   tag: string | null
   is_available: boolean
@@ -36,7 +38,9 @@ const toProduct = (row: CatalogRow): Product => ({
   price: Number(row.price),
   oldPrice: row.old_price === null ? undefined : Number(row.old_price),
   image: row.image,
+  images: row.images?.length ? row.images : undefined,
   sizes: row.sizes,
+  sizeFit: row.size_fit || undefined,
   colors: row.colors,
   tag: row.tag || undefined,
   available: row.is_available
@@ -49,7 +53,9 @@ const toRow = (product: CatalogProductInput) => ({
   price: product.price,
   old_price: product.oldPrice ?? null,
   image: product.image,
+  images: product.images ?? [],
   sizes: product.sizes,
+  size_fit: product.sizeFit?.trim() || null,
   colors: product.colors,
   tag: product.tag || null,
   is_available: product.available

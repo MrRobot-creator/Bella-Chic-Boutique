@@ -56,6 +56,9 @@ export const AdminForm = styled.form`
   .check input { width: auto; accent-color: #9a6871; }
   input[type="file"] { padding: 8px; }
   .image-preview { width: 120px; height: 150px; object-fit: cover; border: 1px solid #e8dedd; background: #fbf6f5; }
+  .gallery-image-previews { display: flex; flex-wrap: wrap; gap: 10px; }
+  .gallery-image-item { display: grid; gap: 6px; justify-items: start; }
+  .gallery-image-item img { width: 84px; height: 108px; object-fit: cover; border: 1px solid #e8dedd; background: #fbf6f5; }
   .color-list { display: grid; gap: 12px; }
   .color-item { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 14px; border: 1px solid #f0e7e6; }
   .color-item .color-image-preview { width: 92px; height: 110px; object-fit: cover; border: 1px solid #e8dedd; background: #fbf6f5; }

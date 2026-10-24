@@ -24,37 +24,9 @@ export const AnnouncementBar = styled.div`
   }
 `
 
-export const FloatingWhatsApp = styled.a`
-  position: fixed;
-  z-index: 99;
-  bottom: 24px;
-  right: 24px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border-radius: 999px;
-  background: #25d366;
-  color: white;
-  font: 12px/1 sans-serif;
-  font-weight: 600;
-  box-shadow: 0 4px 20px rgba(37, 211, 102, 0.35);
-  text-decoration: none;
-  transition: transform .2s ease, box-shadow .2s ease;
-  &:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 24px rgba(37, 211, 102, 0.45);
-  }
-  @media (max-width: 600px) {
-    bottom: 16px;
-    right: 16px;
-    padding: 10px 16px;
-    font-size: 11px;
-  }
-`
-
 export const Main = styled.main`
   .no-products { padding: 50px 0; color: #867778; text-align: center; font-size: 14px; }
+  .results-count { margin: 0 0 12px; color: #8b797b; font-size: 12px; }
 `
 
 export const Hero = styled.section`
@@ -500,6 +472,86 @@ export const CatalogTools = styled.div`
   }
 `
 
+export const CatalogFilterToggle = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 40px;
+  margin: 22px 0 0;
+  padding: 0 16px;
+  border: 1px solid #d9c2c5;
+  border-radius: 4px;
+  background: #fff;
+  color: #76535a;
+  font-size: 12px;
+  &:hover, &[aria-expanded="true"] { background: #f8eeee; border-color: #b98b91; }
+  > span:first-child { font-size: 16px; }
+  .filter-count {
+    display: inline-grid;
+    min-width: 20px;
+    height: 20px;
+    place-items: center;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #76535a;
+    color: white;
+    font-size: 10px;
+  }
+  &:focus-visible { outline: 2px solid #8c6066; outline-offset: 3px; }
+`
+
+export const CatalogFilters = styled.div`
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 22px 0 18px;
+  padding: 14px;
+  border: 1px solid #f0e5e5;
+  border-radius: 8px;
+  background: #fffafa;
+  label {
+    display: flex;
+    min-width: 160px;
+    flex-direction: column;
+    gap: 7px;
+    color: #735f60;
+    font-size: 11px;
+  }
+  label > span { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  label strong { color: #684b50; font-size: 11px; }
+  select {
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid #ebdfdf;
+    border-radius: 4px;
+    background: white;
+    color: #584648;
+    font-size: 12px;
+  }
+  .price-filter { flex: 1 1 200px; }
+  .price-filter input { width: 100%; accent-color: #a96f79; }
+  .clear-filters {
+    min-height: 40px;
+    padding: 0 14px;
+    border: 1px solid #d9c2c5;
+    border-radius: 4px;
+    background: white;
+    color: #76535a;
+    font-size: 11px;
+  }
+  .clear-filters:hover:not(:disabled) { background: #f8eeee; }
+  .clear-filters:disabled { cursor: not-allowed; opacity: .55; }
+  @media (max-width: 600px) {
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px;
+    label { min-width: 0; flex: 1 1 calc(50% - 6px); }
+    .price-filter { flex: 1 1 100%; }
+    .clear-filters { width: 100%; }
+  }
+`
+
 export const SearchInput = styled.input`
   width: 250px;
   padding: 13px 15px;
@@ -540,7 +592,7 @@ export const CategoryMenuButton = styled.button`
 
 export const CategoryMenuPanel = styled.div`
   position: absolute;
-  z-index: 8;
+  z-index: 20;
   top: calc(100% + 7px);
   left: 0;
   width: min(260px, calc(100vw - 40px));

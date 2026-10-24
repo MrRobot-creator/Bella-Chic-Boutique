@@ -1,6 +1,7 @@
 import { ChangeEvent, FormEvent, MouseEvent, useEffect, useRef, useState } from 'react'
 import { storeConfig } from '../../config/store'
 import { CartItem, PaymentMethod } from '../../types/store'
+import { getSizeFitLabel } from '../../utils/productSize'
 import { createOrderMessage, createOrderReference, createWhatsAppUrl } from '../../services/whatsapp'
 import { validateCoupon, recordCouponUsage as recordCouponUsageService } from '../../services/coupon'
 import {
@@ -62,6 +63,8 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
   const [payment, setPayment] = useState<PaymentMethod>('Cartão de crédito')
   const cepLookupRequest = useRef<AbortController | null>(null)
   const selectedStreetFromLookup = useRef('')
+  const drawerRef = useRef<HTMLElement>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
   const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
   const discount = couponApplied ? total * 0.10 : 0
   const selectedUnit = storeConfig.units.find((unit) => unit.id === selectedUnitId) || storeConfig.units[0]
@@ -197,8 +200,34 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
     if (!isOpen) return undefined
 
     const previousOverflow = document.body.style.overflow
+    closeButtonRef.current?.focus()
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') {
+        onClose()
+        return
+      }
+      if (event.key !== 'Tab') return
+
+      const focusableElements = drawerRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), select:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+      if (!focusableElements?.length) {
+        event.preventDefault()
+        return
+      }
+
+      const firstElement = focusableElements[0]
+      const lastElement = focusableElements[focusableElements.length - 1]
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault()
+        lastElement.focus()
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault()
+        firstElement.focus()
+      } else if (!drawerRef.current?.contains(document.activeElement)) {
+        event.preventDefault()
+        firstElement.focus()
+      }
     }
 
     document.body.style.overflow = 'hidden'
@@ -253,13 +282,13 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
 
   return (
     <Overlay onMouseDown={(event: MouseEvent<HTMLDivElement>) => { if (event.target === event.currentTarget) onClose() }}>
-      <Drawer role="dialog" aria-modal="true" aria-labelledby="cart-title">
+      <Drawer ref={drawerRef} role="dialog" aria-modal="true" aria-labelledby="cart-title">
         <DrawerHeader>
           <div>
             <span className="eyebrow">BELLA CHIC BOUTIQUE</span>
             <h2 id="cart-title">Sua sacola <span>({items.reduce((sum, item) => sum + item.quantity, 0)})</span></h2>
           </div>
-          <CloseButton type="button" onClick={onClose} aria-label="Fechar sacola">×</CloseButton>
+          <CloseButton ref={closeButtonRef} type="button" onClick={onClose} aria-label="Fechar sacola">×</CloseButton>
         </DrawerHeader>
 
         {items.length === 0 ? (
@@ -279,7 +308,7 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
                     <ItemImage src={selectedColor?.image || product.image} alt="" />
                     <ItemDetails>
                       <h3>{product.name}</h3>
-                      <p>Tam. {size} · {color}</p>
+                      <p>Tam. {size}{getSizeFitLabel(product) ? ` · ${getSizeFitLabel(product)}` : ''} · {color}</p>
                       <strong>{formatPrice(product.price * quantity)}</strong>
                       <div className="quantity">
                         <button type="button" aria-label={`Diminuir quantidade de ${product.name}`} onClick={() => onChangeQuantity(product.id, size, color, quantity - 1)}>−</button>

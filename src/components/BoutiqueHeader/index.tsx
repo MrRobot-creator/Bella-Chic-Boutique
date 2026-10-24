@@ -5,10 +5,15 @@ import { storeConfig } from '../../config/store'
 type BoutiqueHeaderProps = {
   cartCount: number
   onCartClick: () => void
+  isHidden: boolean
 }
 
-const BoutiqueHeader = ({ cartCount, onCartClick }: BoutiqueHeaderProps) => (
-  <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-pink-100/80 shadow-sm transition-all duration-300">
+const BoutiqueHeader = ({ cartCount, onCartClick, isHidden }: BoutiqueHeaderProps) => (
+  <div
+    aria-hidden={isHidden}
+    style={{ visibility: isHidden ? 'hidden' : 'visible' }}
+    className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-pink-100/80 shadow-sm transition-all duration-300"
+  >
     <HeaderBar className="!bg-transparent !border-none !backdrop-blur-none">
       <HeaderContent className="py-3 flex flex-row items-center justify-between flex-nowrap">
         <a className="brand-link group min-w-0 flex-shrink" href="#inicio" aria-label="Bella Chic Boutique, início">

@@ -6,13 +6,21 @@ create table if not exists public.catalog_products (
   price numeric(10, 2) not null check (price > 0),
   old_price numeric(10, 2),
   image text not null,
+  images jsonb not null default '[]'::jsonb,
   sizes jsonb not null default '[]'::jsonb,
+  size_fit text,
   colors jsonb not null default '[]'::jsonb,
   tag text,
   is_available boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.catalog_products
+  add column if not exists images jsonb not null default '[]'::jsonb;
+
+alter table public.catalog_products
+  add column if not exists size_fit text;
 
 create table if not exists public.store_admins (
   user_id uuid primary key references auth.users (id) on delete cascade,

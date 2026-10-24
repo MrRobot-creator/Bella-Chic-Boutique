@@ -22,6 +22,8 @@ import { CartItem, Product } from '../../types/store'
 import {
   AnnouncementBar,
   Catalog,
+  CatalogFilters,
+  CatalogFilterToggle,
   CatalogHeader,
   CatalogTools,
   CategoryMenu,
@@ -55,7 +57,6 @@ import {
   SearchInput,
   ShowcaseLink,
   ShowcaseViewport,
-  FloatingWhatsApp,
   StoreCarousel,
   StoreViewport,
   StoreTrack,
@@ -69,16 +70,53 @@ import banner2Image from '../../assets/banner 2.jpeg'
 import lojaGaleriaImage from '../../assets/loja galeria.jpeg'
 import lojaCnImage from '../../assets/loja cn.jpeg'
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+const formatPrice = (value: number) =>
+  value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+
+const isPersistedCartItems = (value: unknown): value is CartItem[] =>
+  Array.isArray(value) && value.every((entry) => {
+    if (!isRecord(entry) || !isRecord(entry.product)) return false
+    const product = entry.product
+    return (
+      typeof product.id === 'number' &&
+      typeof product.name === 'string' &&
+      typeof product.category === 'string' &&
+      typeof product.description === 'string' &&
+      typeof product.price === 'number' &&
+      typeof product.image === 'string' &&
+      (product.sizeFit === undefined || typeof product.sizeFit === 'string') &&
+      Array.isArray(product.sizes) &&
+      product.sizes.every((size) => typeof size === 'string') &&
+      Array.isArray(product.colors) &&
+      product.colors.every((color) =>
+        isRecord(color) && typeof color.name === 'string' && typeof color.hex === 'string'
+      ) &&
+      typeof entry.size === 'string' &&
+      typeof entry.color === 'string' &&
+      typeof entry.quantity === 'number' &&
+      Number.isInteger(entry.quantity) &&
+      entry.quantity > 0
+    )
+  })
 
 const Home = () => {
   const [catalogProducts, setCatalogProducts] = useState(demoProducts)
   const [catalogLoading, setCatalogLoading] = useState(true)
   const [catalogError, setCatalogError] = useState('')
   const [cartItems, setCartItems] = useState<CartItem[]>([])
+  const [isCartStorageReady, setIsCartStorageReady] = useState(false)
+  const [cartStorageError, setCartStorageError] = useState('')
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState('Todos')
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false)
   const [search, setSearch] = useState('')
+  const [activeSize, setActiveSize] = useState('')
+  const [activeColor, setActiveColor] = useState('')
+  const [maxPrice, setMaxPrice] = useState<number | null>(null)
+  const [isProductFiltersOpen, setIsProductFiltersOpen] = useState(false)
   const [status, setStatus] = useState('')
   const [activeShowcaseIndex, setActiveShowcaseIndex] = useState(1)
   const [showcaseDragOffset, setShowcaseDragOffset] = useState(0)
@@ -86,6 +124,33 @@ const Home = () => {
   const [activeUnitId, setActiveUnitId] = useState(storeConfig.units[0].id)
   const [selectedPaymentInfo, setSelectedPaymentInfo] = useState<string | null>(null)
   const [isExchangePolicyOpen, setIsExchangePolicyOpen] = useState(false)
+  const cartTriggerRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    try {
+      const savedCart = localStorage.getItem('bella-chic-cart')
+      if (savedCart) {
+        const parsedCart: unknown = JSON.parse(savedCart)
+        if (!isPersistedCartItems(parsedCart)) {
+          throw new Error('Os dados salvos não têm o formato esperado.')
+        }
+        setCartItems(parsedCart)
+      }
+    } catch {
+      setCartStorageError('Não foi possível restaurar a sacola salva. Ela foi iniciada vazia.')
+    } finally {
+      setIsCartStorageReady(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isCartStorageReady) return
+    try {
+      localStorage.setItem('bella-chic-cart', JSON.stringify(cartItems))
+    } catch {
+      setCartStorageError('Não foi possível salvar sua sacola neste navegador. Mantenha esta página aberta para não perder os itens.')
+    }
+  }, [cartItems, isCartStorageReady])
 
   useEffect(() => {
     if (!isExchangePolicyOpen) return
@@ -238,7 +303,14 @@ const Home = () => {
   const categoryMenuRef = useRef<HTMLDivElement>(null)
   const showcasePointerStart = useRef<{ x: number; y: number; pointerId: number } | null>(null)
   const suppressShowcaseClick = useRef(false)
-  const closeCart = useCallback(() => setIsCartOpen(false), [])
+  const openCart = () => {
+    cartTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setIsCartOpen(true)
+  }
+  const closeCart = useCallback(() => {
+    setIsCartOpen(false)
+    window.requestAnimationFrame(() => cartTriggerRef.current?.focus())
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -265,6 +337,18 @@ const Home = () => {
   )
 
   const [sortBy, setSortBy] = useState('featured')
+  const availableSizes = useMemo(
+    () => Array.from(new Set(catalogProducts.flatMap((product) => product.sizes))).sort((a, b) => a.localeCompare(b, 'pt-BR')),
+    [catalogProducts]
+  )
+  const availableColors = useMemo(
+    () => Array.from(new Set(catalogProducts.flatMap((product) => product.colors.map((color) => color.name)))).sort((a, b) => a.localeCompare(b, 'pt-BR')),
+    [catalogProducts]
+  )
+  const priceLimit = useMemo(
+    () => Math.max(50, Math.ceil(Math.max(...catalogProducts.map((product) => product.price), 0) / 50) * 50),
+    [catalogProducts]
+  )
 
   const visibleProducts = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase('pt-BR')
@@ -273,7 +357,10 @@ const Home = () => {
       const matchesSearch =
         !normalizedSearch ||
         `${product.name} ${product.category} ${product.description}`.toLocaleLowerCase('pt-BR').includes(normalizedSearch)
-      return matchesCategory && matchesSearch
+      const matchesSize = !activeSize || product.sizes.includes(activeSize)
+      const matchesColor = !activeColor || product.colors.some((color) => color.name === activeColor)
+      const matchesPrice = maxPrice === null || product.price <= maxPrice
+      return matchesCategory && matchesSearch && matchesSize && matchesColor && matchesPrice
     })
 
     return [...filtered].sort((a, b) => {
@@ -282,7 +369,32 @@ const Home = () => {
       if (sortBy === 'name') return a.name.localeCompare(b.name, 'pt-BR')
       return 0
     })
-  }, [activeCategory, catalogProducts, search, sortBy])
+  }, [activeCategory, activeColor, activeSize, catalogProducts, maxPrice, search, sortBy])
+  const activeFilterCount = Number(Boolean(activeSize)) + Number(Boolean(activeColor)) + Number(maxPrice !== null)
+
+  const recommendationsByProduct = useMemo(() => {
+    const recommendations = new Map<number, Product[]>()
+    catalogProducts.forEach((product) => {
+      const rankedProducts = catalogProducts
+        .filter((candidate) => candidate.id !== product.id && candidate.available !== false)
+        .map((candidate) => {
+          const sharesColor = candidate.colors.some((candidateColor) =>
+            product.colors.some((color) => color.name === candidateColor.name)
+          )
+          const sameCategory = candidate.category === product.category
+          const isAccessoryPairing = candidate.category === 'Acessórios' && product.category !== 'Acessórios'
+          return {
+            candidate,
+            score: (sameCategory ? 3 : 0) + (isAccessoryPairing ? 2 : 0) + (sharesColor ? 1 : 0)
+          }
+        })
+        .sort((first, second) => second.score - first.score)
+        .slice(0, 3)
+        .map(({ candidate }) => candidate)
+      recommendations.set(product.id, rankedProducts)
+    })
+    return recommendations
+  }, [catalogProducts])
 
   const bannerSlides = useMemo(
     () => [
@@ -427,22 +539,24 @@ const Home = () => {
     }
   }, [isCategoryMenuOpen])
 
-  const addToCart = (product: Product, size: string, color: string) => {
+  const addToCart = (product: Product, size: string, color: string, quantity: number) => {
+    setCartStorageError('')
     setCartItems((currentItems) => {
       const match = currentItems.find(
         (item) => item.product.id === product.id && item.size === size && item.color === color
       )
       if (match) {
         return currentItems.map((item) =>
-          item === match ? { ...item, quantity: item.quantity + 1 } : item
+          item === match ? { ...item, quantity: item.quantity + quantity } : item
         )
       }
-      return [...currentItems, { product, size, color, quantity: 1 }]
+      return [...currentItems, { product, size, color, quantity }]
     })
-    setStatus(`${product.name} (${size}, ${color}) adicionada à sacola.`)
+    setStatus(`${quantity} ${quantity === 1 ? 'unidade' : 'unidades'} de ${product.name} (${size}, ${color}) adicionada${quantity === 1 ? '' : 's'} à sacola.`)
   }
 
   const updateQuantity = (productId: number, size: string, color: string, quantity: number) => {
+    setCartStorageError('')
     if (quantity < 1) {
       removeFromCart(productId, size, color)
       return
@@ -457,6 +571,7 @@ const Home = () => {
   }
 
   const removeFromCart = (productId: number, size: string, color: string) => {
+    setCartStorageError('')
     setCartItems((currentItems) =>
       currentItems.filter(
         (item) => !(item.product.id === productId && item.size === size && item.color === color)
@@ -471,7 +586,8 @@ const Home = () => {
       </AnnouncementBar>
       <BoutiqueHeader
         cartCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
-        onCartClick={() => setIsCartOpen(true)}
+        onCartClick={openCart}
+        isHidden={isCartOpen}
       />
       <Main>
         <Hero id="inicio">
@@ -549,11 +665,72 @@ const Home = () => {
               </div>
             </CatalogTools>
           </CatalogHeader>
+          <CatalogFilterToggle
+            type="button"
+            aria-expanded={isProductFiltersOpen}
+            aria-controls="catalog-product-filters"
+            onClick={() => setIsProductFiltersOpen((isOpen) => !isOpen)}
+          >
+            <span aria-hidden="true">☷</span>
+            {isProductFiltersOpen ? 'Fechar filtros' : 'Filtros'}
+            {activeFilterCount > 0 && (
+              <span className="filter-count" aria-label={`${activeFilterCount} filtros ativos`}>
+                {activeFilterCount}
+              </span>
+            )}
+          </CatalogFilterToggle>
+          {isProductFiltersOpen && <CatalogFilters id="catalog-product-filters" aria-label="Filtros de produtos">
+            <label>
+              <span>Tamanho</span>
+              <select value={activeSize} onChange={(event) => setActiveSize(event.target.value)}>
+                <option value="">Todos os tamanhos</option>
+                {availableSizes.map((size) => <option key={size} value={size}>{size}</option>)}
+              </select>
+            </label>
+            <label>
+              <span>Cor</span>
+              <select value={activeColor} onChange={(event) => setActiveColor(event.target.value)}>
+                <option value="">Todas as cores</option>
+                {availableColors.map((color) => <option key={color} value={color}>{color}</option>)}
+              </select>
+            </label>
+            <label className="price-filter">
+              <span>Preço até <strong>{formatPrice(maxPrice ?? priceLimit)}</strong></span>
+              <input
+                type="range"
+                min="0"
+                max={priceLimit}
+                step="10"
+                value={maxPrice ?? priceLimit}
+                aria-label={`Preço máximo ${formatPrice(maxPrice ?? priceLimit)}`}
+                onChange={(event) => {
+                  const nextPrice = Number(event.target.value)
+                  setMaxPrice(nextPrice >= priceLimit ? null : nextPrice)
+                }}
+              />
+            </label>
+            <button
+              type="button"
+              className="clear-filters"
+              onClick={() => {
+                setActiveCategory('Todos')
+                setActiveSize('')
+                setActiveColor('')
+                setMaxPrice(null)
+                setSearch('')
+                setSortBy('featured')
+              }}
+              disabled={!activeSize && !activeColor && maxPrice === null && activeCategory === 'Todos' && !search && sortBy === 'featured'}
+            >
+              Limpar filtros
+            </button>
+          </CatalogFilters>}
           <CategoryMenu ref={categoryMenuRef}>
             <CategoryMenuButton
               type="button"
               aria-haspopup="menu"
               aria-expanded={isCategoryMenuOpen}
+              aria-controls="catalog-category-menu"
               onClick={() => setIsCategoryMenuOpen((open) => !open)}
             >
               <span className="hamburger" aria-hidden="true"><i /><i /><i /></span>
@@ -561,7 +738,7 @@ const Home = () => {
               <span className="active-category">{activeCategory}</span>
             </CategoryMenuButton>
             {isCategoryMenuOpen && (
-              <CategoryMenuPanel role="menu" aria-label="Filtrar por categoria">
+              <CategoryMenuPanel id="catalog-category-menu" role="menu" aria-label="Filtrar por categoria">
                 {availableCategories.map((category) => (
                   <CategoryMenuOption
                     key={category}
@@ -582,11 +759,22 @@ const Home = () => {
             )}
           </CategoryMenu>
           {status && <StatusMessage role="status">{status}</StatusMessage>}
+          {cartStorageError && <StatusMessage role="alert">{cartStorageError}</StatusMessage>}
           {catalogLoading && <StatusMessage role="status">Carregando catálogo...</StatusMessage>}
           {catalogError && <StatusMessage role="alert">{catalogError}</StatusMessage>}
+          <p className="results-count" role="status" aria-live="polite">
+            {visibleProducts.length} {visibleProducts.length === 1 ? 'produto encontrado' : 'produtos encontrados'}
+          </p>
           {visibleProducts.length ? (
             <ProductGrid>
-              {visibleProducts.map((product) => <ProductCard key={product.id} product={product} onAdd={addToCart} />)}
+              {visibleProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  relatedProducts={recommendationsByProduct.get(product.id) || []}
+                  onAdd={addToCart}
+                />
+              ))}
             </ProductGrid>
           ) : (
             <p className="no-products">Nenhuma peça encontrada. Experimente outra busca ou categoria.</p>
@@ -872,14 +1060,6 @@ const Home = () => {
         onChangeQuantity={updateQuantity}
         onRemove={removeFromCart}
       />
-      <FloatingWhatsApp
-        href={createWhatsAppUrl("Olá! Gostaria de tirar dúvidas sobre as peças da Bella Chic Boutique.", storeConfig.whatsappContacts[0].number)}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Fale conosco pelo WhatsApp"
-      >
-        💬 Fale no WhatsApp
-      </FloatingWhatsApp>
     </>
   )
 }
