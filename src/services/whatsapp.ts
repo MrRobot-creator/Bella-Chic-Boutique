@@ -1,4 +1,4 @@
-import { CartItem, PaymentMethod } from '../types/store'
+import { PaymentMethod, Product } from '../types/store'
 import { storeConfig } from '../config/store'
 import { getSizeFitLabel } from '../utils/productSize'
 
@@ -27,7 +27,14 @@ type OrderDetails = {
   couponCode?: string
 }
 
-export const createOrderMessage = (items: CartItem[], order: OrderDetails) => {
+export type OrderMessageItem = {
+  product: Pick<Product, 'name' | 'sizeFit' | 'sizes'>
+  size: string
+  color: string
+  quantity: number
+}
+
+export const createOrderMessage = (items: OrderMessageItem[], order: OrderDetails) => {
   const lines = items.map(
     ({ product, size, color, quantity }) =>
       `${quantity}x ${product.name}\n  Tamanho: ${size}${getSizeFitLabel(product) ? ` (${getSizeFitLabel(product)})` : ''} | Cor: ${color}`
@@ -95,16 +102,17 @@ export const createOrderMessage = (items: CartItem[], order: OrderDetails) => {
 }
 
 export const createOrderReference = () => {
-  const randomValues = new Uint32Array(1)
+  const randomValues = new Uint32Array(2)
 
   if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
     crypto.getRandomValues(randomValues)
   } else {
     randomValues[0] = Math.floor(Math.random() * 0xffffffff)
+    randomValues[1] = Math.floor(Math.random() * 0xffffffff)
   }
 
-  const code = 10000 + Math.floor((randomValues[0] / 0x100000000) * 90000)
-  return String(code)
+  const code = Array.from(randomValues, (value) => value.toString(16).padStart(8, '0')).join('')
+  return `BC-${code.toUpperCase()}`
 }
 
 export const createWhatsAppUrl = (message: string, phoneNumber: string) => {

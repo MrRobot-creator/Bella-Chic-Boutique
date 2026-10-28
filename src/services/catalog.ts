@@ -1,10 +1,10 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
-import { products as demoProducts } from '../data/products'
-import { Product } from '../types/store'
+import { Product, VariantStock } from '../types/store'
 
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY
 const productImagesBucket = 'bella-chic-products'
+const catalogColumns = 'id,name,category,description,price,old_price,image,images,sizes,size_fit,colors,variant_stock,tag,is_available'
 
 export const supabase: SupabaseClient | null = supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey)
@@ -22,29 +22,37 @@ type CatalogRow = {
   sizes: string[]
   size_fit: string | null
   colors: Product['colors']
+  variant_stock: VariantStock[] | null
   tag: string | null
   is_available: boolean
 }
 
 export type CatalogProductInput = Omit<Product, 'id' | 'available'> & {
   available: boolean
+  enabled: boolean
+  variantStock: VariantStock[]
 }
 
-const toProduct = (row: CatalogRow): Product => ({
-  id: row.id,
-  name: row.name,
-  category: row.category,
-  description: row.description,
-  price: Number(row.price),
-  oldPrice: row.old_price === null ? undefined : Number(row.old_price),
-  image: row.image,
-  images: row.images?.length ? row.images : undefined,
-  sizes: row.sizes,
-  sizeFit: row.size_fit || undefined,
-  colors: row.colors,
-  tag: row.tag || undefined,
-  available: row.is_available
-})
+const toProduct = (row: CatalogRow): Product => {
+  const variantStock = row.variant_stock || []
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    description: row.description,
+    price: Number(row.price),
+    oldPrice: row.old_price === null ? undefined : Number(row.old_price),
+    image: row.image,
+    images: row.images?.length ? row.images : undefined,
+    sizes: row.sizes,
+    sizeFit: row.size_fit || undefined,
+    colors: row.colors,
+    variantStock,
+    tag: row.tag || undefined,
+    available: row.is_available && variantStock.some((variant) => variant.quantity > 0),
+    enabled: row.is_available
+  }
+}
 
 const toRow = (product: CatalogProductInput) => ({
   name: product.name,
@@ -57,26 +65,32 @@ const toRow = (product: CatalogProductInput) => ({
   sizes: product.sizes,
   size_fit: product.sizeFit?.trim() || null,
   colors: product.colors,
+  variant_stock: product.variantStock,
   tag: product.tag || null,
-  is_available: product.available
+  is_available: product.enabled
 })
+
+const catalogError = (error: Error) => {
+  if (error.message.includes('variant_stock')) {
+    return new Error('O controle de estoque ainda não foi configurado. Execute supabase/order-management.sql no SQL Editor.')
+  }
+  return error
+}
 
 const requireSupabase = () => {
   if (!supabase) {
-    throw new Error('Configure REACT_APP_SUPABASE_URL e REACT_APP_SUPABASE_ANON_KEY para conectar o painel.')
+    throw new Error('Configure REACT_APP_SUPABASE_URL e REACT_APP_SUPABASE_ANON_KEY para carregar o catálogo.')
   }
   return supabase
 }
 
 export const fetchCatalogProducts = async (): Promise<Product[]> => {
-  if (!supabase) return demoProducts
-
-  const { data, error } = await supabase
+  const { data, error } = await requireSupabase()
     .from('catalog_products')
-    .select('*')
+    .select(catalogColumns)
     .order('id', { ascending: true })
 
-  if (error) throw error
+  if (error) throw catalogError(error)
   return (data as CatalogRow[]).map(toProduct)
 }
 
@@ -84,10 +98,10 @@ export const fetchAdminProducts = async (): Promise<Product[]> => {
   const client = requireSupabase()
   const { data, error } = await client
     .from('catalog_products')
-    .select('*')
+    .select(catalogColumns)
     .order('id', { ascending: true })
 
-  if (error) throw error
+  if (error) throw catalogError(error)
   return (data as CatalogRow[]).map(toProduct)
 }
 
@@ -99,7 +113,7 @@ export const hasCatalogAdminAccess = async (userId: string): Promise<boolean> =>
     .eq('user_id', userId)
     .maybeSingle()
 
-  if (error) throw error
+  if (error) throw catalogError(error)
   return Boolean(data)
 }
 
@@ -110,7 +124,7 @@ export const saveCatalogProduct = async (product: CatalogProductInput, id?: numb
     : client.from('catalog_products').insert(toRow(product))
   const { data, error } = await query.select('*').single()
 
-  if (error) throw error
+  if (error) throw catalogError(error)
   return toProduct(data as CatalogRow)
 }
 

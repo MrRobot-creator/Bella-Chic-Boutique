@@ -14,11 +14,12 @@ import {
 import BoutiqueHeader from '../../components/BoutiqueHeader'
 import CartDrawer from '../../components/CartDrawer'
 import ProductCard from '../../components/ProductCard'
-import { products as demoProducts } from '../../data/products'
 import { storeConfig } from '../../config/store'
+import { cardFeeRates } from '../../config/paymentFees'
 import { fetchCatalogProducts } from '../../services/catalog'
 import { createWhatsAppUrl } from '../../services/whatsapp'
 import { CartItem, Product } from '../../types/store'
+import { getVariantStock } from '../../utils/inventory'
 import {
   AnnouncementBar,
   Catalog,
@@ -39,6 +40,7 @@ import {
   ContactUnits,
   Footer,
   FooterBrand,
+  FooterBusinessDetails,
   FooterBottom,
   FooterContent,
   FooterSocialLink,
@@ -103,7 +105,7 @@ const isPersistedCartItems = (value: unknown): value is CartItem[] =>
   })
 
 const Home = () => {
-  const [catalogProducts, setCatalogProducts] = useState(demoProducts)
+  const [catalogProducts, setCatalogProducts] = useState<Product[]>([])
   const [catalogLoading, setCatalogLoading] = useState(true)
   const [catalogError, setCatalogError] = useState('')
   const [cartItems, setCartItems] = useState<CartItem[]>([])
@@ -142,6 +144,33 @@ const Home = () => {
       setIsCartStorageReady(true)
     }
   }, [])
+
+  useEffect(() => {
+    if (!isCartStorageReady || catalogLoading || catalogError) return
+
+    let adjusted = false
+    const reconciledItems = cartItems.flatMap((item) => {
+      const currentProduct = catalogProducts.find((product) => product.id === item.product.id)
+      const availableStock = currentProduct && currentProduct.available !== false
+        ? getVariantStock(currentProduct.variantStock, item.size, item.color)
+        : 0
+
+      if (!currentProduct || currentProduct.available === false || availableStock < 1) {
+        adjusted = true
+        return []
+      }
+      const quantity = Math.min(item.quantity, availableStock)
+      if (quantity !== item.quantity || JSON.stringify(item.product) !== JSON.stringify(currentProduct)) {
+        adjusted = true
+      }
+      return [{ ...item, product: currentProduct, quantity }]
+    })
+
+    if (adjusted) {
+      setCartItems(reconciledItems)
+      setStatus('A sacola foi ajustada conforme o estoque atual. Confira as quantidades antes de enviar o pedido.')
+    }
+  }, [cartItems, catalogError, catalogLoading, catalogProducts, isCartStorageReady])
 
   useEffect(() => {
     if (!isCartStorageReady) return
@@ -539,8 +568,20 @@ const Home = () => {
     }
   }, [isCategoryMenuOpen])
 
-  const addToCart = (product: Product, size: string, color: string, quantity: number) => {
+  const addToCart = (product: Product, size: string, color: string, quantity: number): boolean => {
     setCartStorageError('')
+    const currentProduct = catalogProducts.find((item) => item.id === product.id) || product
+    const existingQuantity = cartItems.find(
+      (item) => item.product.id === product.id && item.size === size && item.color === color
+    )?.quantity || 0
+    const availableStock = currentProduct.available === false
+      ? 0
+      : getVariantStock(currentProduct.variantStock, size, color)
+    if (existingQuantity + quantity > availableStock) {
+      setStatus(`Há somente ${Math.max(0, availableStock - existingQuantity)} unidade(s) disponível(is) de ${product.name} (${size}, ${color}).`)
+      return false
+    }
+
     setCartItems((currentItems) => {
       const match = currentItems.find(
         (item) => item.product.id === product.id && item.size === size && item.color === color
@@ -553,12 +594,21 @@ const Home = () => {
       return [...currentItems, { product, size, color, quantity }]
     })
     setStatus(`${quantity} ${quantity === 1 ? 'unidade' : 'unidades'} de ${product.name} (${size}, ${color}) adicionada${quantity === 1 ? '' : 's'} à sacola.`)
+    return true
   }
 
   const updateQuantity = (productId: number, size: string, color: string, quantity: number) => {
     setCartStorageError('')
     if (quantity < 1) {
       removeFromCart(productId, size, color)
+      return
+    }
+    const currentProduct = catalogProducts.find((product) => product.id === productId)
+    const availableStock = currentProduct && currentProduct.available !== false
+      ? getVariantStock(currentProduct.variantStock, size, color)
+      : 0
+    if (quantity > availableStock) {
+      setStatus(`Há somente ${availableStock} unidade(s) disponível(is) desta variação.`)
       return
     }
     setCartItems((currentItems) =>
@@ -776,9 +826,9 @@ const Home = () => {
                 />
               ))}
             </ProductGrid>
-          ) : (
+          ) : !catalogLoading && !catalogError ? (
             <p className="no-products">Nenhuma peça encontrada. Experimente outra busca ou categoria.</p>
-          )}
+          ) : null}
         </Catalog>
 
         <Contact id="contato">
@@ -909,6 +959,7 @@ const Home = () => {
                 <li>Não trocamos peças promocionais, nem adquiridas em live shop.</li>
                 <li>O prazo para solicitação de troca é de até 5 dias corridos após o recebimento.</li>
                 <li>A taxa de entrega/frete da troca é por conta da cliente.</li>
+                <li>Estas condições comerciais não afastam direitos garantidos pela legislação aplicável.</li>
               </ul>
               <span className="policy-note">Dúvidas? Fale com nossa equipe pelo WhatsApp.</span>
             </div>
@@ -924,7 +975,7 @@ const Home = () => {
                   {
                     name: 'Cartão de crédito',
                     icon: 'card',
-                    subtitle: 'À vista ou parcelado'
+                    subtitle: 'Crédito ou débito, com taxas'
                   },
                   {
                     name: 'Dinheiro',
@@ -943,13 +994,7 @@ const Home = () => {
                       key={method.name}
                       type="button"
                       $active={isSelected}
-                      onClick={() => {
-                        setSelectedPaymentInfo((prev) => (prev === method.name ? null : method.name))
-                        const policyElement = document.getElementById('trocas-devolucoes')
-                        if (policyElement) {
-                          policyElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-                        }
-                      }}
+                      onClick={() => setSelectedPaymentInfo((prev) => (prev === method.name ? null : method.name))}
                       aria-pressed={isSelected}
                       title={`Clique para conferir as condições para ${method.name}`}
                     >
@@ -988,6 +1033,24 @@ const Home = () => {
                   )
                 })}
               </PaymentMethods>
+              {selectedPaymentInfo === 'Cartão de crédito' && (
+                <div className="card-fee-info" aria-label="Taxas de pagamento com cartão">
+                  <p>
+                    Todas as compras no cartão de crédito ou débito estão sujeitas a taxa,
+                    independentemente do valor. Percentuais informados pela loja:
+                  </p>
+                  <dl>
+                    {cardFeeRates.map(({ label, rate }) => (
+                      <div key={label}><dt>{label}</dt><dd>{rate}</dd></div>
+                    ))}
+                  </dl>
+                  <p>
+                    Para parcelamentos de 5x a 20x, a atendente informará o percentual e o valor
+                    total antes de você autorizar o pagamento. Nenhum pagamento deve ser concluído
+                    sem a confirmação prévia do total.
+                  </p>
+                </div>
+              )}
               <p>Consulte condições com a atendente pelo WhatsApp.</p>
             </div>
           </ContactContent>
@@ -1034,7 +1097,22 @@ const Home = () => {
             >
               Trocas e devoluções
             </a>
+            <a href="/termos-e-condicoes">Termos e condições</a>
+            <a href="/privacidade">Privacidade e dados</a>
             </FooterNavigation>
+          <FooterBusinessDetails>
+            <strong>Dados da loja</strong>
+            <span>{storeConfig.name} · CNPJ {storeConfig.cnpj}</span>
+            <br />
+            <span>{storeConfig.registeredAddress}</span>
+            <br />
+            <a href={`mailto:${storeConfig.contactEmail}`}>{storeConfig.contactEmail}</a>
+            {typeof window !== 'undefined' && window.location.protocol === 'https:' && (
+              <span className="https-status" aria-label="Conexão HTTPS ativa">
+                Conexão HTTPS ativa
+              </span>
+            )}
+          </FooterBusinessDetails>
         </FooterContent>
         <FooterBottom>
           <span>© {new Date().getFullYear()} Bella Chic Boutique · Todos os direitos reservados.</span>

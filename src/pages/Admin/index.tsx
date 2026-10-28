@@ -9,6 +9,8 @@ import {
   AdminPage,
   AdminPanel,
   AdminTopbar,
+  OrderList,
+  OrderRow,
   ProductList,
   ProductRow
 } from './styles'
@@ -20,8 +22,15 @@ import {
   supabase,
   uploadProductImage
 } from '../../services/catalog'
+import {
+  cancelStoreOrder,
+  confirmStoreOrder,
+  fetchAdminOrders,
+  StoreOrder
+} from '../../services/orders'
 import { CatalogProductInput } from '../../services/catalog'
-import { Product } from '../../types/store'
+import { Product, VariantStock } from '../../types/store'
+import { buildVariantStock, getVariantStock } from '../../utils/inventory'
 
 type ProductDraft = {
   name: string
@@ -34,6 +43,7 @@ type ProductDraft = {
   sizes: string
   sizeFit: string
   colors: ColorDraft[]
+  variantStock: VariantStock[]
   tag: string
   available: boolean
 }
@@ -55,9 +65,13 @@ const blankDraft: ProductDraft = {
   sizes: '',
   sizeFit: '',
   colors: [{ name: '', hex: '#e5a1ad', image: '' }],
+  variantStock: [],
   tag: '',
   available: true
 }
+
+const formatPrice = (value: number) =>
+  value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
 const draftFromProduct = (product: Product): ProductDraft => ({
   name: product.name,
@@ -74,8 +88,9 @@ const draftFromProduct = (product: Product): ProductDraft => ({
     hex: color.hex,
     image: color.image || ''
   })),
+  variantStock: product.variantStock || [],
   tag: product.tag || '',
-  available: product.available !== false
+  available: product.enabled !== false
 })
 
 const errorMessage = (error: unknown) => {
@@ -97,6 +112,9 @@ const errorMessage = (error: unknown) => {
   if (diagnostic.includes('images')) {
     return `${supabaseMessage} Execute supabase/product-gallery.sql no SQL Editor do Supabase e tente novamente.`
   }
+  if (diagnostic.includes('variant_stock')) {
+    return `${supabaseMessage} Execute supabase/order-management.sql no SQL Editor do Supabase e tente novamente.`
+  }
   if (code === 'PGRST204' || code === '42703') {
     return `${supabaseMessage} O banco parece estar sem uma coluna esperada pelo painel; confira se as migrações do catálogo foram executadas no SQL Editor do Supabase.`
   }
@@ -110,6 +128,9 @@ const Admin = () => {
   const [adminAllowed, setAdminAllowed] = useState(false)
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [products, setProducts] = useState<Product[]>([])
+  const [orders, setOrders] = useState<StoreOrder[]>([])
+  const [loadingOrders, setLoadingOrders] = useState(false)
+  const [processingOrderId, setProcessingOrderId] = useState<string | null>(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [draft, setDraft] = useState<ProductDraft>(blankDraft)
@@ -150,28 +171,78 @@ const Admin = () => {
     if (!session) {
       setAdminAllowed(false)
       setProducts([])
+      setOrders([])
       return () => { active = false }
     }
 
     setLoadingProducts(true)
+    setLoadingOrders(true)
     setError('')
     hasCatalogAdminAccess(session.user.id)
       .then(async (allowed) => {
         if (!active) return
         setAdminAllowed(allowed)
         if (!allowed) return
-        const catalog = await fetchAdminProducts()
-        if (active) setProducts(catalog)
+        const [catalog, loadedOrders] = await Promise.all([
+          fetchAdminProducts(),
+          fetchAdminOrders()
+        ])
+        if (active) {
+          setProducts(catalog)
+          setOrders(loadedOrders)
+        }
       })
       .catch((loadError: Error) => {
         if (active) setError(`Não foi possível carregar o painel: ${loadError.message}`)
       })
       .finally(() => {
         if (active) setLoadingProducts(false)
+        if (active) setLoadingOrders(false)
       })
 
     return () => { active = false }
   }, [session])
+
+  const handleOrderStatusChange = async (order: StoreOrder, action: 'confirm' | 'cancel') => {
+    const actionLabel = action === 'confirm' ? 'confirmar a venda e baixar o estoque' : 'cancelar o pedido'
+    if (!window.confirm(`Deseja ${actionLabel} do pedido ${order.reference}?`)) return
+
+    setError('')
+    setNotice('')
+    setProcessingOrderId(order.id)
+    try {
+      if (action === 'confirm') {
+        await confirmStoreOrder(order.id)
+      } else {
+        await cancelStoreOrder(order.id)
+      }
+      const [loadedOrders, catalog] = await Promise.all([
+        fetchAdminOrders(),
+        fetchAdminProducts()
+      ])
+      setOrders(loadedOrders)
+      setProducts(catalog)
+      setNotice(action === 'confirm'
+        ? `Pedido ${order.reference} confirmado e estoque atualizado.`
+        : `Pedido ${order.reference} cancelado.`)
+    } catch (actionError) {
+      setError(`Não foi possível ${action === 'confirm' ? 'confirmar o pedido' : 'cancelar o pedido'}: ${errorMessage(actionError)}`)
+    } finally {
+      setProcessingOrderId(null)
+    }
+  }
+
+  const handleRefreshOrders = async () => {
+    setLoadingOrders(true)
+    setError('')
+    try {
+      setOrders(await fetchAdminOrders())
+    } catch (loadError) {
+      setError(`Não foi possível atualizar os pedidos: ${errorMessage(loadError)}`)
+    } finally {
+      setLoadingOrders(false)
+    }
+  }
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -280,8 +351,16 @@ const Admin = () => {
       setError('Informe pelo menos um tamanho, separado por vírgulas.')
       return
     }
+    if (new Set(sizes).size !== sizes.length) {
+      setError('Cada tamanho deve aparecer apenas uma vez.')
+      return
+    }
     if (!colors.length || colors.some((color) => !color.name || !color.hex)) {
       setError('Informe pelo menos uma cor, com nome e código hexadecimal.')
+      return
+    }
+    if (new Set(colors.map((color) => color.name.toLocaleLowerCase('pt-BR'))).size !== colors.length) {
+      setError('Cada cor deve ter um nome único.')
       return
     }
     if (!Number.isFinite(price) || price <= 0 || (oldPrice !== undefined && (!Number.isFinite(oldPrice) || oldPrice <= 0))) {
@@ -294,6 +373,16 @@ const Admin = () => {
     }
     if (colors.some((color) => color.image && !/^https?:\/\//i.test(color.image))) {
       setError('As imagens individuais das cores devem ser URLs públicas iniciadas por https:// ou http://.')
+      return
+    }
+
+    const variantStock = buildVariantStock(
+      sizes,
+      colors.map((color) => color.name),
+      draft.variantStock
+    )
+    if (variantStock.some((variant) => !Number.isInteger(variant.quantity) || variant.quantity < 0)) {
+      setError('As quantidades de estoque devem ser números inteiros iguais ou maiores que zero.')
       return
     }
 
@@ -312,8 +401,10 @@ const Admin = () => {
       sizes,
       sizeFit: draft.sizeFit.trim() || undefined,
       colors,
+      variantStock,
       tag: draft.tag.trim() || undefined,
-      available: draft.available
+      available: draft.available,
+      enabled: draft.available
     }
 
     setSaving(true)
@@ -495,12 +586,50 @@ const Admin = () => {
                     {uploadingColorIndex !== null && <span role="status">Enviando foto da cor...</span>}
                   </div>
                 </div>
+                <div className="wide stock-list">
+                  <strong>Estoque por tamanho e cor</strong>
+                  <p>Novas combinações começam com estoque zero. Informe as unidades disponíveis de cada variação.</p>
+                  <div className="stock-grid">
+                    {draft.sizes.split(',').map((size) => size.trim()).filter(Boolean).flatMap((size) =>
+                      draft.colors.filter((color) => color.name.trim()).map((color) => (
+                        <label key={`${size}-${color.name}`}>
+                          {size} · {color.name}
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={getVariantStock(draft.variantStock, size, color.name.trim())}
+                            onChange={(event) => {
+                              const quantity = event.target.value === '' ? 0 : Number(event.target.value)
+                              setDraft((current) => {
+                                const variantStock = buildVariantStock(
+                                  current.sizes.split(',').map((item) => item.trim()).filter(Boolean),
+                                  current.colors.map((item) => item.name.trim()).filter(Boolean),
+                                  current.variantStock
+                                )
+                                return {
+                                  ...current,
+                                  variantStock: variantStock.map((variant) =>
+                                    variant.size === size && variant.color === color.name.trim()
+                                      ? { ...variant, quantity }
+                                      : variant
+                                  )
+                                }
+                              })
+                            }}
+                            required
+                          />
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </div>
                 <label>Etiqueta opcional
                   <input value={draft.tag} onChange={(event) => setDraft({ ...draft, tag: event.target.value })} placeholder="Novo, Mais vendido..." />
                 </label>
                 <label className="check">
                   <input type="checkbox" checked={draft.available} onChange={(event) => setDraft({ ...draft, available: event.target.checked })} />
-                  Produto disponível para compra
+                  Produto ativo no catálogo (o estoque zero sempre bloqueia a compra)
                 </label>
                 <div className="wide actions">
                   <AdminButton type="submit" disabled={saving || uploadingImage || uploadingGalleryImages || uploadingColorIndex !== null}>{uploadingImage || uploadingGalleryImages || uploadingColorIndex !== null ? 'Enviando imagem...' : saving ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Adicionar peça'}</AdminButton>
@@ -519,6 +648,7 @@ const Admin = () => {
                       <div>
                         <h3>{product.name}</h3>
                         <p>{product.category} · {product.sizes.join(', ')}{product.sizeFit ? ` (veste ${product.sizeFit})` : ''} · {product.colors.map((color) => color.name).join(', ')}</p>
+                        <p>Estoque: {(product.variantStock || []).reduce((total, variant) => total + variant.quantity, 0)} unidades</p>
                         {product.available === false && <span className="sold-out">Esgotado</span>}
                       </div>
                       <div className="actions">
@@ -533,6 +663,62 @@ const Admin = () => {
                     </ProductRow>
                   ))}
                 </ProductList>
+              )}
+            </AdminPanel>
+
+            <AdminPanel>
+              <div className="order-list-heading">
+                <h2>Pedidos recentes ({orders.length})</h2>
+                <AdminButton type="button" className="secondary" disabled={loadingOrders} onClick={handleRefreshOrders}>
+                  {loadingOrders ? 'Atualizando...' : 'Atualizar pedidos'}
+                </AdminButton>
+              </div>
+              <p>Pedidos enviados pela loja aguardam confirmação. Confirme a venda somente após combinar com a cliente pelo WhatsApp; essa ação baixa o estoque de todas as variações do pedido.</p>
+              {loadingOrders ? <p>Carregando pedidos...</p> : orders.length === 0 ? <p>Nenhum pedido registrado ainda.</p> : (
+                <OrderList>
+                  {orders.map((order) => {
+                    const deliveryFee = order.fulfillment.deliveryFee
+                    const total = order.subtotal - order.discount + (deliveryFee || 0)
+                    const customerPhone = order.customer.phone.replace(/\D/g, '')
+                    const whatsappPhone = customerPhone.startsWith('55') ? customerPhone : `55${customerPhone}`
+                    return (
+                      <OrderRow key={order.id}>
+                        <div className="order-heading">
+                          <h3>Pedido {order.reference}</h3>
+                          <span className={`order-status ${order.status}`}>{{
+                            pending: 'Aguardando confirmação',
+                            confirmed: 'Venda confirmada',
+                            cancelled: 'Cancelado'
+                          }[order.status]}</span>
+                        </div>
+                        <p>{new Date(order.created_at).toLocaleString('pt-BR')} · {order.unit.name} · {order.payment}</p>
+                        <p><strong>{order.customer.name}</strong> · <a href={`https://wa.me/${whatsappPhone}`} target="_blank" rel="noreferrer">{order.customer.phone}</a>{order.customer.email ? ` · ${order.customer.email}` : ''}</p>
+                        <ul>
+                          {order.items.map((item, index) => (
+                            <li key={`${item.productId}-${item.size}-${item.color}-${index}`}>
+                              {item.quantity}× {item.name} · {item.size}{item.sizeFit ? ` (${item.sizeFit})` : ''} · {item.color} — {formatPrice(item.unitPrice * item.quantity)}
+                            </li>
+                          ))}
+                        </ul>
+                        <p>{order.fulfillment.type === 'Entrega'
+                          ? `Entrega: ${order.fulfillment.street}, ${order.fulfillment.houseNumber}${order.fulfillment.complement ? `, ${order.fulfillment.complement}` : ''} · ${order.fulfillment.neighborhood}, ${order.fulfillment.deliveryCity}${deliveryFee === null ? ' · frete a combinar' : ` · frete ${formatPrice(deliveryFee)}`}`
+                          : `Retirada em ${order.unit.address}`}</p>
+                        {order.fulfillment.type === 'Entrega' && (order.fulfillment.referencePoint || order.fulfillment.deliveryNotes) && (
+                          <p>{[order.fulfillment.referencePoint ? `Referência: ${order.fulfillment.referencePoint}` : '', order.fulfillment.deliveryNotes ? `Observação: ${order.fulfillment.deliveryNotes}` : ''].filter(Boolean).join(' · ')}</p>
+                        )}
+                        <p>Subtotal: {formatPrice(order.subtotal)}{order.discount > 0 ? ` · Desconto: -${formatPrice(order.discount)}` : ''} · <strong>Total: {deliveryFee === null ? 'a combinar' : formatPrice(total)}</strong></p>
+                        {order.status === 'pending' && (
+                          <div className="actions">
+                            <AdminButton type="button" disabled={processingOrderId === order.id} onClick={() => handleOrderStatusChange(order, 'confirm')}>
+                              {processingOrderId === order.id ? 'Processando...' : 'Confirmar venda e baixar estoque'}
+                            </AdminButton>
+                            <AdminButton type="button" className="danger" disabled={processingOrderId === order.id} onClick={() => handleOrderStatusChange(order, 'cancel')}>Cancelar pedido</AdminButton>
+                          </div>
+                        )}
+                      </OrderRow>
+                    )
+                  })}
+                </OrderList>
               )}
             </AdminPanel>
 

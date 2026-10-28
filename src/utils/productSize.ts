@@ -1,6 +1,6 @@
 import { Product } from '../types/store'
 
-export const getSizeFitLabel = (product: Product) => {
+export const getSizeFitLabel = (product: Pick<Product, 'sizeFit' | 'sizes'>) => {
   if (!product.sizeFit || product.sizes.length !== 1) return ''
 
   const normalizedSize = product.sizes[0]

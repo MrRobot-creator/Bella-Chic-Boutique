@@ -205,6 +205,14 @@ export const ContactContent = styled.div`
   .payments { margin-top: 42px; padding-top: 30px; border-top: 1px solid #eadbdc; }
   .payments h3 { margin-bottom: 15px; color: #5a4347; font: 22px Georgia, serif; }
   .payments > p { margin-top: 12px; color: #8c7c7d; font-size: 11px; }
+  .card-fee-info { margin-top: 16px; padding: 18px 20px; border: 1px solid #eadbdc; background: #fffdfb; color: #79696b; font-size: 12px; line-height: 1.7; }
+  .card-fee-info p + p { margin-top: 10px; }
+  .card-fee-info dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 18px; margin: 12px 0; }
+  .card-fee-info dl div { display: flex; justify-content: space-between; gap: 12px; padding-bottom: 5px; border-bottom: 1px solid #f0e5e5; }
+  .card-fee-info dt { color: #604a4e; }
+  .card-fee-info dd { margin: 0; color: #604a4e; font-weight: 600; white-space: nowrap; }
+  .card-fee-info a { color: #79565d; text-decoration: underline; }
+  @media (max-width: 500px) { .card-fee-info { padding: 15px; } .card-fee-info dl { grid-template-columns: 1fr; } }
   .exchange-policy {
     position: relative;
     border-radius: 4px;
@@ -711,6 +719,16 @@ export const FooterContactButton = styled.a`
   svg { width: 16px; height: 16px; fill: currentColor; }
   &:hover { transform: translateY(-2px); background: #fff; }
   &:focus-visible { outline: 2px solid #f2d8dc; outline-offset: 3px; }
+`
+
+export const FooterBusinessDetails = styled.div`
+  padding-top: 5px;
+  color: #ddcbcd;
+  font-size: 10px;
+  line-height: 1.8;
+  strong { display: block; margin-bottom: 7px; color: #fffaf8; font: 17px Georgia, serif; }
+  a { color: #fffaf8; }
+  .https-status { display: inline-flex; align-items: center; gap: 5px; margin-top: 7px; color: #e8d8da; }
 `
 
 export const FooterBottom = styled.div`

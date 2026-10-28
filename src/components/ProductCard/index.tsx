@@ -8,6 +8,7 @@ import {
   useState
 } from 'react'
 import { Product } from '../../types/store'
+import { getVariantStock } from '../../utils/inventory'
 import { getSizeFitLabel } from '../../utils/productSize'
 import {
   AddButton,
@@ -54,7 +55,7 @@ import {
 type ProductCardProps = {
   product: Product
   relatedProducts: Product[]
-  onAdd: (product: Product, size: string, color: string, quantity: number) => void
+  onAdd: (product: Product, size: string, color: string, quantity: number) => boolean
 }
 
 const formatPrice = (value: number) =>
@@ -118,6 +119,7 @@ const ProductCard = ({ product, relatedProducts, onAdd }: ProductCardProps) => {
   const dialogRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLElement | null>(null)
   const selectedColor = product.colors.find((option) => option.name === color)
+  const selectedVariantStock = getVariantStock(product.variantStock, size, color)
   const images = product.images?.length ? product.images : [product.image]
   const image = activeImageIndex === 0
     ? selectedColor?.image || images[0]
@@ -244,6 +246,10 @@ const ProductCard = ({ product, relatedProducts, onAdd }: ProductCardProps) => {
   }, [color, product.colors, product.sizes, size])
 
   useEffect(() => {
+    setQuantity((current) => Math.min(current, Math.max(1, selectedVariantStock)))
+  }, [selectedVariantStock])
+
+  useEffect(() => {
     if (!isModalOpen) return undefined
 
     const previousOverflow = document.body.style.overflow
@@ -298,8 +304,7 @@ const ProductCard = ({ product, relatedProducts, onAdd }: ProductCardProps) => {
   }
 
   const addSelectedProduct = () => {
-    onAdd(product, size, color, quantity)
-    closeDetails()
+    if (onAdd(product, size, color, quantity)) closeDetails()
   }
 
   const handleImageWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
@@ -540,29 +545,32 @@ const ProductCard = ({ product, relatedProducts, onAdd }: ProductCardProps) => {
                         id={`quantity-details-${product.id}`}
                         type="number"
                         min="1"
+                        max={selectedVariantStock}
                         value={quantity}
                         aria-label={`Quantidade de ${product.name}`}
                         onChange={(event: ChangeEvent<HTMLInputElement>) => {
                           const nextQuantity = Number(event.target.value)
-                          if (Number.isInteger(nextQuantity) && nextQuantity >= 1) setQuantity(nextQuantity)
+                          if (Number.isInteger(nextQuantity) && nextQuantity >= 1 && nextQuantity <= selectedVariantStock) setQuantity(nextQuantity)
                         }}
                       />
                       <QuantityButton
                         type="button"
                         aria-label={`Aumentar quantidade de ${product.name}`}
+                        disabled={quantity >= selectedVariantStock}
                         onClick={() => setQuantity((current) => current + 1)}
                       >
                         +
                       </QuantityButton>
                     </QuantitySelector>
                   </DialogVariantGroup>
+                  <p role="status">{selectedVariantStock} unidades disponíveis nesta variação.</p>
                   <AddButton
                     type="button"
-                    disabled={product.available === false || !size || !color}
+                    disabled={product.available === false || selectedVariantStock < 1 || !size || !color}
                     onClick={addSelectedProduct}
                   >
-                    {product.available === false ? 'Produto esgotado' : 'Adicionar à sacola'}
-                    {product.available !== false && <span aria-hidden="true">＋</span>}
+                    {selectedVariantStock < 1 ? 'Variação esgotada' : 'Adicionar à sacola'}
+                    {selectedVariantStock > 0 && <span aria-hidden="true">＋</span>}
                   </AddButton>
                   {relatedProducts.length > 0 && (
                     <ComboSuggestions aria-labelledby={`combo-title-${product.id}`}>
@@ -659,30 +667,33 @@ const ProductCard = ({ product, relatedProducts, onAdd }: ProductCardProps) => {
                     id={`quantity-quickshop-${product.id}`}
                     type="number"
                     min="1"
+                    max={selectedVariantStock}
                     value={quantity}
                     aria-label={`Quantidade de ${product.name}`}
                     onChange={(event: ChangeEvent<HTMLInputElement>) => {
                       const nextQuantity = Number(event.target.value)
-                      if (Number.isInteger(nextQuantity) && nextQuantity >= 1) setQuantity(nextQuantity)
+                      if (Number.isInteger(nextQuantity) && nextQuantity >= 1 && nextQuantity <= selectedVariantStock) setQuantity(nextQuantity)
                     }}
                   />
                   <QuantityButton
                     type="button"
                     aria-label={`Aumentar quantidade de ${product.name}`}
+                    disabled={quantity >= selectedVariantStock}
                     onClick={() => setQuantity((current) => current + 1)}
                   >
                     +
                   </QuantityButton>
                 </QuantitySelector>
               </DialogVariantGroup>
+              <p role="status">{selectedVariantStock} unidades disponíveis nesta variação.</p>
 
               <AddButton
                 type="button"
-                disabled={product.available === false || !size || !color}
+                disabled={product.available === false || selectedVariantStock < 1 || !size || !color}
                 onClick={addSelectedProduct}
               >
-                {product.available === false ? 'Produto esgotado' : 'Adicionar à sacola'}
-                {product.available !== false && <span aria-hidden="true">＋</span>}
+                {selectedVariantStock < 1 ? 'Variação esgotada' : 'Adicionar à sacola'}
+                {selectedVariantStock > 0 && <span aria-hidden="true">＋</span>}
               </AddButton>
               </DialogVariants>
             )}

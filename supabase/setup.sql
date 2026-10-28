@@ -10,6 +10,7 @@ create table if not exists public.catalog_products (
   sizes jsonb not null default '[]'::jsonb,
   size_fit text,
   colors jsonb not null default '[]'::jsonb,
+  variant_stock jsonb not null default '[]'::jsonb,
   tag text,
   is_available boolean not null default true,
   created_at timestamptz not null default now(),
@@ -21,6 +22,9 @@ alter table public.catalog_products
 
 alter table public.catalog_products
   add column if not exists size_fit text;
+
+alter table public.catalog_products
+  add column if not exists variant_stock jsonb not null default '[]'::jsonb;
 
 create table if not exists public.store_admins (
   user_id uuid primary key references auth.users (id) on delete cascade,
@@ -71,29 +75,6 @@ create policy "Admins can read their own access"
   on public.store_admins for select
   to authenticated
   using (user_id = (select auth.uid()));
-
-insert into public.catalog_products
-  (id, name, category, description, price, old_price, image, sizes, colors, tag, is_available)
-values
-  (1, 'Vestido Aurora', 'Vestidos', 'Vestido midi fluido com alças delicadas e caimento leve. Perfeito para ocasiões especiais.', 189.90, 229.90, 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=900&q=85', '["P","M","G","GG"]', '[{"name":"Rosa","hex":"#e5a1ad"},{"name":"Off-white","hex":"#ede5d9"},{"name":"Preto","hex":"#292528"}]', 'Mais vendido', true),
-  (2, 'Conjunto Serena', 'Conjuntos', 'Conjunto de colete e calça de alfaiataria. Elegância e conforto em uma combinação só.', 249.90, null, 'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=900&q=85', '["P","M","G"]', '[{"name":"Areia","hex":"#c3ab8d"},{"name":"Rosa","hex":"#dfa1ad"},{"name":"Preto","hex":"#292528"}]', 'Novo', true),
-  (3, 'Blusa Amélia', 'Blusas', 'Blusa de tecido macio com mangas bufantes e decote quadrado feminino.', 119.90, null, 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=900&q=85', '["P","M","G","GG"]', '[{"name":"Branco","hex":"#f3eee7"},{"name":"Rosa","hex":"#dfa1ad"},{"name":"Azul","hex":"#9eafc2"}]', null, true),
-  (4, 'Calça Chiara', 'Shorts', 'Calça pantalona de cintura alta, com bolsos e tecido de ótimo caimento.', 179.90, null, 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=900&q=85', '["36","38","40","42","44"]', '[{"name":"Areia","hex":"#c3ab8d"},{"name":"Preto","hex":"#292528"},{"name":"Off-white","hex":"#ede5d9"}]', 'Essencial', true),
-  (5, 'Saia Lavínia', 'Saias', 'Saia midi plissada com movimento leve. Uma peça versátil para todas as estações.', 149.90, null, 'https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?auto=format&fit=crop&w=900&q=85', '["P","M","G"]', '[{"name":"Rosa","hex":"#dfa1ad"},{"name":"Champagne","hex":"#d7c5a2"},{"name":"Preto","hex":"#292528"}]', null, true),
-  (6, 'Bolsa Charlotte', 'Acessórios', 'Bolsa estruturada com alça removível e acabamento sofisticado para acompanhar você.', 159.90, null, 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=900&q=85', '["Único"]', '[{"name":"Caramelo","hex":"#a66b3f"},{"name":"Preto","hex":"#292528"},{"name":"Rosa","hex":"#dfa1ad"}]', 'Favorito', true),
-  (7, 'Vestido Liz', 'Vestidos', 'Vestido curto com estampa floral exclusiva, mangas leves e cintura marcada.', 169.90, null, 'https://images.unsplash.com/photo-1612336307429-8a898d10e223?auto=format&fit=crop&w=900&q=85', '["P","M","G","GG"]', '[{"name":"Floral rosa","hex":"#d797a4"},{"name":"Floral azul","hex":"#9eafc2"}]', null, true),
-  (8, 'Camisa Valentina', 'Blusas', 'Camisa clássica de tecido leve, modelagem confortável e botões delicados.', 139.90, null, 'https://images.unsplash.com/photo-1598554747436-c9293d6a588f?auto=format&fit=crop&w=900&q=85', '["P","M","G","GG"]', '[{"name":"Branco","hex":"#f3eee7"},{"name":"Rosa","hex":"#dfa1ad"},{"name":"Azul claro","hex":"#b7c9d8"}]', null, true),
-  (9, 'Shorts Beatrice', 'Calças', 'Shorts de alfaiataria com cintura alta e detalhe de pregas.', 129.90, null, 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?auto=format&fit=crop&w=900&q=85', '["36","38","40","42"]', '[{"name":"Areia","hex":"#c3ab8d"},{"name":"Rosa","hex":"#dfa1ad"},{"name":"Preto","hex":"#292528"}]', null, true),
-  (10, 'Cardigan Sophie', 'Blusas', 'Cardigan aconchegante de toque macio, ideal para completar seu look.', 159.90, null, 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?auto=format&fit=crop&w=900&q=85', '["P","M","G"]', '[{"name":"Rosa","hex":"#dfa1ad"},{"name":"Creme","hex":"#e9ddc8"},{"name":"Cinza","hex":"#a8a5a4"}]', 'Novo', true),
-  (11, 'Cinto Camille', 'Acessórios', 'Cinto fino com fivela dourada delicada para dar o toque final ao visual.', 69.90, null, 'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=900&q=85', '["P","M","G"]', '[{"name":"Caramelo","hex":"#a66b3f"},{"name":"Preto","hex":"#292528"}]', null, true),
-  (12, 'Conjunto Floral Alice', 'Conjuntos', 'Conjunto leve de blusa e saia com estampa floral romântica.', 219.90, null, 'https://images.unsplash.com/photo-1609505848912-b7c3b8b4beda?auto=format&fit=crop&w=900&q=85', '["P","M","G"]', '[{"name":"Floral rosa","hex":"#d797a4"},{"name":"Floral lilás","hex":"#b7a4c7"}]', 'Novo', true)
-on conflict (id) do nothing;
-
-select setval(
-  pg_get_serial_sequence('public.catalog_products', 'id'),
-  coalesce((select max(id) from public.catalog_products), 1),
-  true
-);
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (

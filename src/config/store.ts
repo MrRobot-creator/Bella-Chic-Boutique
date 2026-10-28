@@ -1,5 +1,9 @@
 export const storeConfig = {
   name: 'Bella Chic Boutique',
+  cnpj: '46.990.343/0001-41',
+  registeredAddress:
+    'Av. Dr. Nonato Sanova, 161A - Cidade Nova, Ananindeua - PA, 67133-100',
+  contactEmail: 'bellachicboutique12@gmail.com',
   units: [
     {
       id: 'galeria-portuense',

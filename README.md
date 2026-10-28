@@ -17,9 +17,11 @@ Copie `.env.example` para `.env.local` e preencha os dados públicos da loja:
 
 | Variável | Descrição |
 | --- | --- |
+| `REACT_APP_SUPABASE_URL` | URL do projeto Supabase. |
+| `REACT_APP_SUPABASE_ANON_KEY` | Chave `anon`/publishable do Supabase. Nunca use `service_role`. |
 | `REACT_APP_INSTAGRAM_URL` | Link do perfil da boutique no Instagram. |
 
-Reinicie `npm start` após alterar `.env.local`. Essa variável é incorporada ao site público no build, então não coloque senhas ou credenciais secretas nela. Os contatos das duas unidades e seus endereços são configurados em `src/config/store.ts`.
+Reinicie `npm start` após alterar `.env.local`. Essas variáveis são incorporadas ao site público no build; use somente a chave pública `anon`/publishable e nunca coloque senhas ou credenciais secretas nelas. Os contatos das duas unidades e seus endereços são configurados em `src/config/store.ts`.
 
 No checkout, a cliente escolhe a unidade e o WhatsApp de atendimento. Os números disponíveis são filtrados pela unidade escolhida, e o pedido encaminha para o contato selecionado com os dados da loja, cliente e produtos.
 
@@ -31,7 +33,7 @@ O checkout não processa pagamentos nem gera QR Code Pix ou boleto bancário. O 
 
 ## Catálogo
 
-Os produtos iniciais de demonstração ficam em `src/data/products.ts` e são copiados para o Supabase ao executar `supabase/setup.sql`. Depois da configuração, gerencie o catálogo e a disponibilidade pelo painel `/admin`. No cadastro e na edição de um tamanho único, o campo opcional “Numeração que o tamanho único veste” aceita uma faixa como `38-42`; essa informação aparece na vitrine, sacola e pedido enviado pelo WhatsApp. Para catálogos Supabase já existentes, execute `supabase/product-size-fit.sql` no SQL Editor antes de salvar essa informação pelo painel.
+O Supabase é a única fonte do catálogo: a vitrine carrega os produtos diretamente da tabela `catalog_products`, e as alterações feitas no painel `/admin` aparecem na loja sem uma cópia local ou script manual de sincronização. A configuração inicial cria a tabela vazia; cadastre os produtos oficiais pelo painel. Se o Supabase não estiver configurado ou não puder ser acessado, a vitrine informa o erro em vez de mostrar produtos de demonstração. No cadastro e na edição de um tamanho único, o campo opcional “Numeração que o tamanho único veste” aceita uma faixa como `36-40`; essa informação aparece na vitrine, sacola e pedido enviado pelo WhatsApp. Para catálogos Supabase já existentes, execute `supabase/product-size-fit.sql` no SQL Editor antes de salvar essa informação pelo painel.
 
 Na vitrine, é possível buscar e filtrar produtos por categoria, tamanho, cor e preço, além de ordenar por preço ou nome. A sacola é salva no armazenamento local do navegador e restaurada ao retornar no mesmo dispositivo e navegador. A página de detalhes apresenta sugestões de peças relacionadas por categoria e cores.
 
@@ -39,12 +41,13 @@ O guia de medidas mostra referências corporais aproximadas em centímetros. Com
 
 ## Painel administrativo
 
-O painel fica em `/admin` e permite entrar com e-mail e senha, adicionar, editar e remover peças, definir os tamanhos e cores disponíveis e marcar uma peça inteira como esgotada. Para tamanhos ou cores sem estoque, remova a variação da lista do produto; a marcação “esgotado” desativa todas as variações daquele produto. O painel usa Supabase Auth e banco de dados compartilhado; as alterações feitas no painel passam a aparecer na vitrine pública. Sem as variáveis de ambiente, o catálogo de demonstração continua disponível e o painel informa que precisa ser configurado.
+O painel fica em `/admin` e permite entrar com e-mail e senha, adicionar, editar e remover peças, definir tamanhos e cores e registrar o estoque de cada combinação de tamanho e cor. Combinações novas começam com zero unidades; sem saldo, a variação não pode ser adicionada à sacola. Ao enviar o checkout, o pedido é gravado como pendente no Supabase e a cliente segue para o WhatsApp. Depois de confirmar a venda com a cliente, use “Confirmar venda e baixar estoque” no admin; a operação verifica e baixa todos os itens de forma atômica. Se o estoque não for mais suficiente, a confirmação falha sem baixar nenhum item. Pedidos não confirmados não reservam unidades; pedidos pendentes podem ser cancelados pelo painel. O painel usa Supabase Auth e banco de dados compartilhado; as alterações feitas no painel passam a aparecer na vitrine pública. Sem as variáveis de ambiente, o catálogo não é carregado e o painel informa que precisa ser configurado.
 
 1. Crie um projeto no Supabase e configure `REACT_APP_SUPABASE_URL` e `REACT_APP_SUPABASE_ANON_KEY` no arquivo `.env.local` (use a URL do projeto e a chave `anon`/publishable, nunca a `service_role`).
-2. No SQL Editor do Supabase, execute o conteúdo de `supabase/setup.sql`. Ele cria as tabelas, políticas de segurança (RLS), adiciona os campos de galeria de imagens e numeração do tamanho único, e cadastra os produtos de demonstração. Se o catálogo já estava configurado, execute `supabase/product-gallery.sql` e `supabase/product-size-fit.sql` para adicionar esses campos sem reaplicar a configuração inicial.
-3. Em **Authentication → Users**, crie o usuário da administradora com e-mail e senha.
-4. No SQL Editor, associe esse usuário à lista de administradores, substituindo pelo e-mail usado no passo anterior:
+2. No SQL Editor do Supabase, execute o conteúdo de `supabase/setup.sql`. Ele cria as tabelas e políticas de segurança (RLS), configura o armazenamento de imagens e adiciona os campos de galeria, numeração do tamanho único e estoque por variação. Não insere produtos de demonstração nem altera os dados existentes; as variações existentes começam com saldo zero até serem preenchidas no painel.
+3. Como o projeto Supabase já existe, execute também `supabase/order-management.sql` no SQL Editor. Essa migração adiciona o estoque por variação (se ainda não existir), cria a tabela de pedidos e as funções protegidas para registrar, confirmar e cancelar pedidos. O cliente pode registrar um pedido pendente; somente uma administradora autorizada pode confirmar a venda e baixar o estoque.
+4. Em **Authentication → Users**, crie o usuário da administradora com e-mail e senha.
+5. No SQL Editor, associe esse usuário à lista de administradores, substituindo pelo e-mail usado no passo anterior:
 
    ```sql
    insert into public.store_admins (user_id)
@@ -52,7 +55,7 @@ O painel fica em `/admin` e permite entrar com e-mail e senha, adicionar, editar
    on conflict (user_id) do nothing;
    ```
 
-5. Reinicie `npm start` e acesse `http://localhost:3000/admin`. Em produção, configure as mesmas variáveis no provedor de hospedagem e publique uma nova versão.
+6. Reinicie `npm start` e acesse `http://localhost:3000/admin`. Em produção, configure as mesmas variáveis no provedor de hospedagem e publique uma nova versão.
 
 As regras RLS permitem leitura pública do catálogo, mas somente usuários registrados em `store_admins` podem alterar produtos. A tabela de administradores não tem escrita pública; cadastros são feitos no SQL Editor do Supabase. Não coloque senha, `service_role` ou outras chaves secretas em variáveis `REACT_APP_*`.
 
@@ -62,9 +65,9 @@ O formulário de produtos aceita uma URL pública ou envio de arquivo PNG, JPG/J
 
 No painel, cada cor também pode ter sua própria foto (URL ou upload separado). Ao selecionar a cor na vitrine, a imagem do produto muda para a foto daquela variação; se uma cor não tiver imagem, usa a imagem principal. O dado da foto por cor é armazenado junto ao JSONB `colors`. Também é possível enviar várias fotos de outros ângulos para a galeria do produto; elas ficam no campo JSONB `images` e são exibidas como miniaturas ao lado da imagem principal em telas maiores e abaixo dela em telas menores.
 
-### Sincronizar o catálogo local com o Supabase
+### Catálogo e imagens
 
-As seis fotos selecionadas também estão em `public/assets` e são usadas pelo catálogo local em `src/data/products.ts`. Quando alterar os dados localmente e quiser publicá-los, atualize `supabase/catalog-sync.sql` com os mesmos campos e execute o script no SQL Editor do Supabase. O script atual sincroniza os seis produtos com IDs 1, 2, 3, 7, 9 e 12, incluindo nomes, preços, tamanhos, cores e imagens. Publique também a aplicação para servir os arquivos em `/assets/`.
+Não execute scripts de sincronização de produtos a partir de dados locais: o catálogo oficial é mantido no Supabase e deve ser atualizado pelo painel administrativo. Imagens que usam caminhos `/assets/` precisam estar incluídas na publicação; imagens enviadas pelo painel ficam no Storage do Supabase.
 
 ## Estrutura
 

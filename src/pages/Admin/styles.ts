@@ -32,6 +32,7 @@ export const AdminPanel = styled.section`
   box-shadow: 0 12px 36px #563f4408;
   h2 { margin-bottom: 16px; color: #563f44; font: 22px Georgia, serif; }
   p { color: #806f70; font-size: 13px; line-height: 1.7; }
+  .order-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   @media (max-width: 520px) { padding: 18px; }
 `
 
@@ -60,6 +61,10 @@ export const AdminForm = styled.form`
   .gallery-image-item { display: grid; gap: 6px; justify-items: start; }
   .gallery-image-item img { width: 84px; height: 108px; object-fit: cover; border: 1px solid #e8dedd; background: #fbf6f5; }
   .color-list { display: grid; gap: 12px; }
+  .stock-list { display: grid; gap: 10px; }
+  .stock-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+  .stock-grid label { display: grid; gap: 6px; color: #755f62; font-size: 12px; }
+  .stock-grid input { width: 100%; }
   .color-item { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 14px; border: 1px solid #f0e7e6; }
   .color-item .color-image-preview { width: 92px; height: 110px; object-fit: cover; border: 1px solid #e8dedd; background: #fbf6f5; }
   .color-item .color-hex { display: flex; align-items: center; gap: 8px; }
@@ -98,6 +103,32 @@ export const AdminNotice = styled.p<{ $error?: boolean }>`
 export const ProductList = styled.div`
   display: grid;
   gap: 10px;
+`
+
+export const OrderList = styled.div`
+  display: grid;
+  gap: 12px;
+`
+
+export const OrderRow = styled.article`
+  display: grid;
+  gap: 9px;
+  padding: 16px;
+  border: 1px solid #f0e7e6;
+  color: #755f62;
+  font-size: 12px;
+  line-height: 1.6;
+  h3 { color: #594548; font: 18px Georgia, serif; }
+  p { overflow-wrap: anywhere; }
+  a { color: #76555b; }
+  ul { display: grid; gap: 4px; padding-left: 20px; }
+  .order-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .order-status { padding: 3px 8px; border-radius: 12px; font-size: 10px; }
+  .order-status.pending { background: #fff3d6; color: #80621f; }
+  .order-status.confirmed { background: #e6f4e4; color: #496a4b; }
+  .order-status.cancelled { background: #f7e7e7; color: #983f3f; }
+  .actions { margin-top: 4px; }
+  @media (max-width: 520px) { padding: 12px; .order-heading { align-items: flex-start; flex-direction: column; } }
 `
 
 export const ProductRow = styled.article`

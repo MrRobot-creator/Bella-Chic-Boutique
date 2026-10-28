@@ -10,8 +10,16 @@ export type Product = {
   sizes: string[]
   sizeFit?: string
   colors: { name: string; hex: string; image?: string }[]
+  variantStock?: VariantStock[]
   tag?: string
   available?: boolean
+  enabled?: boolean
+}
+
+export type VariantStock = {
+  size: string
+  color: string
+  quantity: number
 }
 
 export type CartItem = {

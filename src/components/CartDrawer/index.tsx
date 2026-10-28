@@ -2,8 +2,10 @@ import { ChangeEvent, FormEvent, MouseEvent, useEffect, useRef, useState } from 
 import { storeConfig } from '../../config/store'
 import { CartItem, PaymentMethod } from '../../types/store'
 import { getSizeFitLabel } from '../../utils/productSize'
+import { getVariantStock } from '../../utils/inventory'
 import { createOrderMessage, createOrderReference, createWhatsAppUrl } from '../../services/whatsapp'
 import { validateCoupon, recordCouponUsage as recordCouponUsageService } from '../../services/coupon'
+import { createStoreOrder } from '../../services/orders'
 import {
   calculateDeliveryFee,
   DeliveryCity,
@@ -46,9 +48,11 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
   const [couponCode, setCouponCode] = useState('')
   const [couponApplied, setCouponApplied] = useState(false)
   const [couponMessage, setCouponMessage] = useState('')
+  const [inventoryMessage, setInventoryMessage] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedUnitId, setSelectedUnitId] = useState(storeConfig.units[0].id)
   const [selectedContactId, setSelectedContactId] = useState(storeConfig.whatsappContacts[0].id)
-  const [fulfillment, setFulfillment] = useState('Entrega')
+  const [fulfillment, setFulfillment] = useState<'Entrega' | 'Retirada na loja'>('Entrega')
   const [street, setStreet] = useState('')
   const [houseNumber, setHouseNumber] = useState('')
   const [complement, setComplement] = useState('')
@@ -74,6 +78,13 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
     ? deliveryCity ? calculateDeliveryFee(selectedUnit.city, deliveryCity) : null
     : 0
   const finalTotal = total - discount + (deliveryFee === null ? 0 : deliveryFee)
+
+  useEffect(() => {
+    if (couponApplied && total < 300) {
+      setCouponApplied(false)
+      setCouponMessage('O cupom Bella10 exige subtotal mínimo de R$ 300,00. Aplique-o novamente quando atingir o mínimo.')
+    }
+  }, [couponApplied, total])
 
   const handleApplyCoupon = () => {
     const result = validateCoupon(email, couponCode, total)
@@ -241,43 +252,95 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
 
   if (!isOpen) return null
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    setInventoryMessage('')
     if (fulfillment === 'Entrega' && (!deliveryCity || deliveryFee === null)) {
       setAddressLookupMessage('Selecione o município de entrega para calcular o frete antes de confirmar o pedido.')
       return
     }
 
-    if (couponApplied) {
-      recordCouponUsageService(email, 'Bella10')
+    if (couponApplied && total < 300) {
+      setCouponApplied(false)
+      setCouponMessage('O cupom Bella10 exige subtotal mínimo de R$ 300,00. Aplique-o novamente quando atingir o mínimo.')
+      return
     }
 
-    const reference = createOrderReference()
-    const orderMessage = createOrderMessage(items, {
-      reference,
-      name: name.trim(),
-      phone: phone.trim(),
-      email: email.trim(),
-      unitName: selectedUnit.name,
-      unitAddress: selectedUnit.address,
-      attendant: selectedContact.label,
-      storePhone: selectedContact.number,
-      fulfillment,
-      street: fulfillment === 'Entrega' ? street.trim() : '',
-      houseNumber: fulfillment === 'Entrega' ? houseNumber.trim() : '',
-      complement: fulfillment === 'Entrega' ? complement.trim() : '',
-      neighborhood: fulfillment === 'Entrega' ? neighborhood.trim() : '',
-      postalCode: fulfillment === 'Entrega' ? postalCode.trim() : '',
-      deliveryCity: fulfillment === 'Entrega' ? deliveryCity : '',
-      referencePoint: fulfillment === 'Entrega' ? referencePoint.trim() : '',
-      deliveryNotes: fulfillment === 'Entrega' ? deliveryNotes.trim() : '',
-      deliveryFee,
-      payment,
-      subtotal: total,
-      discount,
-      couponCode: couponApplied ? 'Bella10' : ''
-    })
-    window.location.assign(createWhatsAppUrl(orderMessage, selectedContact.number))
+    setIsSubmitting(true)
+    try {
+      const reference = createOrderReference()
+      const createdOrder = await createStoreOrder({
+        reference,
+        customer: { name: name.trim(), phone: phone.trim(), email: email.trim() || undefined },
+        items: items.map(({ product, size, color, quantity }) => ({
+          productId: product.id,
+          size,
+          color,
+          quantity
+        })),
+        unit: {
+          name: selectedUnit.name,
+          address: selectedUnit.address,
+          attendant: selectedContact.label,
+          storePhone: selectedContact.number
+        },
+        fulfillment: {
+          type: fulfillment,
+          street: fulfillment === 'Entrega' ? street.trim() : '',
+          houseNumber: fulfillment === 'Entrega' ? houseNumber.trim() : '',
+          complement: fulfillment === 'Entrega' ? complement.trim() : '',
+          neighborhood: fulfillment === 'Entrega' ? neighborhood.trim() : '',
+          postalCode: fulfillment === 'Entrega' ? postalCode.trim() : '',
+          deliveryCity: fulfillment === 'Entrega' ? deliveryCity : '',
+          referencePoint: fulfillment === 'Entrega' ? referencePoint.trim() : '',
+          deliveryNotes: fulfillment === 'Entrega' ? deliveryNotes.trim() : '',
+          deliveryFee
+        },
+        payment,
+        couponCode: couponApplied ? 'Bella10' : undefined
+      })
+
+      if (couponApplied) {
+        recordCouponUsageService(email, 'Bella10')
+      }
+
+      const messageItems = createdOrder.items.map((item) => ({
+        product: { name: item.name, sizeFit: item.sizeFit, sizes: item.sizes },
+        size: item.size,
+        color: item.color,
+        quantity: item.quantity
+      }))
+      const orderMessage = createOrderMessage(messageItems, {
+        reference: createdOrder.reference,
+        name: name.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
+        unitName: selectedUnit.name,
+        unitAddress: selectedUnit.address,
+        attendant: selectedContact.label,
+        storePhone: selectedContact.number,
+        fulfillment,
+        street: fulfillment === 'Entrega' ? street.trim() : '',
+        houseNumber: fulfillment === 'Entrega' ? houseNumber.trim() : '',
+        complement: fulfillment === 'Entrega' ? complement.trim() : '',
+        neighborhood: fulfillment === 'Entrega' ? neighborhood.trim() : '',
+        postalCode: fulfillment === 'Entrega' ? postalCode.trim() : '',
+        deliveryCity: fulfillment === 'Entrega' ? deliveryCity : '',
+        referencePoint: fulfillment === 'Entrega' ? referencePoint.trim() : '',
+        deliveryNotes: fulfillment === 'Entrega' ? deliveryNotes.trim() : '',
+        deliveryFee,
+        payment,
+        subtotal: createdOrder.subtotal,
+        discount: createdOrder.discount,
+        couponCode: createdOrder.couponCode || ''
+      })
+      window.location.assign(createWhatsAppUrl(orderMessage, selectedContact.number))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro inesperado ao consultar o estoque.'
+      setInventoryMessage(`Não foi possível confirmar o estoque agora: ${message}`)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -313,9 +376,10 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
                       <div className="quantity">
                         <button type="button" aria-label={`Diminuir quantidade de ${product.name}`} onClick={() => onChangeQuantity(product.id, size, color, quantity - 1)}>−</button>
                         <span>{quantity}</span>
-                        <button type="button" aria-label={`Aumentar quantidade de ${product.name}`} onClick={() => onChangeQuantity(product.id, size, color, quantity + 1)}>+</button>
+                        <button type="button" aria-label={`Aumentar quantidade de ${product.name}`} disabled={quantity >= getVariantStock(product.variantStock, size, color)} onClick={() => onChangeQuantity(product.id, size, color, quantity + 1)}>+</button>
                         <RemoveButton type="button" onClick={() => onRemove(product.id, size, color)}>Remover</RemoveButton>
                       </div>
+                      <small>{getVariantStock(product.variantStock, size, color)} unidades em estoque</small>
                     </ItemDetails>
                   </ItemRow>
                 )
@@ -341,6 +405,13 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
                 <span>Total {fulfillment === 'Entrega' ? '(com entrega)' : '(retirada)'}</span>
                 <strong>{deliveryFee === null ? 'Aguardando município' : formatPrice(finalTotal)}</strong>
               </Total>
+              {payment === 'Cartão de crédito' && (
+                <p className="card-fee-disclosure">
+                  O total acima não inclui a taxa do cartão. A atendente informará o percentual
+                  aplicável e o valor final antes de você autorizar o pagamento.{' '}
+                  <a href="/termos-e-condicoes">Consulte os percentuais informados.</a>
+                </p>
+              )}
             </Summary>
 
             <form className="checkout-form" onSubmit={handleSubmit}>
@@ -419,7 +490,7 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
               </label>
               <label>
                 Como deseja receber?
-                <select value={fulfillment} onChange={(event) => setFulfillment(event.target.value)}>
+                <select value={fulfillment} onChange={(event) => setFulfillment(event.target.value as 'Entrega' | 'Retirada na loja')}>
                   <option>Entrega</option>
                   <option>Retirada na loja</option>
                 </select>
@@ -516,7 +587,7 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
                 <legend>Forma de pagamento</legend>
                 <label className="payment-option">
                   <input type="radio" name="payment" value="Cartão de crédito" checked={payment === 'Cartão de crédito'} onChange={() => setPayment('Cartão de crédito')} />
-                  Cartão de crédito ou débito <span>consultar condições com a atendente</span>
+                  Cartão de crédito ou débito <span>taxas aplicáveis; consulte os percentuais antes de pagar</span>
                 </label>
                 <label className="payment-option">
                   <input type="radio" name="payment" value="Dinheiro" checked={payment === 'Dinheiro'} onChange={() => setPayment('Dinheiro')} />
@@ -531,11 +602,16 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
                   Link de pagamento <span>receba o link seguro diretamente no WhatsApp</span>
                 </label>
               </fieldset>
-              <WhatsAppButton type="submit" disabled={fulfillment === 'Entrega' && deliveryFee === null}>
-                Confirmar pedido com a atendente
+              {inventoryMessage && <span role="alert" className="address-status">{inventoryMessage}</span>}
+              <WhatsAppButton type="submit" disabled={isSubmitting || (fulfillment === 'Entrega' && deliveryFee === null)}>
+                {isSubmitting ? 'Conferindo estoque...' : 'Confirmar pedido com a atendente'}
                 <span aria-hidden="true">↗</span>
               </WhatsAppButton>
               <p className="secure-note">O pedido e a forma de pagamento serão confirmados diretamente com a atendente pelo WhatsApp.</p>
+              <p className="privacy-note">
+                Seus dados serão usados para validar e registrar o pedido.{' '}
+                <a href="/privacidade">Leia a Política de Privacidade</a>.
+              </p>
             </form>
           </>
         )}

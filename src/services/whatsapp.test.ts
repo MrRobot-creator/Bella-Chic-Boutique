@@ -135,10 +135,10 @@ describe('WhatsApp order checkout', () => {
     expect(parsedUrl.searchParams.get('text')).toBe(message)
   })
 
-  it('generates a five-digit numeric order reference', () => {
+  it('generates a unique-format order reference', () => {
     const reference = createOrderReference()
 
-    expect(reference).toMatch(/^\d{5}$/)
+    expect(reference).toMatch(/^BC-[A-F0-9]{16}$/)
   })
 
   it('rejects malformed WhatsApp numbers instead of opening an invalid link', () => {

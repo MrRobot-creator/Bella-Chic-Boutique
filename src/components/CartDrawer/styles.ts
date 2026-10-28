@@ -44,6 +44,10 @@ export const Drawer = styled.aside`
   .payment-option span { width: 100%; margin-left: 22px; color: #9d8e8f; font-size: 10px; }
   .payment-option.unavailable { color: #a39696; cursor: not-allowed; }
   .secure-note { margin: 12px 0 4px; color: #9b8c8d; font-size: 10px; line-height: 1.5; text-align: center; }
+  .privacy-note { margin: 8px 0 4px; color: #9b8c8d; font-size: 10px; line-height: 1.5; text-align: center; }
+  .privacy-note a { color: #79565d; text-decoration: underline; }
+  .card-fee-disclosure { margin: 8px 0; color: #8c5b63; font-size: 10px; line-height: 1.5; }
+  .card-fee-disclosure a { color: #79565d; text-decoration: underline; }
   button:disabled { cursor: not-allowed; opacity: .55; }
   @media (max-width: 420px) { padding: 20px 16px; }
 `

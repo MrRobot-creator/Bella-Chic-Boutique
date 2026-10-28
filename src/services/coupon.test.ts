@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from '@jest/globals'
-import { hasUsedCoupon, recordCouponUsage, validateCoupon } from './coupon'
+import { recordCouponUsage, validateCoupon } from './coupon'
 
 describe('Coupon and Account service', () => {
   beforeEach(() => {
