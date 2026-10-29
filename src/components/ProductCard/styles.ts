@@ -399,6 +399,8 @@ export const DialogDetailsLayout = styled.div`
     min-height: 100vh;
     min-height: 100dvh;
     justify-content: center;
+    /* "safe" evita que o texto transborde por cima das fotos em telas baixas */
+    justify-content: safe center;
     gap: clamp(14px, 2.2vh, 24px);
     padding: clamp(28px, 5vh, 64px) clamp(30px, 6vw, 96px);
   }
@@ -407,6 +409,7 @@ export const DialogDetailsLayout = styled.div`
     flex-direction: column;
     > div:last-child {
       min-height: 0;
+      justify-content: flex-start;
       gap: 14px;
       padding: 26px 24px 36px;
     }
@@ -414,7 +417,7 @@ export const DialogDetailsLayout = styled.div`
   @media (max-width: 480px) {
     > div:last-child { padding: 22px 18px 30px; }
   }
-  @media (max-height: 600px) {
+  @media (max-height: 600px) and (min-width: 901px) {
     min-height: max(100dvh, 480px);
     > div:last-child {
       min-height: max(100dvh, 480px);
@@ -577,6 +580,7 @@ export const DialogVariants = styled.div`
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
+  justify-content: safe center;
   gap: 16px;
   padding: 20px 24px 24px;
   overflow-y: visible;
