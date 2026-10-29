@@ -1,6 +1,44 @@
 import { describe, expect, it } from '@jest/globals'
-import { buildVariantStock, getVariantStock } from './inventory'
-import { VariantStock } from '../types/store'
+import { buildVariantStock, getLowStockVariants, getTotalStock, getVariantStock, isLowStock } from './inventory'
+import { Product, VariantStock } from '../types/store'
+
+const makeProduct = (overrides: Partial<Product>): Product => ({
+  id: 1,
+  name: 'Peça',
+  category: 'Vestidos',
+  description: '',
+  price: 100,
+  image: '',
+  sizes: ['P'],
+  colors: [{ name: 'Rosa', hex: '#fc8497' }],
+  available: true,
+  enabled: true,
+  ...overrides
+})
+
+describe('stock helpers', () => {
+  it('soma o estoque total ignorando valores negativos', () => {
+    expect(getTotalStock([{ size: 'P', color: 'Rosa', quantity: 2 }, { size: 'M', color: 'Rosa', quantity: -1 }])).toBe(2)
+    expect(getTotalStock(undefined)).toBe(0)
+  })
+
+  it('marca últimas unidades apenas com 1 ou 2 peças à venda', () => {
+    expect(isLowStock(makeProduct({ variantStock: [{ size: 'P', color: 'Rosa', quantity: 2 }] }))).toBe(true)
+    expect(isLowStock(makeProduct({ variantStock: [{ size: 'P', color: 'Rosa', quantity: 3 }] }))).toBe(false)
+    expect(isLowStock(makeProduct({ variantStock: [{ size: 'P', color: 'Rosa', quantity: 0 }] }))).toBe(false)
+    expect(isLowStock(makeProduct({ available: false, variantStock: [{ size: 'P', color: 'Rosa', quantity: 1 }] }))).toBe(false)
+  })
+
+  it('lista variações acabando de peças ativas, zeradas primeiro', () => {
+    const products = [
+      makeProduct({ id: 1, name: 'Vestido', variantStock: [{ size: 'P', color: 'Rosa', quantity: 2 }, { size: 'M', color: 'Rosa', quantity: 9 }] }),
+      makeProduct({ id: 2, name: 'Blusa', variantStock: [{ size: 'P', color: 'Rosa', quantity: 0 }] }),
+      makeProduct({ id: 3, name: 'Inativa', enabled: false, variantStock: [{ size: 'P', color: 'Rosa', quantity: 0 }] })
+    ]
+    expect(getLowStockVariants(products).map((variant) => `${variant.productName} ${variant.size} ${variant.quantity}`))
+      .toEqual(['Blusa P 0', 'Vestido P 2'])
+  })
+})
 
 describe('variant inventory', () => {
   const stock: VariantStock[] = [

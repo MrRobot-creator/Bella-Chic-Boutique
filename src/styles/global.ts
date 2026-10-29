@@ -28,14 +28,14 @@ const GlobalStyle = createGlobalStyle`
     height: 8px;
   }
   ::-webkit-scrollbar-track {
-    background: #f8eeee;
+    background: #fde9eb;
   }
   ::-webkit-scrollbar-thumb {
-    background: #c48d97;
+    background: #f4a3b1;
     border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #a96f79;
+    background: #c2405b;
   }
 
   a {
@@ -61,7 +61,7 @@ const GlobalStyle = createGlobalStyle`
   button, input, select, textarea { font-family: inherit; }
 
   button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
-    outline: 2px solid #a96f79;
+    outline: 2px solid #c2405b;
     outline-offset: 3px;
   }
 

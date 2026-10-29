@@ -21,6 +21,7 @@ Copie `.env.example` para `.env.local` e preencha os dados públicos da loja:
 | `REACT_APP_SUPABASE_ANON_KEY` | Chave `anon`/publishable do Supabase. Nunca use `service_role`. |
 | `REACT_APP_INSTAGRAM_URL` | Link do perfil da boutique no Instagram. |
 | `REACT_APP_SITE_URL` | Endereço público do site, sem barra no final. Usado na prévia do link e no sitemap. |
+| `REACT_APP_GA_ID` | Opcional. ID do Google Analytics 4 (`G-...`). O Analytics só carrega depois que a visitante aceita o aviso de cookies. |
 
 Reinicie `npm start` após alterar `.env.local`. Essas variáveis são incorporadas ao site público no build; use somente a chave pública `anon`/publishable e nunca coloque senhas ou credenciais secretas nelas. Os contatos das duas unidades e seus endereços são configurados em `src/config/store.ts`.
 
@@ -48,6 +49,7 @@ O painel fica em `/admin` e permite entrar com e-mail e senha, adicionar, editar
 2. No SQL Editor do Supabase, execute o conteúdo de `supabase/setup.sql`. Ele cria as tabelas e políticas de segurança (RLS), configura o armazenamento de imagens e adiciona os campos de galeria, numeração do tamanho único e estoque por variação. Não insere produtos de demonstração nem altera os dados existentes; as variações existentes começam com saldo zero até serem preenchidas no painel.
 3. Como o projeto Supabase já existe, execute também `supabase/order-management.sql` no SQL Editor. Essa migração adiciona o estoque por variação (se ainda não existir), cria a tabela de pedidos e as funções protegidas para registrar, confirmar e cancelar pedidos. O cliente pode registrar um pedido pendente; somente uma administradora autorizada pode confirmar a venda e baixar o estoque.
    Em seguida, execute `supabase/order-protection.sql`. Ele adiciona as proteções dos pedidos no servidor: limite de pedidos repetidos por WhatsApp (anti-spam), cupom Bella10 uma vez por e-mail ou WhatsApp, conferência da taxa de frete e da unidade/WhatsApp oficiais da loja. Se mudar telefones, unidades ou valores de frete no código, atualize também esse arquivo e execute de novo.
+   Para o “Avise-me quando chegar”, execute também `supabase/restock-alerts.sql`. Ele cria a tabela de pedidos de aviso (só administradoras leem) e a função que a vitrine usa para registrar o aviso, com limite anti-spam.
 4. Em **Authentication → Users**, crie o usuário da administradora com e-mail e senha.
 5. No SQL Editor, associe esse usuário à lista de administradores, substituindo pelo e-mail usado no passo anterior:
 
@@ -70,6 +72,14 @@ No painel, cada cor também pode ter sua própria foto (URL ou upload separado).
 ### Catálogo e imagens
 
 Não execute scripts de sincronização de produtos a partir de dados locais: o catálogo oficial é mantido no Supabase e deve ser atualizado pelo painel administrativo. Imagens que usam caminhos `/assets/` precisam estar incluídas na publicação; imagens enviadas pelo painel ficam no Storage do Supabase.
+
+## Recursos da vitrine e do painel
+
+- **Link por peça:** cada peça tem endereço próprio, como `/produto/1-vestido-dress`. Ao abrir os detalhes, o endereço muda e pode ser compartilhado (botões “Compartilhar” e “Enviar no WhatsApp”). O número no começo garante que o link continue funcionando se o nome mudar. Como o site é de página única, a prévia do link no WhatsApp mostra a imagem geral da loja.
+- **Últimas unidades:** peças com 2 unidades ou menos no total ganham o selo “Últimas unidades”, e a variação escolhida mostra quantas restam. O limite fica em `LOW_STOCK_LIMIT` (`src/utils/inventory.ts`).
+- **Avise-me quando chegar:** em peças ou variações esgotadas, a cliente deixa nome e WhatsApp. No `/admin`, o quadro “Avise-me quando chegar” mostra em verde quem já pode ser avisada e abre o WhatsApp com a mensagem pronta.
+- **Resumo de vendas:** o painel mostra faturamento confirmado, vendas, ticket médio, pendentes, peças mais vendidas e variações com estoque baixo, por período, e exporta os pedidos em planilha CSV (abre no Excel).
+- **Google Analytics:** com `REACT_APP_GA_ID`, aparece o aviso de cookies; só depois do aceite o site registra páginas vistas, peças abertas, adições à sacola, compartilhamentos, pedidos de aviso e pedidos enviados ao WhatsApp. A visitante pode mudar a escolha na Política de Privacidade.
 
 ## Publicar o site
 

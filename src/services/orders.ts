@@ -106,6 +106,15 @@ export const createStoreOrder = async (order: CreateStoreOrderInput): Promise<Cr
   return data as CreatedStoreOrder
 }
 
+type StoreOrderRow = Omit<StoreOrder, 'couponCode'> & { coupon_code: string | null }
+
+const toStoreOrder = ({ coupon_code: couponCode, ...row }: StoreOrderRow): StoreOrder => ({
+  ...row,
+  subtotal: Number(row.subtotal),
+  discount: Number(row.discount),
+  couponCode
+})
+
 export const fetchAdminOrders = async (): Promise<StoreOrder[]> => {
   const { data, error } = await requireSupabase()
     .from('store_orders')
@@ -113,7 +122,20 @@ export const fetchAdminOrders = async (): Promise<StoreOrder[]> => {
     .order('created_at', { ascending: false })
     .limit(100)
   if (error) throw orderError(error)
-  return data as StoreOrder[]
+  return (data as StoreOrderRow[]).map(toStoreOrder)
+}
+
+/** Pedidos a partir de uma data (para o resumo e a exportação). */
+export const fetchOrdersSince = async (since: Date | null, limit = 2000): Promise<StoreOrder[]> => {
+  let query = requireSupabase()
+    .from('store_orders')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (since) query = query.gte('created_at', since.toISOString())
+  const { data, error } = await query
+  if (error) throw orderError(error)
+  return (data as StoreOrderRow[]).map(toStoreOrder)
 }
 
 export const confirmStoreOrder = async (orderId: string): Promise<void> => {

@@ -3,13 +3,18 @@ import {
   MouseEvent as ReactMouseEvent,
   WheelEvent as ReactWheelEvent,
   PointerEvent as ReactPointerEvent,
+  useCallback,
   useEffect,
   useRef,
   useState
 } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Product } from '../../types/store'
-import { getVariantStock } from '../../utils/inventory'
+import { getVariantStock, isLowStock, LOW_STOCK_LIMIT } from '../../utils/inventory'
 import { getSizeFitLabel } from '../../utils/productSize'
+import { getProductIdFromPath, getProductPath, getProductUrl } from '../../utils/productLink'
+import { trackEvent } from '../../services/analytics'
+import RestockForm from './RestockForm'
 import {
   AddButton,
   Card,
@@ -49,7 +54,9 @@ import {
   Select,
   Badge,
   WishlistButton,
-  ViewDetailsButton
+  ViewDetailsButton,
+  ShareRow,
+  StockNote
 } from './styles'
 
 type ProductCardProps = {
@@ -115,6 +122,12 @@ const ProductCard = ({ product, relatedProducts, onAdd }: ProductCardProps) => {
     setIsWishlist(nextWishlist)
   }
   const isModalOpen = modalMode !== null
+  const navigate = useNavigate()
+  const location = useLocation()
+  const routeProductId = getProductIdFromPath(location.pathname)
+  const isRouteProduct = routeProductId === product.id
+  const pushedRouteRef = useRef(false)
+  const [shareStatus, setShareStatus] = useState('')
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLElement | null>(null)
@@ -124,12 +137,30 @@ const ProductCard = ({ product, relatedProducts, onAdd }: ProductCardProps) => {
   const image = activeImageIndex === 0
     ? selectedColor?.image || images[0]
     : images[activeImageIndex] || product.image
+  const hoverImage = images.find((candidate, index) => index > 0 && candidate && candidate !== image)
+  const lowStock = isLowStock(product)
+  const canRequestRestock = product.enabled !== false
 
-  const closeDetails = () => {
+  /** Fecha o modal sem mexer no endereço da página. */
+  const closeLocal = useCallback(() => {
     setModalMode(null)
     setIsZoomed(false)
     setIsDraggingZoom(false)
     setImageOffset({ x: 0, y: 0 })
+    setShareStatus('')
+  }, [])
+
+  /** Fecha o modal e volta o endereço para a vitrine quando ele estava em /produto/... */
+  const closeDetails = () => {
+    const wasRouteDetails = modalMode === 'details' && isRouteProduct
+    closeLocal()
+    if (!wasRouteDetails) return
+    if (pushedRouteRef.current) {
+      pushedRouteRef.current = false
+      navigate(-1)
+    } else {
+      navigate('/', { replace: true })
+    }
   }
 
   const toggleZoom = () => {
@@ -258,7 +289,7 @@ const ProductCard = ({ product, relatedProducts, onAdd }: ProductCardProps) => {
 
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        closeDetails()
+        closeDetailsRef.current()
         return
       }
       if (event.key !== 'Tab') return
@@ -303,9 +334,92 @@ const ProductCard = ({ product, relatedProducts, onAdd }: ProductCardProps) => {
     setModalMode(mode)
   }
 
+  const closeDetailsRef = useRef(closeDetails)
+  closeDetailsRef.current = closeDetails
+
+  const openDetails = () => {
+    openModal('details')
+    if (!isRouteProduct) {
+      pushedRouteRef.current = true
+      navigate(getProductPath(product))
+    }
+  }
+
+  // Abre a peça quando o endereço é /produto/<id> (link compartilhado, voltar/avançar do navegador)
+  // e fecha quando o endereço deixa de ser o desta peça.
+  useEffect(() => {
+    if (isRouteProduct && modalMode !== 'details') {
+      triggerRef.current = null
+      setIsZoomed(false)
+      setImageOffset({ x: 0, y: 0 })
+      setQuantity(1)
+      setModalMode('details')
+      document.getElementById(`product-card-${product.id}`)?.scrollIntoView({ block: 'center' })
+    } else if (!isRouteProduct && modalMode === 'details' && pushedRouteRef.current) {
+      pushedRouteRef.current = false
+      closeLocal()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRouteProduct])
+
+  useEffect(() => {
+    if (modalMode !== 'details') return undefined
+    const previousTitle = document.title
+    document.title = `${product.name} | Bella Chic Boutique`
+    trackEvent('view_item', {
+      currency: 'BRL',
+      value: product.price,
+      items: [{ item_id: String(product.id), item_name: product.name, item_category: product.category, price: product.price }]
+    })
+    return () => { document.title = previousTitle }
+  }, [modalMode, product.category, product.id, product.name, product.price])
+
+  const shareProduct = async () => {
+    const url = getProductUrl(product)
+    const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> }
+    try {
+      if (nav.share) {
+        await nav.share({ title: product.name, text: `Olha essa peça da Bella Chic: ${product.name}`, url })
+        trackEvent('share', { method: 'native', item_id: String(product.id) })
+        return
+      }
+      await navigator.clipboard.writeText(url)
+      setShareStatus('Link copiado!')
+      trackEvent('share', { method: 'copy', item_id: String(product.id) })
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      setShareStatus(url)
+    }
+  }
+
   const addSelectedProduct = () => {
     if (onAdd(product, size, color, quantity)) closeDetails()
   }
+
+  const renderStockAndActions = (idPrefix: string) => (
+    <>
+      {selectedVariantStock < 1 ? (
+        <StockNote $tone="out" role="status">Esta combinação de tamanho e cor está esgotada.</StockNote>
+      ) : selectedVariantStock <= LOW_STOCK_LIMIT ? (
+        <StockNote $tone="low" role="status">
+          Últimas unidades: {selectedVariantStock === 1 ? 'só resta 1 nesta variação!' : `só restam ${selectedVariantStock} nesta variação!`}
+        </StockNote>
+      ) : (
+        <StockNote $tone="ok" role="status">{selectedVariantStock} unidades disponíveis nesta variação.</StockNote>
+      )}
+      <AddButton
+        type="button"
+        disabled={product.available === false || selectedVariantStock < 1 || !size || !color}
+        onClick={addSelectedProduct}
+      >
+        {selectedVariantStock < 1 ? 'Variação esgotada' : 'Adicionar à sacola'}
+        {selectedVariantStock > 0 && <span aria-hidden="true">＋</span>}
+      </AddButton>
+      {selectedVariantStock < 1 && canRequestRestock && (
+        <RestockForm product={product} size={size} color={color} idPrefix={`${idPrefix}-${product.id}`} />
+      )}
+    </>
+  )
 
   const handleImageWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
     if (Math.abs(event.deltaY) < 2) return
@@ -325,13 +439,15 @@ const ProductCard = ({ product, relatedProducts, onAdd }: ProductCardProps) => {
           <ImageTrigger
             type="button"
             aria-label={`Ver detalhes de ${product.name}`}
-            onClick={() => openModal('details')}
+            onClick={openDetails}
           >
             <Image
+              className={`primary${hoverImage ? ' has-alt' : ''}`}
               src={image}
               alt={`${product.name}${selectedColor ? ` - ${selectedColor.name}` : ''}`}
               loading="lazy"
             />
+            {hoverImage && <Image className="alt" src={hoverImage} alt="" aria-hidden="true" loading="lazy" />}
           </ImageTrigger>
           {product.tag && (
             <Badge $variant={product.tag.toLowerCase().includes('novo') ? 'new' : product.tag.toLowerCase().includes('vendido') || product.tag.toLowerCase().includes('destaque') ? 'bestseller' : 'limited'}>
@@ -347,6 +463,7 @@ const ProductCard = ({ product, relatedProducts, onAdd }: ProductCardProps) => {
             {isWishlist ? '♥' : '♡'}
           </WishlistButton>
           {product.available === false && <span className="sold-out">Esgotado</span>}
+          {lowStock && <span className="low-stock">Últimas unidades</span>}
           {product.oldPrice && (
             <span className="discount">
               -{Math.round((1 - product.price / product.oldPrice) * 100)}%
@@ -381,15 +498,15 @@ const ProductCard = ({ product, relatedProducts, onAdd }: ProductCardProps) => {
             </div>
           )}
           <CardActions>
-            <ViewDetailsButton type="button" onClick={() => openModal('details')}>
+            <ViewDetailsButton type="button" onClick={openDetails}>
               Ver detalhes <span aria-hidden="true">→</span>
             </ViewDetailsButton>
             <BuyButton
               type="button"
-              disabled={product.available === false}
-              onClick={() => openModal('quickshop')}
+              disabled={product.available === false && !canRequestRestock}
+              onClick={() => (product.available === false ? openDetails() : openModal('quickshop'))}
             >
-              {product.available === false ? 'Esgotado' : 'Comprar'}
+              {product.available === false ? (canRequestRestock ? 'Avise-me' : 'Esgotado') : 'Comprar'}
             </BuyButton>
           </CardActions>
         </ProductInfo>
@@ -487,6 +604,20 @@ const ProductCard = ({ product, relatedProducts, onAdd }: ProductCardProps) => {
                     {product.oldPrice && <OldPrice>{formatPrice(product.oldPrice)}</OldPrice>}
                   </DialogPrice>
                   <DialogDescription>{product.description}</DialogDescription>
+                  <ShareRow>
+                    <button type="button" onClick={shareProduct}>
+                      <span aria-hidden="true">↗</span> Compartilhar
+                    </button>
+                    <a
+                      href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Olha essa peça da Bella Chic: ${product.name} ${getProductUrl(product)}`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={() => trackEvent('share', { method: 'whatsapp', item_id: String(product.id) })}
+                    >
+                      Enviar no WhatsApp
+                    </a>
+                    {shareStatus && <span role="status">{shareStatus}</span>}
+                  </ShareRow>
 
                   {product.colors.length > 0 && (
                     <DialogVariantGroup>
@@ -563,15 +694,7 @@ const ProductCard = ({ product, relatedProducts, onAdd }: ProductCardProps) => {
                       </QuantityButton>
                     </QuantitySelector>
                   </DialogVariantGroup>
-                  <p role="status">{selectedVariantStock} unidades disponíveis nesta variação.</p>
-                  <AddButton
-                    type="button"
-                    disabled={product.available === false || selectedVariantStock < 1 || !size || !color}
-                    onClick={addSelectedProduct}
-                  >
-                    {selectedVariantStock < 1 ? 'Variação esgotada' : 'Adicionar à sacola'}
-                    {selectedVariantStock > 0 && <span aria-hidden="true">＋</span>}
-                  </AddButton>
+                  {renderStockAndActions('details')}
                   {relatedProducts.length > 0 && (
                     <ComboSuggestions aria-labelledby={`combo-title-${product.id}`}>
                       <h3 id={`combo-title-${product.id}`}>Complete o look</h3>
@@ -579,9 +702,14 @@ const ProductCard = ({ product, relatedProducts, onAdd }: ProductCardProps) => {
                         {relatedProducts.map((suggestion) => (
                           <a
                             key={suggestion.id}
-                            href={`#product-card-${suggestion.id}`}
-                            aria-label={`Ver ${suggestion.name} na coleção`}
-                            onClick={closeDetails}
+                            href={getProductPath(suggestion)}
+                            aria-label={`Ver ${suggestion.name}`}
+                            onClick={(event) => {
+                              event.preventDefault()
+                              pushedRouteRef.current = false
+                              closeLocal()
+                              navigate(getProductPath(suggestion), { replace: isRouteProduct })
+                            }}
                           >
                             <img src={suggestion.image} alt="" loading="lazy" />
                             <span>
@@ -685,16 +813,7 @@ const ProductCard = ({ product, relatedProducts, onAdd }: ProductCardProps) => {
                   </QuantityButton>
                 </QuantitySelector>
               </DialogVariantGroup>
-              <p role="status">{selectedVariantStock} unidades disponíveis nesta variação.</p>
-
-              <AddButton
-                type="button"
-                disabled={product.available === false || selectedVariantStock < 1 || !size || !color}
-                onClick={addSelectedProduct}
-              >
-                {selectedVariantStock < 1 ? 'Variação esgotada' : 'Adicionar à sacola'}
-                {selectedVariantStock > 0 && <span aria-hidden="true">＋</span>}
-              </AddButton>
+              {renderStockAndActions('quickshop')}
               </DialogVariants>
             )}
           </DialogContent>

@@ -1,7 +1,7 @@
 import styled from 'styled-components'
 
 export const AnnouncementBar = styled.div`
-  background: linear-gradient(135deg, #76535a 0%, #a96f79 50%, #503b3f 100%);
+  background: linear-gradient(135deg, #a72f48 0%, #c2405b 50%, #a72f48 100%);
   color: #fff;
   font-size: 12px;
   text-align: center;
@@ -34,7 +34,7 @@ export const Hero = styled.section`
   overflow: hidden;
   height: min(760px, calc(100vh - 118px));
   min-height: 520px;
-  background: #f8e8eb;
+  background: #fde9eb;
   scroll-margin-top: 82px;
 
   &::before {
@@ -79,7 +79,7 @@ export const ShowcaseViewport = styled.div`
   touch-action: pan-y;
   user-select: none;
   &:active { cursor: grabbing; }
-  &:focus-visible { outline: 2px solid #8c6066; outline-offset: -5px; }
+  &:focus-visible { outline: 2px solid #c2405b; outline-offset: -5px; }
 `
 
 export const ShowcaseTrack = styled.div<{
@@ -101,7 +101,7 @@ export const ShowcaseImage = styled.img`
   height: 100%;
   object-fit: contain;
   object-position: center;
-  background: #f8e8eb;
+  background: #fde9eb;
   transition: transform .7s ease;
 `
 
@@ -112,16 +112,16 @@ export const ShowcaseLink = styled.a`
   height: 100%;
   display: block;
   overflow: hidden;
-  background: #f8e8eb;
+  background: #fde9eb;
   text-decoration: none;
-  &:focus-visible { outline: 3px solid #8c6066; outline-offset: -8px; }
+  &:focus-visible { outline: 3px solid #c2405b; outline-offset: -8px; }
   &:hover ${ShowcaseImage} { transform: scale(1.025); }
 `
 
 export const StoreCarousel = styled.div`
   position: relative;
   overflow: hidden;
-  background: #f8e8eb;
+  background: #fde9eb;
   border-radius: 8px;
   height: clamp(260px, 38vw, 340px);
   box-shadow: 0 4px 16px rgba(121, 86, 93, 0.08);
@@ -139,7 +139,7 @@ export const StoreViewport = styled.div`
   touch-action: pan-y;
   user-select: none;
   &:active { cursor: grabbing; }
-  &:focus-visible { outline: 2px solid #8c6066; outline-offset: -3px; }
+  &:focus-visible { outline: 2px solid #c2405b; outline-offset: -3px; }
 `
 
 export const StoreTrack = styled.div<{
@@ -162,7 +162,7 @@ export const StoreSlideItem = styled.div`
   height: 100%;
   display: block;
   overflow: hidden;
-  background: #f8e8eb;
+  background: #fde9eb;
 `
 
 export const StoreSlideImage = styled.img`
@@ -171,12 +171,12 @@ export const StoreSlideImage = styled.img`
   height: 100%;
   object-fit: cover;
   object-position: center;
-  background: #f8e8eb;
+  background: #fde9eb;
 `
 
 export const Contact = styled.section`
   padding: 68px 24px 72px;
-  background: #f8eeee;
+  background: #fde9eb;
   scroll-margin-top: 82px;
   @media (max-width: 600px) { padding: 48px 18px 54px; }
 `
@@ -186,13 +186,13 @@ export const ContactContent = styled.div`
   margin: 0 auto;
   > .social-links { display: flex; margin-top: 17px; }
   .about-store { display: grid; grid-template-columns: .85fr 1.15fr; align-items: center; gap: clamp(28px, 6vw, 72px); margin-bottom: 56px; padding-bottom: 48px; border-bottom: 1px solid #eadbdc; }
-  .about-copy .eyebrow { color: #a47479; font-size: 9px; letter-spacing: 1.8px; }
-  .about-copy h2 { margin-top: 10px; color: #533f42; font: clamp(30px, 4vw, 42px)/1.12 Georgia, serif; }
-  .about-copy h2 em { color: #b77c85; font-weight: 400; }
+  .about-copy .eyebrow { color: #c2405b; font-size: 9px; letter-spacing: 1.8px; }
+  .about-copy h2 { margin-top: 10px; color: #533f42; font: clamp(30px, 4vw, 42px)/1.12 'Playfair Display', Georgia, serif; }
+  .about-copy h2 em { color: #e8637c; font-weight: 400; }
   .about-copy p { margin-top: 16px; color: #79696b; font-size: 13px; line-height: 1.9; }
   .store-carousel { position: relative; overflow: hidden; background: #eadbdc; border-radius: 8px; }
   .store-caption { position: absolute; right: 0; bottom: 48px; left: 0; display: flex; flex-direction: column; gap: 4px; padding: 32px 18px 14px; background: linear-gradient(transparent, rgba(36, 27, 27, 0.45)); color: white; }
-  .store-caption strong { font: 20px Georgia, serif; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+  .store-caption strong { font: 20px 'Playfair Display', Georgia, serif; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
   .store-caption span { font-size: 11px; opacity: 0.95; }
   .store-controls { position: absolute; right: 14px; bottom: 12px; left: 14px; display: flex; align-items: center; justify-content: space-between; }
   .store-controls > button { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid #ffffffa8; border-radius: 50%; background: #ffffffea; color: #634b4f; cursor: pointer; transition: transform .2s, background .2s; }
@@ -200,10 +200,10 @@ export const ContactContent = styled.div`
   .store-dots { display: flex; gap: 8px; }
   .store-dots button { width: 9px; height: 9px; padding: 0; border: 1px solid white; border-radius: 50%; background: transparent; cursor: pointer; }
   .store-dots button[aria-current="true"] { background: white; }
-  .store-controls button:focus-visible { outline: 2px solid #76535a; outline-offset: 3px; }
+  .store-controls button:focus-visible { outline: 2px solid #c2405b; outline-offset: 3px; }
   @media (max-width: 640px) { .about-store { grid-template-columns: 1fr; gap: 24px; margin-bottom: 40px; padding-bottom: 36px; } }
   .payments { margin-top: 42px; padding-top: 30px; border-top: 1px solid #eadbdc; }
-  .payments h3 { margin-bottom: 15px; color: #5a4347; font: 22px Georgia, serif; }
+  .payments h3 { margin-bottom: 15px; color: #5a4347; font: 22px 'Playfair Display', Georgia, serif; }
   .payments > p { margin-top: 12px; color: #8c7c7d; font-size: 11px; }
   .card-fee-info { margin-top: 16px; padding: 18px 20px; border: 1px solid #eadbdc; background: #fffdfb; color: #79696b; font-size: 12px; line-height: 1.7; }
   .card-fee-info p + p { margin-top: 10px; }
@@ -211,7 +211,7 @@ export const ContactContent = styled.div`
   .card-fee-info dl div { display: flex; justify-content: space-between; gap: 12px; padding-bottom: 5px; border-bottom: 1px solid #f0e5e5; }
   .card-fee-info dt { color: #604a4e; }
   .card-fee-info dd { margin: 0; color: #604a4e; font-weight: 600; white-space: nowrap; }
-  .card-fee-info a { color: #79565d; text-decoration: underline; }
+  .card-fee-info a { color: #c2405b; text-decoration: underline; }
   @media (max-width: 500px) { .card-fee-info { padding: 15px; } .card-fee-info dl { grid-template-columns: 1fr; } }
   .exchange-policy {
     position: relative;
@@ -239,7 +239,7 @@ export const ContactContent = styled.div`
   }
 
   .exchange-policy.highlighted {
-    border-color: #c99ba1;
+    border-color: #f4a3b1;
     background: #fff9fa;
     box-shadow: 0 4px 18px rgba(121, 86, 93, 0.08);
   }
@@ -259,7 +259,7 @@ export const ContactContent = styled.div`
     gap: 6px;
     padding: 4px 10px;
     border-radius: 999px;
-    background: #f8eeee;
+    background: #fde9eb;
     color: #8c5b63;
     font-size: 10.5px;
     font-weight: 500;
@@ -274,23 +274,23 @@ export const ContactContent = styled.div`
     border: 1px solid #e7d7d8;
     border-radius: 50%;
     background: #fff;
-    color: #79565d;
+    color: #c2405b;
     font-size: 12px;
     cursor: pointer;
     transition: all 0.2s ease;
   }
   .policy-close-btn:hover {
-    background: #79565d;
+    background: #c2405b;
     color: #fff;
-    border-color: #79565d;
+    border-color: #c2405b;
   }
   .exchange-policy h3 {
     margin-bottom: 12px;
     color: #533f42;
-    font: 18px Georgia, serif;
+    font: 18px 'Playfair Display', Georgia, serif;
   }
   .exchange-policy ul { display: grid; gap: 10px; margin: 0; padding-left: 20px; color: #79696b; font-size: 12.5px; line-height: 1.7; }
-  .exchange-policy li::marker { color: #b77c85; }
+  .exchange-policy li::marker { color: #e8637c; }
   .exchange-policy .policy-note {
     margin-top: 16px;
     color: #9d6c74;
@@ -303,9 +303,9 @@ export const ContactContent = styled.div`
 `
 
 export const ContactHeader = styled.div`
-  .eyebrow { color: #a47479; font-size: 9px; letter-spacing: 1.8px; }
-  h2 { margin-top: 8px; color: #533f42; font: 35px/1.2 Georgia, serif; }
-  h2 em { color: #b77c85; font-weight: 400; }
+  .eyebrow { color: #c2405b; font-size: 9px; letter-spacing: 1.8px; }
+  h2 { margin-top: 8px; color: #533f42; font: 35px/1.2 'Playfair Display', Georgia, serif; }
+  h2 em { color: #e8637c; font-weight: 400; }
   @media (max-width: 500px) { h2 { font-size: 30px; } }
 `
 
@@ -318,13 +318,13 @@ export const ContactUnits = styled.div`
 
 export const ContactUnitButton = styled.button<{ $active: boolean }>`
   padding: 10px 16px;
-  border: 1px solid ${({ $active }) => ($active ? '#76535a' : '#e7d7d8')};
+  border: 1px solid ${({ $active }) => ($active ? '#c2405b' : '#e7d7d8')};
   border-radius: 999px;
-  background: ${({ $active }) => ($active ? '#76535a' : '#fff')};
+  background: ${({ $active }) => ($active ? '#c2405b' : '#fff')};
   color: ${({ $active }) => ($active ? '#fff' : '#776566')};
   font-size: 11px;
   transition: background .2s, color .2s;
-  &:hover { border-color: #ab7d84; }
+  &:hover { border-color: #e8637c; }
 `
 
 export const ContactUnit = styled.div`
@@ -335,7 +335,7 @@ export const ContactUnit = styled.div`
   padding: 22px;
   border: 1px solid #eadbdc;
   background: #fffdfb;
-  h3 { color: #584246; font: 20px Georgia, serif; }
+  h3 { color: #584246; font: 20px 'Playfair Display', Georgia, serif; }
   p { margin-top: 7px; color: #877779; font-size: 12px; line-height: 1.6; }
   .contact-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
   @media (max-width: 700px) { align-items: flex-start; flex-direction: column; .contact-actions { justify-content: flex-start; } }
@@ -348,14 +348,14 @@ export const ContactLink = styled.a<{ $primary?: boolean }>`
   justify-content: center;
   min-height: 38px;
   padding: 10px 14px;
-  border: 1px solid ${({ $primary }) => ($primary ? '#76535a' : '#ead8d9')};
+  border: 1px solid ${({ $primary }) => ($primary ? '#c2405b' : '#ead8d9')};
   border-radius: 999px;
-  background: ${({ $primary }) => ($primary ? '#76535a' : '#fff')};
+  background: ${({ $primary }) => ($primary ? '#c2405b' : '#fff')};
   color: ${({ $primary }) => ($primary ? '#fff' : '#684b50')};
   font-size: 10px;
   text-decoration: none;
   transition: background .2s, color .2s;
-  &:hover { background: ${({ $primary }) => ($primary ? '#60434a' : '#fcf4f4')}; }
+  &:hover { background: ${({ $primary }) => ($primary ? '#a72f48' : '#fcf4f4')}; }
   .contact-icon { flex: 0 0 18px; width: 18px; height: 18px; fill: currentColor; }
   .instagram-icon { fill: none; stroke: currentColor; stroke-width: 1.8; }
   .instagram-icon .instagram-dot { fill: currentColor; stroke: none; }
@@ -379,7 +379,7 @@ export const PaymentCard = styled.button<{ $active?: boolean }>`
   gap: 7px;
   min-height: 132px;
   padding: 12px;
-  border: 1px solid ${({ $active }) => ($active ? '#79565d' : '#eadbdc')};
+  border: 1px solid ${({ $active }) => ($active ? '#c2405b' : '#eadbdc')};
   border-radius: 4px;
   background: ${({ $active }) => ($active ? '#fff7f8' : '#fffdfb')};
   color: #604a4e;
@@ -390,13 +390,13 @@ export const PaymentCard = styled.button<{ $active?: boolean }>`
   box-shadow: ${({ $active }) => ($active ? '0 3px 12px rgba(121, 86, 93, 0.12)' : 'none')};
 
   &:hover {
-    border-color: #ab7d84;
+    border-color: #e8637c;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(121, 86, 93, 0.08);
   }
 
   &:focus-visible {
-    outline: 2px solid #79565d;
+    outline: 2px solid #c2405b;
     outline-offset: 2px;
   }
 
@@ -406,22 +406,22 @@ export const PaymentCard = styled.button<{ $active?: boolean }>`
     width: 100%;
     height: 56px;
     border-radius: 3px;
-    background: #f8eeee;
+    background: #fde9eb;
     color: #9d6c74;
     transition: background 0.2s ease, color 0.2s ease;
   }
   .payment-visual svg { display: block; width: 38px; height: 38px; fill: currentColor; }
   .payment-visual.card { background: #f4e4e5; }
   .payment-visual.card svg { width: 54px; height: 38px; filter: drop-shadow(0 3px 4px #503b3f35); }
-  .payment-visual.card svg > rect:first-child { fill: #79565d; }
-  .payment-visual.card .card-stripe { fill: #c99ba1; }
+  .payment-visual.card svg > rect:first-child { fill: #c2405b; }
+  .payment-visual.card .card-stripe { fill: #f4a3b1; }
   .payment-visual.card .card-chip { fill: #e6c991; }
   .payment-visual.card .card-contactless { fill: none; stroke: #fff; stroke-linecap: round; stroke-width: 2; }
   .payment-visual.cash svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
   .payment-visual.link { background: #faeff0; }
   .payment-visual.link svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2.2; }
-  strong { font: 13px Georgia, serif; text-align: center; color: #533f42; }
-  small { font-size: 10px; color: #a47479; text-align: center; }
+  strong { font: 13px 'Playfair Display', Georgia, serif; text-align: center; color: #533f42; }
+  small { font-size: 10px; color: #c2405b; text-align: center; }
   @media (max-width: 500px) {
     align-items: center;
     min-height: 120px;
@@ -453,9 +453,9 @@ export const CatalogHeader = styled.div`
   align-items: flex-end;
   justify-content: space-between;
   gap: 24px;
-  .eyebrow { color: #a47479; font-size: 9px; letter-spacing: 1.8px; }
-  h2 { margin-top: 8px; color: #533f42; font: 38px Georgia, serif; }
-  h2 em { color: #b77c85; font-weight: 400; }
+  .eyebrow { color: #c2405b; font-size: 9px; letter-spacing: 1.8px; }
+  h2 { margin-top: 8px; color: #533f42; font: 38px 'Playfair Display', Georgia, serif; }
+  h2 em { color: #e8637c; font-weight: 400; }
   @media (max-width: 760px) { align-items: flex-start; flex-direction: column; gap: 20px; h2 { font-size: 36px; } }
 `
 
@@ -490,9 +490,9 @@ export const CatalogFilterToggle = styled.button`
   border: 1px solid #d9c2c5;
   border-radius: 4px;
   background: #fff;
-  color: #76535a;
+  color: #c2405b;
   font-size: 12px;
-  &:hover, &[aria-expanded="true"] { background: #f8eeee; border-color: #b98b91; }
+  &:hover, &[aria-expanded="true"] { background: #fde9eb; border-color: #e8637c; }
   > span:first-child { font-size: 16px; }
   .filter-count {
     display: inline-grid;
@@ -501,11 +501,11 @@ export const CatalogFilterToggle = styled.button`
     place-items: center;
     padding: 0 5px;
     border-radius: 999px;
-    background: #76535a;
+    background: #c2405b;
     color: white;
     font-size: 10px;
   }
-  &:focus-visible { outline: 2px solid #8c6066; outline-offset: 3px; }
+  &:focus-visible { outline: 2px solid #c2405b; outline-offset: 3px; }
 `
 
 export const CatalogFilters = styled.div`
@@ -538,17 +538,17 @@ export const CatalogFilters = styled.div`
     font-size: 12px;
   }
   .price-filter { flex: 1 1 200px; }
-  .price-filter input { width: 100%; accent-color: #a96f79; }
+  .price-filter input { width: 100%; accent-color: #c2405b; }
   .clear-filters {
     min-height: 40px;
     padding: 0 14px;
     border: 1px solid #d9c2c5;
     border-radius: 4px;
     background: white;
-    color: #76535a;
+    color: #c2405b;
     font-size: 11px;
   }
-  .clear-filters:hover:not(:disabled) { background: #f8eeee; }
+  .clear-filters:hover:not(:disabled) { background: #fde9eb; }
   .clear-filters:disabled { cursor: not-allowed; opacity: .55; }
   @media (max-width: 600px) {
     align-items: stretch;
@@ -591,9 +591,9 @@ export const CategoryMenuButton = styled.button`
   color: #684b50;
   font-size: 12px;
   transition: border-color .2s, background .2s;
-  &:hover, &[aria-expanded="true"] { border-color: #b98b91; background: #fffafa; }
+  &:hover, &[aria-expanded="true"] { border-color: #e8637c; background: #fffafa; }
   .hamburger { display: grid; gap: 4px; width: 17px; }
-  .hamburger i { display: block; width: 17px; height: 1.5px; background: #78535a; }
+  .hamburger i { display: block; width: 17px; height: 1.5px; background: #c2405b; }
   .hamburger i:nth-child(2) { width: 12px; }
   .active-category { padding-left: 10px; border-left: 1px solid #ead8d9; color: #9a7479; font-size: 11px; }
 `
@@ -618,12 +618,12 @@ export const CategoryMenuOption = styled.button<{ $active: boolean }>`
   justify-content: space-between;
   width: 100%;
   padding: 11px 12px;
-  background: ${({ $active }) => ($active ? '#f8eeee' : '#fff')};
-  color: ${({ $active }) => ($active ? '#76535a' : '#776566')};
+  background: ${({ $active }) => ($active ? '#fde9eb' : '#fff')};
+  color: ${({ $active }) => ($active ? '#c2405b' : '#776566')};
   font-size: 12px;
   text-align: left;
   transition: background .2s, color .2s;
-  &:hover { background: #fcf4f4; color: #76535a; }
+  &:hover { background: #fcf4f4; color: #c2405b; }
 `
 
 export const StatusMessage = styled.p`
@@ -669,7 +669,7 @@ export const FooterBrand = styled.div`
 export const FooterMessage = styled.p`
   margin-top: 13px;
   color: #e7d7d7;
-  font: italic 15px Georgia, serif;
+  font: italic 15px 'Playfair Display', Georgia, serif;
 `
 
 export const FooterSocialLink = styled.a`
@@ -681,7 +681,7 @@ export const FooterSocialLink = styled.a`
   font-size: 11px;
   text-decoration: none;
   transition: color .2s;
-  &:hover { color: #e9bcc3; }
+  &:hover { color: #fc8497; }
   &:focus-visible { outline: 2px solid #f2d8dc; outline-offset: 4px; }
 `
 
@@ -691,7 +691,7 @@ export const FooterNavigation = styled.nav`
   flex-direction: column;
   gap: 12px;
   padding-top: 5px;
-  strong { margin-bottom: 3px; color: #fffaf8; font: 17px Georgia, serif; }
+  strong { margin-bottom: 3px; color: #fffaf8; font: 17px 'Playfair Display', Georgia, serif; }
   a { color: #ddcbcd; font-size: 11px; text-decoration: none; transition: color .2s; }
   a:hover { color: #fff; }
   a:focus-visible { outline: 2px solid #f2d8dc; outline-offset: 4px; }
@@ -699,7 +699,7 @@ export const FooterNavigation = styled.nav`
 
 export const FooterContact = styled.div`
   padding-top: 5px;
-  > strong { color: #fffaf8; font: 17px Georgia, serif; }
+  > strong { color: #fffaf8; font: 17px 'Playfair Display', Georgia, serif; }
   p { max-width: 290px; margin-top: 12px; color: #ddcbcd; font-size: 11px; line-height: 1.7; }
 `
 
@@ -709,7 +709,7 @@ export const FooterContactButton = styled.a`
   gap: 8px;
   margin-top: 16px;
   padding: 10px 13px;
-  border: 1px solid #c99ba1;
+  border: 1px solid #f4a3b1;
   border-radius: 2px;
   background: #f3e3e4;
   color: #684b50;
@@ -726,7 +726,7 @@ export const FooterBusinessDetails = styled.div`
   color: #ddcbcd;
   font-size: 10px;
   line-height: 1.8;
-  strong { display: block; margin-bottom: 7px; color: #fffaf8; font: 17px Georgia, serif; }
+  strong { display: block; margin-bottom: 7px; color: #fffaf8; font: 17px 'Playfair Display', Georgia, serif; }
   a { color: #fffaf8; }
   .https-status { display: inline-flex; align-items: center; gap: 5px; margin-top: 7px; color: #e8d8da; }
 `
@@ -763,7 +763,7 @@ export const DeveloperCredit = styled.div`
     text-decoration: underline;
     transition: color 0.2s;
     &:hover {
-      color: #e9bcc3;
+      color: #fc8497;
     }
   }
 `

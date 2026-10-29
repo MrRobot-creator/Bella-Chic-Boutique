@@ -77,7 +77,8 @@ export const ImageArea = styled.div`
   aspect-ratio: 4 / 5;
   border-radius: 11px 11px 0 0;
   background: linear-gradient(145deg, #f7eeee, #fdf9f8);
-  .discount { position: absolute; top: 14px; right: 14px; padding: 6px 9px; border-radius: 999px; background: #fff; color: #a45c69; font-size: 10px; font-weight: 700; letter-spacing: .4px; box-shadow: 0 4px 12px #79575916; }
+  .low-stock { position: absolute; left: 12px; bottom: 12px; z-index: 5; padding: 5px 10px; border-radius: 999px; background: #fff; color: #a72f48; font-size: 10px; font-weight: 700; letter-spacing: .3px; box-shadow: 0 4px 12px rgba(194, 64, 91, .18); pointer-events: none; }
+  .discount { position: absolute; top: 54px; right: 14px; padding: 6px 9px; border-radius: 999px; background: #fff; color: #c2405b; font-size: 10px; font-weight: 700; letter-spacing: .4px; box-shadow: 0 4px 12px #79575916; }
   .sold-out { position: absolute; inset: 0; display: grid; place-items: center; background: #392c2c80; color: #fff; font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
 `
 
@@ -89,7 +90,7 @@ export const ImageTrigger = styled.button`
   padding: 0;
   background: transparent;
   cursor: zoom-in;
-  &:focus-visible { outline: 2px solid #8c6066; outline-offset: -4px; }
+  &:focus-visible { outline: 2px solid #c2405b; outline-offset: -4px; }
 `
 
 export const Image = styled.img`
@@ -99,6 +100,13 @@ export const Image = styled.img`
   object-position: center;
   transition: transform .5s;
   ${Card}:hover & { transform: scale(1.04); }
+  &.alt { position: absolute; inset: 0; opacity: 0; transition: opacity .45s ease, transform .5s; }
+  &.primary { transition: opacity .45s ease, transform .5s; }
+  @media (hover: hover) {
+    ${Card}:hover &.alt { opacity: 1; }
+    ${Card}:hover &.primary.has-alt { opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) { transition: none; ${Card}:hover & { transform: none; } }
 `
 
 export const WishlistButton = styled.button`
@@ -117,11 +125,11 @@ export const WishlistButton = styled.button`
   justify-content: center;
   cursor: pointer;
   transition: all .2s ease;
-  color: #a45c69;
+  color: #c2405b;
   font-size: 18px;
   line-height: 1;
   box-shadow: 0 2px 8px rgba(121, 87, 89, .1);
-  &:hover { background: #fff; transform: scale(1.1); color: #86575e; }
+  &:hover { background: #fff; transform: scale(1.1); color: #c2405b; }
   &.active { color: #d64d5a; background: #fff; border-color: #d64d5a; }
 `
 
@@ -140,10 +148,10 @@ export const Badge = styled.span<{ $variant: 'new' | 'bestseller' | 'limited' }>
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
   ${props => {
     switch (props.$variant) {
-      case 'new': return 'background: #86575e;';
-      case 'bestseller': return 'background: #a45c69;';
+      case 'new': return 'background: #c2405b;';
+      case 'bestseller': return 'background: #c2405b;';
       case 'limited': return 'background: #4a393b;';
-      default: return 'background: #86575e;';
+      default: return 'background: #c2405b;';
     }
   }}
 `
@@ -154,8 +162,8 @@ export const ProductInfo = styled.div`
   min-height: 214px;
   flex-direction: column;
   padding: 18px;
-  .category { color: #a88183; font-size: 10px; text-transform: uppercase; letter-spacing: 1.4px; }
-  h3 { margin-top: 6px; color: #4a393b; font: 20px/1.15 Georgia, serif; }
+  .category { color: #c2405b; font-size: 10px; text-transform: uppercase; letter-spacing: 1.4px; }
+  h3 { margin-top: 6px; color: #4a393b; font: 20px/1.15 'Playfair Display', Georgia, serif; }
   .prices { display: flex; align-items: baseline; gap: 8px; margin: 12px 0 10px; }
   .size-fit-note { margin: -5px 0 8px; color: #8b6b70; font-size: 10px; line-height: 1.4; }
   .color-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 8px 0 15px; color: #766364; font-size: 11px; }
@@ -175,7 +183,7 @@ export const ProductInfo = styled.div`
 `
 
 export const Price = styled.strong`
-  color: #765057;
+  color: #c2405b;
   font-size: 15px;
 `
 
@@ -204,12 +212,12 @@ export const ColorChoice = styled.button<{ $color: string; $selected: boolean }>
   width: 18px;
   height: 18px;
   padding: 0;
-  border: 1px solid ${({ $selected }) => ($selected ? '#8c6066' : '#e6dddd')};
+  border: 1px solid ${({ $selected }) => ($selected ? '#c2405b' : '#e6dddd')};
   border-radius: 50%;
   background: ${({ $color }) => $color};
   box-shadow: ${({ $selected }) => ($selected ? '0 0 0 2px #fff, 0 0 0 3px #bd9297' : 'none')};
   cursor: pointer;
-  &:focus-visible { outline: 2px solid #8c6066; outline-offset: 3px; }
+  &:focus-visible { outline: 2px solid #c2405b; outline-offset: 3px; }
 `
 
 export const AddButton = styled.button`
@@ -218,14 +226,17 @@ export const AddButton = styled.button`
   align-items: center;
   justify-content: space-between;
   padding: 12px;
-  border-radius: 2px;
-  background: #f6e8e9;
-  color: #68494e;
+  border-radius: 999px;
+  background: #c2405b;
+  color: #fff;
   font-size: 12px;
-  transition: background .2s;
+  font-weight: 600;
+  padding-inline: 18px;
+  transition: background .2s, transform .2s;
   span { font-size: 18px; }
-  &:hover { background: #efd9dc; }
+  &:hover:not(:disabled) { background: #a72f48; transform: translateY(-1px); }
   &:disabled { cursor: not-allowed; background: #eee9e8; color: #918787; }
+  &:focus-visible { outline: 2px solid #c2405b; outline-offset: 3px; }
 `
 
 export const CardActions = styled.div`
@@ -249,14 +260,14 @@ export const ViewDetailsButton = styled.button`
   padding: 11px 0 2px;
   border-top: 1px solid #f1e9e7;
   background: transparent;
-  color: #765057;
+  color: #c2405b;
   font-size: 11px;
   text-align: left;
   transition: color .2s;
   span { font-size: 16px; transition: transform .2s; }
-  &:hover { color: #a45c69; }
+  &:hover { color: #a72f48; }
   &:hover span { transform: translateX(3px); }
-  &:focus-visible { outline: 2px solid #8c6066; outline-offset: 3px; }
+  &:focus-visible { outline: 2px solid #c2405b; outline-offset: 3px; }
   @media (max-width: 480px) { font-size: 10px; white-space: nowrap; }
 `
 
@@ -264,15 +275,15 @@ export const BuyButton = styled.button`
   min-height: 38px;
   padding: 9px 10px;
   border-radius: 999px;
-  background: #78535a;
+  background: #c2405b;
   color: #fff;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: .2px;
   transition: transform .2s, background .2s, box-shadow .2s;
-  &:hover { background: #60434a; transform: translateY(-1px); box-shadow: 0 8px 16px rgba(120, 83, 90, .18); }
+  &:hover { background: #a72f48; transform: translateY(-1px); box-shadow: 0 8px 16px rgba(120, 83, 90, .18); }
   &:disabled { cursor: not-allowed; background: #e5dddd; color: #958789; box-shadow: none; transform: none; }
-  &:focus-visible { outline: 2px solid #8c6066; outline-offset: 3px; }
+  &:focus-visible { outline: 2px solid #c2405b; outline-offset: 3px; }
   @media (max-width: 480px) { min-height: 40px; padding: 9px 12px; font-size: 11px; white-space: nowrap; }
 `
 
@@ -493,7 +504,7 @@ export const DialogThumbnailButton = styled.button<{ $active: boolean }>`
   width: 58px;
   height: 66px;
   padding: 0;
-  border: 2px solid ${({ $active }) => ($active ? '#8c6066' : '#e6dddd')};
+  border: 2px solid ${({ $active }) => ($active ? '#c2405b' : '#e6dddd')};
   border-radius: 6px;
   overflow: hidden;
   background: #fff;
@@ -522,7 +533,7 @@ export const DialogImageButton = styled.button`
   cursor: inherit;
   touch-action: none;
   user-select: none;
-  &:focus-visible { outline: 2px solid #8c6066; outline-offset: -5px; }
+  &:focus-visible { outline: 2px solid #c2405b; outline-offset: -5px; }
 `
 
 export const DialogImage = styled.img<{ $zoomed?: boolean; $offsetX?: number; $offsetY?: number; $dragging?: boolean }>`
@@ -556,8 +567,8 @@ export const DialogZoomButton = styled.button`
   line-height: 1;
   box-shadow: 0 6px 18px #52343b18;
   transition: background .2s, color .2s, transform .2s;
-  &:hover { background: #78535a; color: #fff; transform: scale(1.05); }
-  &:focus-visible { outline: 2px solid #8c6066; outline-offset: 3px; }
+  &:hover { background: #c2405b; color: #fff; transform: scale(1.05); }
+  &:focus-visible { outline: 2px solid #c2405b; outline-offset: 3px; }
 `
 
 export const DialogVariants = styled.div`
@@ -569,7 +580,7 @@ export const DialogVariants = styled.div`
   gap: 16px;
   padding: 20px 24px 24px;
   overflow-y: visible;
-  .category { color: #a88183; font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; }
+  .category { color: #c2405b; font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; }
   .size-fit-note { width: 100%; margin-top: -9px; color: #8b6b70; font-size: 11px; line-height: 1.5; }
   @media (max-width: 560px) {
     gap: 12px;
@@ -607,9 +618,9 @@ export const QuantityButton = styled.button`
   background: #fff;
   color: #684b50;
   font-size: 17px;
-  &:hover:not(:disabled) { background: #f8eeee; }
+  &:hover:not(:disabled) { background: #fde9eb; }
   &:disabled { color: #b8a9aa; cursor: not-allowed; }
-  &:focus-visible { outline: 2px solid #8c6066; outline-offset: -2px; }
+  &:focus-visible { outline: 2px solid #c2405b; outline-offset: -2px; }
 `
 
 export const DialogQuickShopLabel = styled.span`
@@ -617,7 +628,7 @@ export const DialogQuickShopLabel = styled.span`
   align-items: center;
   padding: 5px 9px;
   border-radius: 999px;
-  background: #f8e8eb;
+  background: #fde9eb;
   color: #9b6972;
   font-size: 9px;
   font-weight: 700;
@@ -640,14 +651,14 @@ export const DialogCloseButton = styled.button`
   font-size: 23px;
   line-height: 1;
   transition: background .2s, color .2s;
-  &:hover { background: #78535a; color: #fff; }
-  &:focus-visible { outline: 2px solid #8c6066; outline-offset: 2px; }
+  &:hover { background: #c2405b; color: #fff; }
+  &:focus-visible { outline: 2px solid #c2405b; outline-offset: 2px; }
 `
 
 export const DialogTitle = styled.h2`
   max-width: calc(100% - 18px);
   color: #4a393b;
-  font: 30px/1.15 Georgia, serif;
+  font: 30px/1.15 'Playfair Display', Georgia, serif;
   @media (max-width: 560px) { font-size: 26px; }
 `
 
@@ -687,7 +698,7 @@ export const DialogQuickShopProduct = styled.div`
     flex-direction: column;
     gap: 6px;
   }
-  .category { color: #a88183; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
+  .category { color: #c2405b; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
   ${DialogTitle} { font-size: 20px; }
   ${DialogPrice} ${Price} { font-size: 16px; }
 `
@@ -707,7 +718,7 @@ export const DialogVariantGroup = styled.div`
 export const SizeGuideDetails = styled.details`
   position: relative;
   flex: 0 0 auto;
-  color: #76535a;
+  color: #c2405b;
   summary {
     padding: 6px 0;
     cursor: pointer;
@@ -732,7 +743,7 @@ export const SizeGuideDetails = styled.details`
   th, td { padding: 7px 6px; border: 1px solid #f0e5e5; white-space: nowrap; }
   th { background: #fcf5f5; font-weight: 600; }
   .measurement-note { color: #8e7d7f; }
-  summary:focus-visible { outline: 2px solid #8c6066; outline-offset: 3px; }
+  summary:focus-visible { outline: 2px solid #c2405b; outline-offset: 3px; }
 `
 
 export const ComboSuggestions = styled.section`
@@ -740,7 +751,7 @@ export const ComboSuggestions = styled.section`
   margin-top: 4px;
   padding-top: 16px;
   border-top: 1px solid #f0e5e5;
-  h3 { margin-bottom: 10px; color: #594649; font: 18px Georgia, serif; }
+  h3 { margin-bottom: 10px; color: #594649; font: 18px 'Playfair Display', Georgia, serif; }
   .combo-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; width: 100%; }
   a {
     display: flex;
@@ -753,12 +764,12 @@ export const ComboSuggestions = styled.section`
     background: #fff;
     color: #594649;
   }
-  a:hover { border-color: #c99ba1; background: #fffafa; }
-  img { flex: 0 0 42px; width: 42px; height: 54px; object-fit: cover; background: #f8eeee; }
+  a:hover { border-color: #f4a3b1; background: #fffafa; }
+  img { flex: 0 0 42px; width: 42px; height: 54px; object-fit: cover; background: #fde9eb; }
   a > span { display: flex; min-width: 0; flex-direction: column; gap: 4px; }
   strong { overflow: hidden; font-size: 9px; line-height: 1.3; text-overflow: ellipsis; }
   small { color: #8b6b70; font-size: 9px; }
-  a:focus-visible { outline: 2px solid #8c6066; outline-offset: 2px; }
+  a:focus-visible { outline: 2px solid #c2405b; outline-offset: 2px; }
   @media (max-width: 560px) {
     .combo-list { grid-template-columns: 1fr; }
     a { padding: 6px; }
@@ -770,4 +781,77 @@ export const DialogColorRow = styled.div`
   align-items: center;
   gap: 6px;
   strong { color: #594649; font-weight: 500; }
+`
+
+export const StockNote = styled.p<{ $tone: 'ok' | 'low' | 'out' }>`
+  color: ${({ $tone }) => ($tone === 'ok' ? '#7a6567' : '#a72f48')};
+  font-size: 12px;
+  font-weight: ${({ $tone }) => ($tone === 'ok' ? 400 : 600)};
+`
+
+export const ShareRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  button, a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border: 1px solid #f4c3cc;
+    border-radius: 999px;
+    background: #fff;
+    color: #a72f48;
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background .2s, border-color .2s;
+  }
+  button:hover, a:hover { background: #fde9eb; border-color: #fc8497; }
+  button:focus-visible, a:focus-visible { outline: 2px solid #c2405b; outline-offset: 2px; }
+  span[role='status'] { color: #7a6567; font-size: 11px; }
+`
+
+export const RestockBox = styled.form`
+  width: 100%;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px dashed #f4a3b1;
+  border-radius: 12px;
+  background: #fff7f8;
+  h3 { color: #4a393b; font: 600 15px 'Playfair Display', Georgia, serif; }
+  p { color: #7a6567; font-size: 12px; line-height: 1.5; }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  label { display: grid; gap: 4px; color: #684b50; font-size: 11px; }
+  input { width: 100%; padding: 9px 10px; border: 1px solid #ead8d9; border-radius: 8px; background: #fff; color: #4a393b; font: inherit; font-size: 13px; }
+  input:focus-visible { outline: 2px solid #c2405b; outline-offset: 1px; }
+  button { justify-self: start; padding: 9px 16px; border-radius: 999px; background: #c2405b; color: #fff; font-size: 12px; font-weight: 600; }
+  button:hover:not(:disabled) { background: #a72f48; }
+  button:disabled { cursor: wait; opacity: .7; }
+  .feedback { font-size: 12px; font-weight: 600; }
+  .feedback.ok { color: #2f7a46; }
+  .feedback.error { color: #a72f48; }
+  @media (max-width: 480px) { .fields { grid-template-columns: 1fr; } }
+`
+
+export const SkeletonCard = styled.div`
+  overflow: hidden;
+  border: 1px solid #f6e3e6;
+  border-radius: 12px;
+  background: #fff;
+  .block, .line {
+    background: linear-gradient(90deg, #fbeef0 0%, #fff6f7 50%, #fbeef0 100%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.3s ease-in-out infinite;
+  }
+  .block { aspect-ratio: 4 / 5; }
+  .body { display: grid; gap: 10px; padding: 18px; }
+  .line { height: 10px; border-radius: 999px; }
+  .line.title { width: 75%; height: 16px; }
+  .line.short { width: 35%; }
+  .line.button { height: 34px; margin-top: 8px; }
+  @keyframes skeleton-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+  @media (prefers-reduced-motion: reduce) { .block, .line { animation: none; } }
 `

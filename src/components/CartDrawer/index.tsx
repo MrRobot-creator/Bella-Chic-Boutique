@@ -6,6 +6,7 @@ import { getVariantStock } from '../../utils/inventory'
 import { createOrderMessage, createOrderReference, createWhatsAppUrl } from '../../services/whatsapp'
 import { validateCoupon, recordCouponUsage as recordCouponUsageService } from '../../services/coupon'
 import { createStoreOrder } from '../../services/orders'
+import { trackEvent } from '../../services/analytics'
 import {
   calculateDeliveryFee,
   DeliveryCity,
@@ -345,6 +346,18 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
         discount: createdOrder.discount,
         couponCode: createdOrder.couponCode || ''
       })
+      trackEvent('generate_lead', {
+        currency: 'BRL',
+        value: createdOrder.subtotal - createdOrder.discount,
+        lead_source: 'pedido_whatsapp',
+        items: createdOrder.items.map((item) => ({
+          item_id: String(item.productId),
+          item_name: item.name,
+          item_variant: `${item.size} / ${item.color}`,
+          price: item.unitPrice,
+          quantity: item.quantity
+        }))
+      })
       window.location.assign(createWhatsAppUrl(orderMessage, selectedContact.number))
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro inesperado ao consultar o estoque.'
@@ -503,7 +516,7 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
                   </button>
                 </div>
                 {couponMessage && (
-                  <span className="address-status" role="status" style={{ color: couponApplied ? '#25a244' : '#a45c69', marginTop: '4px', display: 'block' }}>
+                  <span className="address-status" role="status" style={{ color: couponApplied ? '#25a244' : '#c2405b', marginTop: '4px', display: 'block' }}>
                     {couponMessage}
                   </span>
                 )}

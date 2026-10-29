@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import styled from 'styled-components'
 import { storeConfig } from '../../config/store'
 import { cardFeeRates } from '../../config/paymentFees'
+import { clearConsent, getConsent, isAnalyticsConfigured, onConsentChange } from '../../services/analytics'
 
 const Page = styled.main`
   min-height: 100vh;
@@ -18,22 +20,22 @@ const Content = styled.article`
   background: #fffdfb;
   box-shadow: 0 12px 40px rgba(80, 59, 63, 0.06);
 
-  .back-link { color: #79565d; font-size: 13px; }
-  .eyebrow { margin-top: 30px; color: #a47479; font-size: 10px; letter-spacing: 1.8px; text-transform: uppercase; }
-  h1 { margin-top: 8px; color: #533f42; font: clamp(32px, 5vw, 46px)/1.15 Georgia, serif; }
+  .back-link { color: #c2405b; font-size: 13px; }
+  .eyebrow { margin-top: 30px; color: #c2405b; font-size: 10px; letter-spacing: 1.8px; text-transform: uppercase; }
+  h1 { margin-top: 8px; color: #533f42; font: clamp(32px, 5vw, 46px)/1.15 'Playfair Display', Georgia, serif; }
   .updated { margin-top: 10px; color: #9b8c8d; font-size: 12px; }
-  h2 { margin: 30px 0 9px; color: #604a4e; font: 22px Georgia, serif; }
+  h2 { margin: 30px 0 9px; color: #604a4e; font: 22px 'Playfair Display', Georgia, serif; }
   h3 { margin: 20px 0 7px; color: #684b50; font-size: 15px; }
   p, li { color: #79696b; font-size: 14px; line-height: 1.8; }
   p + p { margin-top: 10px; }
   ul { display: grid; gap: 7px; margin: 10px 0 0; padding-left: 21px; }
-  li::marker { color: #b77c85; }
-  a { color: #79565d; text-decoration: underline; }
+  li::marker { color: #e8637c; }
+  a { color: #c2405b; text-decoration: underline; }
   dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 18px; margin: 12px 0; }
   dl div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #f0e5e5; }
   dt, dd { color: #604a4e; font-size: 13px; }
   dd { margin: 0; font-weight: 600; white-space: nowrap; }
-  .notice { margin-top: 22px; padding: 15px 17px; border-left: 3px solid #b77c85; background: #faf0f1; }
+  .notice { margin-top: 22px; padding: 15px 17px; border-left: 3px solid #e8637c; background: #faf0f1; }
   @media (max-width: 560px) {
     padding: 25px 20px;
     dl { grid-template-columns: 1fr; }
@@ -149,8 +151,13 @@ function PrivacyContent() {
           observações fornecidas para calcular e realizar a entrega.
         </li>
         <li>
-          <strong>Cupons:</strong> o e-mail e o registro local de uso do cupom são usados
-          para aplicar as regras promocionais.
+          <strong>Cupons:</strong> o e-mail, o telefone e o histórico de pedidos são usados
+          para aplicar as regras promocionais, como o uso do cupom uma vez por cliente.
+        </li>
+        <li>
+          <strong>Avise-me quando chegar:</strong> se você pedir aviso de uma peça esgotada,
+          guardamos seu nome (opcional), WhatsApp, a peça, o tamanho e a cor, apenas para
+          avisar quando ela voltar ao estoque. Você pode pedir a remoção a qualquer momento.
         </li>
       </ul>
       <p>
@@ -162,9 +169,9 @@ function PrivacyContent() {
       <h2>3. Onde os dados são armazenados ou compartilhados</h2>
       <ul>
         <li>
-          <strong>Supabase:</strong> armazena o registro do pedido e os dados necessários
-          para conferência e atendimento. Pedidos ficam pendentes até serem confirmados
-          ou cancelados pela loja.
+          <strong>Supabase:</strong> armazena o registro do pedido, os pedidos de aviso de
+          reposição e os dados necessários para conferência e atendimento. Pedidos ficam
+          pendentes até serem confirmados ou cancelados pela loja.
         </li>
         <li>
           <strong>WhatsApp:</strong> quando você prossegue para o atendimento, os detalhes
@@ -180,11 +187,28 @@ function PrivacyContent() {
           cupom podem ficar no armazenamento do seu dispositivo (localStorage).
         </li>
       </ul>
+      {isAnalyticsConfigured() ? (
+        <>
+          <p>
+            <strong>Google Analytics (cookies de medição):</strong> somente se você aceitar no
+            aviso de cookies, usamos o Google Analytics para entender de forma estatística
+            quais páginas e peças são mais vistas, de onde vêm as visitas e se os pedidos
+            chegam ao WhatsApp. O Google Analytics é um serviço do Google, sujeito às
+            políticas do Google. Não usamos pixels publicitários. Se você recusar, nenhum
+            cookie de medição é instalado e o site funciona normalmente.
+          </p>
+          <CookiePreferences />
+        </>
+      ) : (
+        <p>
+          O site não utiliza, no momento desta atualização, ferramentas de analytics,
+          pixels publicitários ou cookies de rastreamento.
+        </p>
+      )}
       <p>
-        O site não utiliza, no momento desta atualização, ferramentas próprias de
-        analytics, pixels publicitários ou cookies de rastreamento. O armazenamento
-        local mencionado acima não é um cookie; ele pode ser removido nas configurações
-        do navegador, mas isso pode apagar carrinho, favoritos ou informações do cupom.
+        O armazenamento local do navegador mencionado acima não é um cookie de rastreamento;
+        ele pode ser removido nas configurações do navegador, mas isso pode apagar carrinho,
+        favoritos ou sua escolha sobre cookies.
       </p>
 
       <h2>4. Retenção e segurança</h2>
@@ -218,6 +242,24 @@ function PrivacyContent() {
   )
 }
 
+function CookiePreferences() {
+  const [consent, setConsentState] = useState(getConsent)
+  useEffect(() => onConsentChange(() => setConsentState(getConsent())), [])
+  const label = consent === 'granted' ? 'aceitos' : consent === 'denied' ? 'recusados' : 'ainda não escolhidos'
+  return (
+    <p className="notice">
+      Sua escolha atual: cookies de medição <strong>{label}</strong>.{' '}
+      <button
+        type="button"
+        onClick={() => clearConsent()}
+        style={{ background: 'none', padding: 0, color: '#a72f48', textDecoration: 'underline', font: 'inherit', cursor: 'pointer' }}
+      >
+        Alterar minha escolha
+      </button>
+    </p>
+  )
+}
+
 function LegalPage() {
   const isPrivacy = useLocation().pathname === '/privacidade'
   const title = isPrivacy
@@ -230,7 +272,7 @@ function LegalPage() {
         <Link className="back-link" to="/">← Voltar à loja</Link>
           <p className="eyebrow">{storeConfig.name}</p>
         <h1>{title}</h1>
-        <p className="updated">Última atualização: 28 de outubro de 2026</p>
+        <p className="updated">Última atualização: 29 de outubro de 2026</p>
         {isPrivacy ? <PrivacyContent /> : <TermsContent />}
       </Content>
     </Page>

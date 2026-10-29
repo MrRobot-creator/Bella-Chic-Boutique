@@ -2,7 +2,7 @@ import styled from 'styled-components'
 
 export const Announcement = styled.div`
   padding: 9px 16px;
-  background: #78535a;
+  background: #c2405b;
   color: white;
   text-align: center;
   font-size: 10px;
@@ -42,7 +42,7 @@ export const Brand = styled.div`
   align-items: center;
   gap: 11px;
   color: #69454b;
-  strong { display: block; font: 22px/1 Georgia, serif; letter-spacing: .1px; }
+  strong { display: block; font: 22px/1 'Playfair Display', Georgia, serif; letter-spacing: .1px; }
   small { display: block; margin-top: 5px; color: #a47d81; font-size: 8px; letter-spacing: 2.5px; }
   @media (max-width: 400px) { strong { font-size: 18px; } }
 `
@@ -63,7 +63,7 @@ export const Navigation = styled.nav`
   color: #604f50;
   font-size: 12px;
   a { padding: 12px 0; text-decoration: none; transition: color .2s; }
-  a:hover { color: #b67782; }
+  a:hover { color: #e8637c; }
   @media (max-width: 700px) {
     width: 100%;
     justify-content: center;

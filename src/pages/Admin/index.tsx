@@ -31,6 +31,8 @@ import {
 import { CatalogProductInput } from '../../services/catalog'
 import { Product, VariantStock } from '../../types/store'
 import { buildVariantStock, getVariantStock } from '../../utils/inventory'
+import SalesSummary from './SalesSummary'
+import RestockPanel from './RestockPanel'
 
 type ProductDraft = {
   name: string
@@ -141,6 +143,7 @@ const Admin = () => {
   const [uploadingColorIndex, setUploadingColorIndex] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [summaryRefreshKey, setSummaryRefreshKey] = useState(0)
 
   useEffect(() => {
     // O painel não deve aparecer no Google.
@@ -236,6 +239,7 @@ const Admin = () => {
       ])
       setOrders(loadedOrders)
       setProducts(catalog)
+      setSummaryRefreshKey((key) => key + 1)
       setNotice(action === 'confirm'
         ? `Pedido ${order.reference} confirmado e estoque atualizado.`
         : `Pedido ${order.reference} cancelado.`)
@@ -251,6 +255,7 @@ const Admin = () => {
     setError('')
     try {
       setOrders(await fetchAdminOrders())
+      setSummaryRefreshKey((key) => key + 1)
     } catch (loadError) {
       setError(`Não foi possível atualizar os pedidos: ${errorMessage(loadError)}`)
     } finally {
@@ -493,6 +498,8 @@ const Admin = () => {
           <>
             {error && <AdminNotice $error role="alert">{error}</AdminNotice>}
             {notice && <AdminNotice role="status">{notice}</AdminNotice>}
+            <SalesSummary products={products} refreshKey={summaryRefreshKey} />
+            <RestockPanel products={products} />
             <AdminPanel>
               <h2>{editingId ? 'Editar peça' : 'Adicionar nova peça'}</h2>
               <AdminForm onSubmit={handleSaveProduct}>

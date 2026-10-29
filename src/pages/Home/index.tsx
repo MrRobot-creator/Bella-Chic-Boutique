@@ -14,6 +14,10 @@ import {
 import BoutiqueHeader from '../../components/BoutiqueHeader'
 import CartDrawer from '../../components/CartDrawer'
 import ProductCard from '../../components/ProductCard'
+import { SkeletonCard } from '../../components/ProductCard/styles'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { trackEvent } from '../../services/analytics'
+import { getProductIdFromPath } from '../../utils/productLink'
 import { storeConfig } from '../../config/store'
 import { cardFeeRates } from '../../config/paymentFees'
 import { fetchCatalogProducts } from '../../services/catalog'
@@ -360,6 +364,11 @@ const Home = () => {
     }
   }, [])
 
+  // Link de peça (/produto/<id>) que não existe mais: avisa e volta para a vitrine.
+  const location = useLocation()
+  const navigate = useNavigate()
+  const routeProductId = getProductIdFromPath(location.pathname)
+
   const availableCategories = useMemo(
     () => ['Todos', ...Array.from(new Set(catalogProducts.map((product) => product.category)))],
     [catalogProducts]
@@ -400,6 +409,22 @@ const Home = () => {
     })
   }, [activeCategory, activeColor, activeSize, catalogProducts, maxPrice, search, sortBy])
   const activeFilterCount = Number(Boolean(activeSize)) + Number(Boolean(activeColor)) + Number(maxPrice !== null)
+
+  useEffect(() => {
+    if (catalogLoading || catalogError || routeProductId === null) return
+    if (!catalogProducts.some((product) => product.id === routeProductId)) {
+      setStatus('Essa peça não está mais disponível no site. Veja as outras novidades da coleção!')
+      navigate('/', { replace: true })
+      return
+    }
+    if (visibleProducts.some((product) => product.id === routeProductId)) return
+    // Garante que a peça do link apareça mesmo com filtros ativos.
+    setActiveCategory('Todos')
+    setSearch('')
+    setActiveSize('')
+    setActiveColor('')
+    setMaxPrice(null)
+  }, [catalogError, catalogLoading, catalogProducts, navigate, routeProductId, visibleProducts])
 
   const recommendationsByProduct = useMemo(() => {
     const recommendations = new Map<number, Product[]>()
@@ -594,6 +619,11 @@ const Home = () => {
       return [...currentItems, { product, size, color, quantity }]
     })
     setStatus(`${quantity} ${quantity === 1 ? 'unidade' : 'unidades'} de ${product.name} (${size}, ${color}) adicionada${quantity === 1 ? '' : 's'} à sacola.`)
+    trackEvent('add_to_cart', {
+      currency: 'BRL',
+      value: product.price * quantity,
+      items: [{ item_id: String(product.id), item_name: product.name, item_category: product.category, item_variant: `${size} / ${color}`, price: product.price, quantity }]
+    })
     return true
   }
 
@@ -810,12 +840,26 @@ const Home = () => {
           </CategoryMenu>
           {status && <StatusMessage role="status">{status}</StatusMessage>}
           {cartStorageError && <StatusMessage role="alert">{cartStorageError}</StatusMessage>}
-          {catalogLoading && <StatusMessage role="status">Carregando catálogo...</StatusMessage>}
+          {catalogLoading && <span className="sr-only" role="status">Carregando catálogo...</span>}
           {catalogError && <StatusMessage role="alert">{catalogError}</StatusMessage>}
           <p className="results-count" role="status" aria-live="polite">
             {visibleProducts.length} {visibleProducts.length === 1 ? 'produto encontrado' : 'produtos encontrados'}
           </p>
-          {visibleProducts.length ? (
+          {catalogLoading ? (
+            <ProductGrid aria-hidden="true">
+              {Array.from({ length: 6 }, (_, index) => (
+                <SkeletonCard key={index}>
+                  <div className="block" />
+                  <div className="body">
+                    <div className="line short" />
+                    <div className="line title" />
+                    <div className="line short" />
+                    <div className="line button" />
+                  </div>
+                </SkeletonCard>
+              ))}
+            </ProductGrid>
+          ) : visibleProducts.length ? (
             <ProductGrid>
               {visibleProducts.map((product) => (
                 <ProductCard
