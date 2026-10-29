@@ -20,6 +20,7 @@ Copie `.env.example` para `.env.local` e preencha os dados públicos da loja:
 | `REACT_APP_SUPABASE_URL` | URL do projeto Supabase. |
 | `REACT_APP_SUPABASE_ANON_KEY` | Chave `anon`/publishable do Supabase. Nunca use `service_role`. |
 | `REACT_APP_INSTAGRAM_URL` | Link do perfil da boutique no Instagram. |
+| `REACT_APP_SITE_URL` | Endereço público do site, sem barra no final. Usado na prévia do link e no sitemap. |
 
 Reinicie `npm start` após alterar `.env.local`. Essas variáveis são incorporadas ao site público no build; use somente a chave pública `anon`/publishable e nunca coloque senhas ou credenciais secretas nelas. Os contatos das duas unidades e seus endereços são configurados em `src/config/store.ts`.
 
@@ -46,6 +47,7 @@ O painel fica em `/admin` e permite entrar com e-mail e senha, adicionar, editar
 1. Crie um projeto no Supabase e configure `REACT_APP_SUPABASE_URL` e `REACT_APP_SUPABASE_ANON_KEY` no arquivo `.env.local` (use a URL do projeto e a chave `anon`/publishable, nunca a `service_role`).
 2. No SQL Editor do Supabase, execute o conteúdo de `supabase/setup.sql`. Ele cria as tabelas e políticas de segurança (RLS), configura o armazenamento de imagens e adiciona os campos de galeria, numeração do tamanho único e estoque por variação. Não insere produtos de demonstração nem altera os dados existentes; as variações existentes começam com saldo zero até serem preenchidas no painel.
 3. Como o projeto Supabase já existe, execute também `supabase/order-management.sql` no SQL Editor. Essa migração adiciona o estoque por variação (se ainda não existir), cria a tabela de pedidos e as funções protegidas para registrar, confirmar e cancelar pedidos. O cliente pode registrar um pedido pendente; somente uma administradora autorizada pode confirmar a venda e baixar o estoque.
+   Em seguida, execute `supabase/order-protection.sql`. Ele adiciona as proteções dos pedidos no servidor: limite de pedidos repetidos por WhatsApp (anti-spam), cupom Bella10 uma vez por e-mail ou WhatsApp, conferência da taxa de frete e da unidade/WhatsApp oficiais da loja. Se mudar telefones, unidades ou valores de frete no código, atualize também esse arquivo e execute de novo.
 4. Em **Authentication → Users**, crie o usuário da administradora com e-mail e senha.
 5. No SQL Editor, associe esse usuário à lista de administradores, substituindo pelo e-mail usado no passo anterior:
 
@@ -69,6 +71,26 @@ No painel, cada cor também pode ter sua própria foto (URL ou upload separado).
 
 Não execute scripts de sincronização de produtos a partir de dados locais: o catálogo oficial é mantido no Supabase e deve ser atualizado pelo painel administrativo. Imagens que usam caminhos `/assets/` precisam estar incluídas na publicação; imagens enviadas pelo painel ficam no Storage do Supabase.
 
+## Publicar o site
+
+O projeto já vem pronto para a **Vercel** (`vercel.json`) e também funciona na **Netlify** (`public/_redirects` e `public/_headers`). Os dois arquivos fazem as rotas `/admin`, `/privacidade` e `/termos-e-condicoes` abrirem corretamente ao acessar o link direto ou atualizar a página, além de enviar cabeçalhos de segurança.
+
+1. Envie o código para o GitHub (`git push`).
+2. Na Vercel, clique em **Add New → Project**, importe o repositório e mantenha as configurações detectadas.
+3. Em **Settings → Environment Variables**, cadastre:
+   - `REACT_APP_SUPABASE_URL`
+   - `REACT_APP_SUPABASE_ANON_KEY`
+   - `REACT_APP_INSTAGRAM_URL`
+   - `REACT_APP_SITE_URL` (o endereço final do site, por exemplo `https://www.bellachicboutique.com.br`, sem barra no final)
+4. Publique. Depois de ligar o domínio, atualize `REACT_APP_SITE_URL` e publique de novo.
+5. No Supabase, em **Authentication → URL Configuration**, coloque o endereço do site em **Site URL**.
+
+Depois do `npm run build`, o script `scripts/postbuild-seo.js` coloca o endereço do site na prévia do link (WhatsApp, Instagram e Facebook usam `public/og-image.jpg`) e gera `robots.txt` e `sitemap.xml`. Depois de publicar, cadastre o site no [Google Search Console](https://search.google.com/search-console) e envie o `sitemap.xml`.
+
+### Manter o Supabase ativo
+
+No plano gratuito, o Supabase pausa o projeto depois de cerca de 7 dias sem acesso. O workflow `.github/workflows/supabase-keepalive.yml` consulta o catálogo a cada 3 dias. Para ativá-lo, cadastre no GitHub, em **Settings → Secrets and variables → Actions**, os secrets `SUPABASE_URL` e `SUPABASE_ANON_KEY` com os mesmos valores do `.env.local`. Para testar, abra a aba **Actions**, escolha **Supabase keepalive** e clique em **Run workflow**.
+
 ## Estrutura
 
 ```text
@@ -90,6 +112,6 @@ src/
 | Comando | Descrição |
 | --- | --- |
 | `npm start` | Inicia o ambiente de desenvolvimento |
-| `npm run build` | Gera o build de produção |
+| `npm run build` | Gera o build de produção (com prévia de link, robots.txt e sitemap.xml) |
 | `npm run lint` | Executa o ESLint |
 | `npm test -- --watchAll=false` | Executa os testes sem modo watch |

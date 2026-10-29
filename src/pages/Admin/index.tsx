@@ -143,6 +143,20 @@ const Admin = () => {
   const [notice, setNotice] = useState('')
 
   useEffect(() => {
+    // O painel não deve aparecer no Google.
+    const previousTitle = document.title
+    const robots = document.createElement('meta')
+    robots.name = 'robots'
+    robots.content = 'noindex, nofollow'
+    document.head.appendChild(robots)
+    document.title = 'Painel | Bella Chic Boutique'
+    return () => {
+      robots.remove()
+      document.title = previousTitle
+    }
+  }, [])
+
+  useEffect(() => {
     if (!supabase) {
       setAuthReady(true)
       return

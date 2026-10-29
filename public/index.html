@@ -2,17 +2,73 @@
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/bella-chic.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bella Chic Boutique | Moda feminina em Belém e Ananindeua</title>
+    <meta name="description" content="Bella Chic Boutique: moda feminina escolhida com carinho, com lojas em Belém e Ananindeua. Escolha seu look no site e finalize pelo WhatsApp." />
     <meta name="theme-color" content="#f8eeee" />
-    <meta name="description" content="Bella Chic Boutique: moda feminina escolhida com carinho. Encontre seu próximo look favorito." />
+
+    <!-- Ícones -->
+    <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/bella-chic.svg" />
+    <link rel="icon" type="image/png" sizes="192x192" href="%PUBLIC_URL%/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/apple-touch-icon.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+    <!-- __SITE_URL__ é trocado pelo endereço real do site em scripts/postbuild-seo.js -->
+    <link rel="canonical" href="__SITE_URL__/" />
+
+    <!-- Prévia do link no WhatsApp, Instagram e Facebook (Open Graph) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:site_name" content="Bella Chic Boutique" />
+    <meta property="og:title" content="Bella Chic Boutique | Moda feminina" />
+    <meta property="og:description" content="Moda feminina escolhida com carinho. Escolha seu look no site e finalize pelo WhatsApp." />
+    <meta property="og:url" content="__SITE_URL__/" />
+    <meta property="og:image" content="__SITE_URL__/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Bella Chic Boutique" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Bella Chic Boutique | Moda feminina" />
+    <meta name="twitter:description" content="Moda feminina escolhida com carinho. Escolha seu look no site e finalize pelo WhatsApp." />
+    <meta name="twitter:image" content="__SITE_URL__/og-image.jpg" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <title>Bella Chic Boutique | Moda feminina</title>
+
+    <!-- Dados estruturados para o Google (loja de roupas) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "ClothingStore",
+        "name": "Bella Chic Boutique",
+        "url": "__SITE_URL__/",
+        "image": "__SITE_URL__/og-image.jpg",
+        "logo": "__SITE_URL__/icon-512.png",
+        "email": "bellachicboutique12@gmail.com",
+        "sameAs": ["https://www.instagram.com/bellachicboutique__/"],
+        "address": [
+          {
+            "@type": "PostalAddress",
+            "streetAddress": "Tv. Padre Eutíquio, 1055 - Batista Campos",
+            "addressLocality": "Belém",
+            "addressRegion": "PA",
+            "addressCountry": "BR"
+          },
+          {
+            "@type": "PostalAddress",
+            "streetAddress": "Av. Dr. Nonato Sanova, 161A - Cidade Nova",
+            "addressLocality": "Ananindeua",
+            "addressRegion": "PA",
+            "postalCode": "67133-100",
+            "addressCountry": "BR"
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
-    <noscript>Você precisa habilitar o JavaScript para rodar este app.</noscript>
+    <noscript>Você precisa habilitar o JavaScript para ver a loja.</noscript>
     <div id="root"></div>
   </body>
 </html>

@@ -255,6 +255,17 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setInventoryMessage('')
+
+    // Campo invisível para pessoas: só robôs de spam preenchem.
+    const honeypot = event.currentTarget.elements.namedItem('website') as HTMLInputElement | null
+    if (honeypot?.value) return
+
+    const phoneDigits = phone.replace(/\D/g, '')
+    if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+      setInventoryMessage('Informe seu WhatsApp com DDD, por exemplo (91) 99999-9999.')
+      return
+    }
+
     if (fulfillment === 'Entrega' && (!deliveryCity || deliveryFee === null)) {
       setAddressLookupMessage('Selecione o município de entrega para calcular o frete antes de confirmar o pedido.')
       return
@@ -337,7 +348,7 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
       window.location.assign(createWhatsAppUrl(orderMessage, selectedContact.number))
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro inesperado ao consultar o estoque.'
-      setInventoryMessage(`Não foi possível confirmar o estoque agora: ${message}`)
+      setInventoryMessage(`Não foi possível registrar o pedido: ${message}`)
     } finally {
       setIsSubmitting(false)
     }
@@ -439,6 +450,15 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
                 Seu WhatsApp
                 <input value={phone} onChange={handlePhoneChange} type="tel" autoComplete="tel" placeholder="(91) 99999-9999" required />
               </label>
+              <input
+                type="text"
+                name="website"
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                defaultValue=""
+                style={{ position: 'absolute', left: '-10000px', width: 1, height: 1, opacity: 0 }}
+              />
               <label>
                 Seu e-mail (para cadastro e cupom)
                 <input

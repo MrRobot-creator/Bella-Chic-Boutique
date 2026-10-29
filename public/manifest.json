@@ -1,0 +1,14 @@
+{
+  "name": "Bella Chic Boutique",
+  "short_name": "Bella Chic",
+  "description": "Moda feminina escolhida com carinho.",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fbf7f5",
+  "theme_color": "#f8eeee",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

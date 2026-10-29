@@ -64,6 +64,27 @@ const requireSupabase = () => {
 
 const orderError = (error: Error) => {
   const message = error.message.toLocaleLowerCase('pt-BR')
+  if (message.includes('too many orders from this phone')) {
+    return new Error('Já recebemos alguns pedidos deste WhatsApp agora há pouco. Aguarde o contato da loja ou tente novamente em 30 minutos.')
+  }
+  if (message.includes('too many orders right now')) {
+    return new Error('Estamos recebendo muitos pedidos neste momento. Tente novamente em alguns minutos ou chame a loja no WhatsApp.')
+  }
+  if (message.includes('coupon already used')) {
+    return new Error('O cupom Bella10 já foi usado por este e-mail ou WhatsApp. Remova o cupom para continuar.')
+  }
+  if (message.includes('coupon requires email')) {
+    return new Error('Informe seu e-mail para usar o cupom Bella10.')
+  }
+  if (message.includes('invalid delivery fee')) {
+    return new Error('Não conseguimos validar o frete. Escolha o município de entrega novamente.')
+  }
+  if (message.includes('invalid store unit')) {
+    return new Error('Atualize a página e escolha a unidade e o WhatsApp da loja novamente.')
+  }
+  if (message.includes('invalid customer phone')) {
+    return new Error('Informe seu WhatsApp com DDD, por exemplo (91) 99999-9999.')
+  }
   if (message.includes('insufficient stock')) {
     return new Error('O estoque mudou antes de registrar o pedido. Atualize a sacola e tente novamente.')
   }
