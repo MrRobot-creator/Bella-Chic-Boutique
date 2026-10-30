@@ -570,7 +570,7 @@ const CartDrawer = ({ isOpen, items, customer, settings, onOrderPlaced, onKeepSh
                 style={{ position: 'absolute', left: '-10000px', width: 1, height: 1, opacity: 0 }}
               />
               <label>
-                Seu e-mail (para cadastro e cupom)
+                Seu e-mail (para o pedido e o cupom)
                 <input
                   value={email}
                   onChange={(event) => {

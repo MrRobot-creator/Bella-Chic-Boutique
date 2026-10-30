@@ -34,6 +34,7 @@ import CouponsPanel from './CouponsPanel'
 import ReviewsPanel from './ReviewsPanel'
 import VipPanel from './VipPanel'
 import SettingsPanel from './SettingsPanel'
+import EmailPanel from './EmailPanel'
 
 type Tab = 'summary' | 'orders' | 'counter' | 'products' | 'stock' | 'coupons' | 'reviews' | 'vip' | 'settings'
 
@@ -514,7 +515,12 @@ const Admin = () => {
             {tab === 'coupons' && <CouponsPanel />}
             {tab === 'reviews' && <ReviewsPanel onCountChange={setPendingReviews} />}
             {tab === 'vip' && <VipPanel />}
-            {tab === 'settings' && <SettingsPanel settings={settings} onSaved={setSettings} />}
+            {tab === 'settings' && (
+              <>
+                <SettingsPanel settings={settings} onSaved={setSettings} />
+                <EmailPanel adminEmail={session.user.email || ''} />
+              </>
+            )}
             {tab === 'products' && (
             <>
             <AdminPanel>

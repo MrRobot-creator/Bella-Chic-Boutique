@@ -153,7 +153,10 @@ function PrivacyContent() {
       <ul>
         <li>
           <strong>Identificação e contato:</strong> nome, telefone e e-mail para validar
-          o pedido, falar com você e prestar atendimento.
+          o pedido, falar com você e prestar atendimento. O e-mail também é usado para
+          mandar os avisos de cada etapa do pedido (recebido, confirmado, pago, enviado,
+          entregue e cancelado) e, se você criar conta, a confirmação de cadastro e a troca
+          de senha. Esses e-mails são só sobre o seu pedido ou a sua conta, não são propaganda.
         </li>
         <li>
           <strong>Pedido:</strong> produtos, tamanhos, cores, quantidades, preços,
@@ -227,6 +230,11 @@ function PrivacyContent() {
           sua escolha sobre cookies e, se você entrar na conta, a sessão de login ficam no
           armazenamento do seu dispositivo (localStorage). Esses dados não saem do seu
           navegador, exceto a sessão de login, que é usada para falar com o Supabase.
+        </li>
+        <li>
+          <strong>Resend:</strong> serviço que entrega os e-mails do pedido e da conta. Ele
+          recebe seu e-mail, seu primeiro nome e os detalhes do pedido que aparecem na
+          mensagem, apenas para fazer a entrega do e-mail.
         </li>
         <li>
           <strong>Vercel e Google Fonts:</strong> o site é hospedado na Vercel e carrega as fontes
