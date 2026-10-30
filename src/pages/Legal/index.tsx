@@ -102,8 +102,8 @@ function TermsContent() {
 
       <h2>5. Trocas, devoluções e direitos legais</h2>
       <p>
-        Consulte a seção de trocas e devoluções na <a href="/#contato">área de contato</a>{' '}
-        do site. Essas condições comerciais não afastam direitos assegurados
+        Consulte a seção <a href="/#trocas-devolucoes">Trocas e devoluções</a>{' '}
+        na página inicial do site. Essas condições comerciais não afastam direitos assegurados
         pela legislação aplicável, inclusive os relativos a compras realizadas fora do
         estabelecimento, quando cabíveis. Em caso de dúvida, fale com a loja pelo e-mail
         indicado acima.
@@ -159,6 +159,12 @@ function PrivacyContent() {
           guardamos seu nome (opcional), WhatsApp, a peça, o tamanho e a cor, apenas para
           avisar quando ela voltar ao estoque. Você pode pedir a remoção a qualquer momento.
         </li>
+        <li>
+          <strong>Conta da cliente (opcional):</strong> se você criar uma conta, guardamos nome,
+          e-mail e a senha protegida (criptografada pelo Supabase, a loja não tem acesso a ela)
+          para você entrar no site e ter seus dados preenchidos ao fazer um pedido. Você pode
+          pedir a exclusão da conta pelo e-mail abaixo.
+        </li>
       </ul>
       <p>
         O site não solicita nem armazena número completo do cartão, código de segurança
@@ -183,8 +189,15 @@ function PrivacyContent() {
           pode ser consultada no ViaCEP para localizar endereços e apoiar a entrega.
         </li>
         <li>
-          <strong>Armazenamento do navegador:</strong> carrinho, favoritos e uso local de
-          cupom podem ficar no armazenamento do seu dispositivo (localStorage).
+          <strong>Armazenamento do navegador:</strong> sacola, favoritos, uso local de cupom,
+          sua escolha sobre cookies e, se você entrar na conta, a sessão de login ficam no
+          armazenamento do seu dispositivo (localStorage). Esses dados não saem do seu
+          navegador, exceto a sessão de login, que é usada para falar com o Supabase.
+        </li>
+        <li>
+          <strong>Vercel e Google Fonts:</strong> o site é hospedado na Vercel e carrega as fontes
+          do Google Fonts. Como em qualquer site, esses serviços recebem dados técnicos da
+          visita (como endereço IP e navegador) para entregar as páginas e as fontes.
         </li>
       </ul>
       {isAnalyticsConfigured() ? (
@@ -272,7 +285,7 @@ function LegalPage() {
         <Link className="back-link" to="/">← Voltar à loja</Link>
           <p className="eyebrow">{storeConfig.name}</p>
         <h1>{title}</h1>
-        <p className="updated">Última atualização: 29 de outubro de 2026</p>
+        <p className="updated">Última atualização: 30 de outubro de 2026</p>
         {isPrivacy ? <PrivacyContent /> : <TermsContent />}
       </Content>
     </Page>

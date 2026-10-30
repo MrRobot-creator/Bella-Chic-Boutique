@@ -39,6 +39,8 @@ const Body = styled.form`
   .small-link { align-self: flex-end; margin-top: -6px; border: 0; background: none; color: ${colors.roseDark}; font: 13px ${fonts.sans}; cursor: pointer; }
   .error { padding: 10px 12px; border-radius: 10px; background: #FFF1F2; color: #A12C3B; font-size: 13px; }
   .ok { padding: 10px 12px; border-radius: 10px; background: #EEF7F0; color: ${colors.success}; font-size: 13px; }
+  .consent { margin-top: -4px; color: ${colors.muted}; font-size: 12px; line-height: 1.5; text-align: center; }
+  .consent a { color: ${colors.roseDark}; text-decoration: underline; }
   .info { padding: 14px; border-radius: 14px; background: ${colors.blush}; color: ${colors.plum}; font-size: 14px; line-height: 1.6; }
   @media (max-width: 480px) { padding: 28px 20px; }
 `
@@ -204,6 +206,12 @@ const AccountModal = ({ isOpen, customer, recoveringPassword, onClose, onNotify,
             <PrimaryButton type="submit" disabled={busy}>
               {busy ? 'Aguarde...' : mode === 'signin' ? 'Entrar' : mode === 'signup' ? 'Criar conta' : mode === 'forgot' ? 'Enviar link' : 'Salvar nova senha'}
             </PrimaryButton>
+            {mode === 'signup' && (
+              <p className="consent">
+                Ao criar a conta, você concorda com os <a href="/termos-e-condicoes" target="_blank" rel="noreferrer">Termos</a> e a{' '}
+                <a href="/privacidade" target="_blank" rel="noreferrer">Política de Privacidade</a>.
+              </p>
+            )}
             {mode === 'signin' && <button type="button" className="link" onClick={() => switchMode('signup')}>Ainda não tem conta? <strong>Cadastre-se</strong></button>}
             {(mode === 'signup' || mode === 'forgot') && <button type="button" className="link" onClick={() => switchMode('signin')}>Já tenho conta · <strong>Entrar</strong></button>}
           </Body>

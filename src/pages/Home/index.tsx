@@ -380,7 +380,7 @@ const Home = () => {
   const closeMenu = useCallback(() => setIsMenuOpen(false), [])
 
   useEffect(() => {
-    if (recoveringPassword) setIsAccountOpen(true)
+    if (recoveringPassword && storeConfig.customerAccounts) setIsAccountOpen(true)
   }, [recoveringPassword])
 
   const pickCategory = (category: string) => {
@@ -1024,7 +1024,7 @@ const Home = () => {
               <strong>AJUDA</strong>
               <a href="#trocas-devolucoes">Trocas e devoluções</a>
               <a href="#pagamentos">Formas de pagamento</a>
-              <button type="button" onClick={() => setIsAccountOpen(true)}>Minha conta</button>
+              {storeConfig.customerAccounts && <button type="button" onClick={() => setIsAccountOpen(true)}>Minha conta</button>}
               <a href={storeConfig.instagramUrl} target="_blank" rel="noopener noreferrer">@bellachicboutique__</a>
             </nav>
             <div className="col">
@@ -1069,7 +1069,7 @@ const Home = () => {
         onAccountClick={() => setIsAccountOpen(true)}
       />
       <AccountModal
-        isOpen={isAccountOpen}
+        isOpen={isAccountOpen && storeConfig.customerAccounts}
         customer={customer}
         recoveringPassword={recoveringPassword}
         onClose={closeAccount}

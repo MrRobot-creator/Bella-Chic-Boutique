@@ -22,6 +22,7 @@ Copie `.env.example` para `.env.local` e preencha os dados públicos da loja:
 | `REACT_APP_INSTAGRAM_URL` | Link do perfil da boutique no Instagram. |
 | `REACT_APP_SITE_URL` | Endereço público do site, sem barra no final. Usado na prévia do link e no sitemap. |
 | `REACT_APP_GA_ID` | Opcional. ID do Google Analytics 4 (`G-...`). O Analytics só carrega depois que a visitante aceita o aviso de cookies. |
+| `REACT_APP_CUSTOMER_ACCOUNTS` | Opcional. `true` mostra “Entrar \| Cadastre-se”. Só ative depois de configurar um e-mail próprio (SMTP) no Supabase: o e-mail padrão do Supabase só envia para a equipe do projeto. |
 | `REACT_APP_PROMO_ENDS_AT` | Opcional. Último dia das “Ofertas da semana”, no formato `AAAA-MM-DD`. Sem data (ou com data vencida), o site mostra “Enquanto durar o estoque”. |
 
 Reinicie `npm start` após alterar `.env.local`. Essas variáveis são incorporadas ao site público no build; use somente a chave pública `anon`/publishable e nunca coloque senhas ou credenciais secretas nelas. Os contatos das duas unidades e seus endereços são configurados em `src/config/store.ts`.
@@ -50,6 +51,7 @@ O painel fica em `/admin` e permite entrar com e-mail e senha, adicionar, editar
 2. No SQL Editor do Supabase, execute o conteúdo de `supabase/setup.sql`. Ele cria as tabelas e políticas de segurança (RLS), configura o armazenamento de imagens e adiciona os campos de galeria, numeração do tamanho único e estoque por variação. Não insere produtos de demonstração nem altera os dados existentes; as variações existentes começam com saldo zero até serem preenchidas no painel.
 3. Como o projeto Supabase já existe, execute também `supabase/order-management.sql` no SQL Editor. Essa migração adiciona o estoque por variação (se ainda não existir), cria a tabela de pedidos e as funções protegidas para registrar, confirmar e cancelar pedidos. O cliente pode registrar um pedido pendente; somente uma administradora autorizada pode confirmar a venda e baixar o estoque.
    Em seguida, execute `supabase/order-protection.sql`. Ele adiciona as proteções dos pedidos no servidor: limite de pedidos repetidos por WhatsApp (anti-spam), cupom Bella10 uma vez por e-mail ou WhatsApp, conferência da taxa de frete e da unidade/WhatsApp oficiais da loja. Se mudar telefones, unidades ou valores de frete no código, atualize também esse arquivo e execute de novo.
+   Depois, execute `supabase/security-hardening.sql`: ele fecha para visitantes sem login as funções só de administradora e trava funções antigas que sobraram no banco.
    Para o “Avise-me quando chegar”, execute também `supabase/restock-alerts.sql`. Ele cria a tabela de pedidos de aviso (só administradoras leem) e a função que a vitrine usa para registrar o aviso, com limite anti-spam.
 4. Em **Authentication → Users**, crie o usuário da administradora com e-mail e senha.
 5. No SQL Editor, associe esse usuário à lista de administradores, substituindo pelo e-mail usado no passo anterior:
@@ -84,7 +86,7 @@ Não execute scripts de sincronização de produtos a partir de dados locais: o 
 - **Combos:** peças cadastradas com uma categoria que contenha “Combo” (por exemplo, “Combos”) formam a seção Combos de roupas. Sem combos cadastrados, a seção não aparece. Use “Preço anterior” para mostrar o valor das peças separadas.
 - **Banner da peça:** o segundo banner mostra a peça à venda com mais cores (no empate, a mais nova).
 - **Favoritos:** o coração das peças salva os favoritos no navegador da cliente; eles aparecem na aba Favoritos.
-- **Conta da cliente:** “Entrar | Cadastre-se” usa o Supabase Auth (e-mail e senha). Em Authentication › URL Configuration, coloque o endereço do site em Site URL e em Redirect URLs, para os links de confirmação e de nova senha voltarem para a loja. Com a conta, nome e e-mail já chegam preenchidos na sacola.
+- **Conta da cliente:** desligada até `REACT_APP_CUSTOMER_ACCOUNTS=true`. Antes de ligar, configure um SMTP em Authentication › Emails › SMTP Settings (Brevo e Resend têm plano grátis). “Entrar | Cadastre-se” usa o Supabase Auth (e-mail e senha). Em Authentication › URL Configuration, coloque o endereço do site em Site URL e em Redirect URLs, para os links de confirmação e de nova senha voltarem para a loja. Com a conta, nome e e-mail já chegam preenchidos na sacola.
 - **Google Analytics:** com `REACT_APP_GA_ID`, aparece o aviso de cookies; só depois do aceite o site registra páginas vistas, peças abertas, adições à sacola, compartilhamentos, pedidos de aviso e pedidos enviados ao WhatsApp. A visitante pode mudar a escolha na Política de Privacidade.
 
 ## Publicar o site

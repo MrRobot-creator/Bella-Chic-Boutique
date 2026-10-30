@@ -144,10 +144,12 @@ const SideMenu = ({
           <img src={boutiqueLogo} alt="Bella Chic Boutique" />
           <RoundButton ref={closeRef} type="button" onClick={onClose} aria-label="Fechar menu">×</RoundButton>
         </Head>
+        {storeConfig.customerAccounts && (
         <AccountRow type="button" onClick={() => { onClose(); onAccountClick() }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" /></svg>
           <span>{customer ? <><strong>Minha conta</strong><br />{customer.email}</> : <><strong>Entrar</strong> ou <strong>cadastrar-se</strong></>}</span>
         </AccountRow>
+        )}
 
         <Group>LOJA</Group>
         <nav aria-label="Categorias">
