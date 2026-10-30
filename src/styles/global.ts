@@ -11,14 +11,8 @@ const GlobalStyle = createGlobalStyle`
   html { scroll-behavior: smooth; }
 
   body {
-    background-color: #fdfbfb;
-    color: #4b3b3d;
-    background-image: 
-      radial-gradient(circle at 15% 10%, rgba(169, 111, 121, 0.12), transparent 45%),
-      radial-gradient(circle at 85% 25%, rgba(248, 238, 238, 0.8), transparent 50%),
-      radial-gradient(circle at 50% 80%, rgba(185, 139, 145, 0.09), transparent 55%),
-      linear-gradient(135deg, #fff5f5 0%, #fef9f9 50%, #fdfbfb 100%);
-    background-attachment: fixed;
+    background-color: #FFFCFB;
+    color: #3E2A2E;
     -webkit-font-smoothing: antialiased;
   }
 

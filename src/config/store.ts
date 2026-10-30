@@ -40,5 +40,7 @@ export const storeConfig = {
       unitId: 'cidade-nova-4'
     }
   ],
-  instagramUrl: process.env.REACT_APP_INSTAGRAM_URL || 'https://www.instagram.com/bellachicboutique__/'
+  instagramUrl: process.env.REACT_APP_INSTAGRAM_URL || 'https://www.instagram.com/bellachicboutique__/',
+  /** Último dia das "Ofertas da semana" (AAAA-MM-DD). Sem data, o site mostra "enquanto durar o estoque". */
+  promotionEndsAt: process.env.REACT_APP_PROMO_ENDS_AT || ''
 }

@@ -22,6 +22,7 @@ Copie `.env.example` para `.env.local` e preencha os dados públicos da loja:
 | `REACT_APP_INSTAGRAM_URL` | Link do perfil da boutique no Instagram. |
 | `REACT_APP_SITE_URL` | Endereço público do site, sem barra no final. Usado na prévia do link e no sitemap. |
 | `REACT_APP_GA_ID` | Opcional. ID do Google Analytics 4 (`G-...`). O Analytics só carrega depois que a visitante aceita o aviso de cookies. |
+| `REACT_APP_PROMO_ENDS_AT` | Opcional. Último dia das “Ofertas da semana”, no formato `AAAA-MM-DD`. Sem data (ou com data vencida), o site mostra “Enquanto durar o estoque”. |
 
 Reinicie `npm start` após alterar `.env.local`. Essas variáveis são incorporadas ao site público no build; use somente a chave pública `anon`/publishable e nunca coloque senhas ou credenciais secretas nelas. Os contatos das duas unidades e seus endereços são configurados em `src/config/store.ts`.
 
@@ -79,6 +80,11 @@ Não execute scripts de sincronização de produtos a partir de dados locais: o 
 - **Últimas unidades:** peças com 2 unidades ou menos no total ganham o selo “Últimas unidades”, e a variação escolhida mostra quantas restam. O limite fica em `LOW_STOCK_LIMIT` (`src/utils/inventory.ts`).
 - **Avise-me quando chegar:** em peças ou variações esgotadas, a cliente deixa nome e WhatsApp. No `/admin`, o quadro “Avise-me quando chegar” mostra em verde quem já pode ser avisada e abre o WhatsApp com a mensagem pronta.
 - **Resumo de vendas:** o painel mostra faturamento confirmado, vendas, ticket médio, pendentes, peças mais vendidas e variações com estoque baixo, por período, e exporta os pedidos em planilha CSV (abre no Excel).
+- **Promoções:** toda peça com “Preço anterior” maior que o preço atual entra na seção Promoções e na aba Ofertas do catálogo. A de maior desconto aparece em destaque.
+- **Combos:** peças cadastradas com uma categoria que contenha “Combo” (por exemplo, “Combos”) formam a seção Combos de roupas. Sem combos cadastrados, a seção não aparece. Use “Preço anterior” para mostrar o valor das peças separadas.
+- **Banner da peça:** o segundo banner mostra a peça à venda com mais cores (no empate, a mais nova).
+- **Favoritos:** o coração das peças salva os favoritos no navegador da cliente; eles aparecem na aba Favoritos.
+- **Conta da cliente:** “Entrar | Cadastre-se” usa o Supabase Auth (e-mail e senha). Em Authentication › URL Configuration, coloque o endereço do site em Site URL e em Redirect URLs, para os links de confirmação e de nova senha voltarem para a loja. Com a conta, nome e e-mail já chegam preenchidos na sacola.
 - **Google Analytics:** com `REACT_APP_GA_ID`, aparece o aviso de cookies; só depois do aceite o site registra páginas vistas, peças abertas, adições à sacola, compartilhamentos, pedidos de aviso e pedidos enviados ao WhatsApp. A visitante pode mudar a escolha na Política de Privacidade.
 
 ## Publicar o site
@@ -106,14 +112,20 @@ No plano gratuito, o Supabase pausa o projeto depois de cerca de 7 dias sem aces
 ```text
 src/
 ├── components/
-│   ├── BoutiqueHeader/   # Marca, navegação e acesso à sacola
+│   ├── AccountModal/     # Entrar, cadastrar e recuperar senha da cliente
 │   ├── CartDrawer/       # Sacola, formulário de entrega e checkout via WhatsApp
-│   └── ProductCard/      # Variações e seleção de produtos
+│   ├── ProductCard/      # Card da vitrine e formulário avise-me
+│   ├── ProductDialog/    # Janela da peça: fotos com zoom, variações e compra
+│   ├── SideMenu/         # Menu lateral (hambúrguer)
+│   ├── SiteHeader/       # Cabeçalho com busca, conta, favoritos e sacola
+│   ├── Toast/            # Avisos rápidos
+│   └── ui.ts             # Botões, painéis e títulos compartilhados
+├── hooks/                # Favoritos e conta da cliente
 ├── config/               # Identidade e dados públicos de integração
 ├── data/                 # Catálogo de demonstração
 ├── pages/Home/           # Vitrine e filtros do catálogo
 ├── services/             # Mensagens do pedido e links do WhatsApp
-├── styles/               # Tema e estilos globais
+├── styles/               # Tema, cores (tokens.ts) e estilos globais
 └── types/                # Tipos de catálogo, sacola e pagamento
 ```
 

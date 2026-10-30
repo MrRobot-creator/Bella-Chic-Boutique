@@ -6,6 +6,7 @@ import { getVariantStock } from '../../utils/inventory'
 import { createOrderMessage, createOrderReference, createWhatsAppUrl } from '../../services/whatsapp'
 import { validateCoupon, recordCouponUsage as recordCouponUsageService } from '../../services/coupon'
 import { createStoreOrder } from '../../services/orders'
+import { Customer } from '../../hooks/useCustomer'
 import { trackEvent } from '../../services/analytics'
 import {
   calculateDeliveryFee,
@@ -34,6 +35,7 @@ import {
 type CartDrawerProps = {
   isOpen: boolean
   items: CartItem[]
+  customer?: Customer | null
   onClose: () => void
   onChangeQuantity: (productId: number, size: string, color: string, quantity: number) => void
   onRemove: (productId: number, size: string, color: string) => void
@@ -42,7 +44,7 @@ type CartDrawerProps = {
 const formatPrice = (value: number) =>
   value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
-const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: CartDrawerProps) => {
+const CartDrawer = ({ isOpen, items, customer, onClose, onChangeQuantity, onRemove }: CartDrawerProps) => {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
@@ -79,6 +81,13 @@ const CartDrawer = ({ isOpen, items, onClose, onChangeQuantity, onRemove }: Cart
     ? deliveryCity ? calculateDeliveryFee(selectedUnit.city, deliveryCity) : null
     : 0
   const finalTotal = total - discount + (deliveryFee === null ? 0 : deliveryFee)
+
+  // Cliente com conta: nome e e-mail já chegam preenchidos (sem apagar o que ela digitou).
+  useEffect(() => {
+    if (!isOpen || !customer) return
+    setName((current) => current || customer.name)
+    setEmail((current) => current || customer.email)
+  }, [customer, isOpen])
 
   useEffect(() => {
     if (couponApplied && total < 300) {

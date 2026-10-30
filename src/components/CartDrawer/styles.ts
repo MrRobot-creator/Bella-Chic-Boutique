@@ -1,55 +1,70 @@
-import styled from 'styled-components'
+import styled, { keyframes } from 'styled-components'
+import { colors, fonts } from '../../styles/tokens'
+
+const fade = keyframes`from { opacity: 0 } to { opacity: 1 }`
+const slide = keyframes`from { transform: translateX(32px); opacity: 0 } to { transform: translateX(0); opacity: 1 }`
 
 export const Overlay = styled.div`
   position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: 100;
   display: flex;
   justify-content: flex-end;
-  background: #30252780;
+  background: rgba(46, 30, 34, .45);
+  animation: ${fade} .2s ease-out;
 `
 
 export const Drawer = styled.aside`
-  width: min(510px, 100%);
+  width: min(480px, 100%);
   height: 100%;
   overflow-y: auto;
-  padding: 26px;
-  background: #fffdfc;
-  box-shadow: -12px 0 40px #362a2a20;
-  .checkout-form { padding-top: 22px; }
-  .checkout-form h3 { margin-bottom: 16px; color: #584246; font: 22px 'Playfair Display', Georgia, serif; }
-  .checkout-form > label { display: block; margin: 12px 0; color: #735f60; font-size: 11px; }
-  .checkout-form > label .unit-address { display: block; margin-top: 5px; color: #9b8b8c; font-size: 10px; line-height: 1.5; }
-  .checkout-form input:not([type="radio"]), .checkout-form select {
-    width: 100%; margin-top: 6px; padding: 11px; border: 1px solid #ebdede; border-radius: 2px; background: #fff; color: #493b3d; font-size: 13px; font-family: inherit;
+  overscroll-behavior: contain;
+  padding: 24px 26px 32px;
+  background: ${colors.white};
+  box-shadow: -20px 0 50px rgba(46, 30, 34, .2);
+  color: ${colors.plum};
+  animation: ${slide} .28s cubic-bezier(.2, .7, .2, 1);
+  .checkout-form { margin-top: 18px; padding-top: 22px; border-top: 1px solid ${colors.line}; }
+  .checkout-form h3 { margin-bottom: 14px; font: 400 24px ${fonts.serif}; }
+  .checkout-form > label { display: block; margin: 14px 0; color: #6B5659; font-size: 13px; font-weight: 500; }
+  .checkout-form > label .unit-address { display: block; margin-top: 6px; color: ${colors.soft}; font-size: 12px; font-weight: 400; line-height: 1.5; }
+  .checkout-form input:not([type="radio"]), .checkout-form select, .checkout-form textarea {
+    width: 100%;
+    min-height: 46px;
+    margin-top: 6px;
+    padding: 0 14px;
+    border: 1px solid ${colors.lineStrong};
+    border-radius: 12px;
+    background: ${colors.white};
+    color: ${colors.plum};
+    font: 14px ${fonts.sans};
   }
-  fieldset { margin: 17px 0; padding: 13px; border: 1px solid #ebdede; }
-  legend { padding: 0 6px; color: #735f60; font-size: 11px; }
-  .checkout-form .delivery-address { margin: 15px 0; padding: 13px; border: 1px solid #ebdede; }
-  .delivery-address label { display: block; margin: 11px 0; color: #735f60; font-size: 11px; }
+  .checkout-form input:focus-visible, .checkout-form select:focus-visible { outline: 2px solid ${colors.rose}; outline-offset: 0; }
+  fieldset { margin: 18px 0; padding: 14px 16px; border: 1px solid ${colors.line}; border-radius: 16px; }
+  legend { padding: 0 6px; color: #6B5659; font-size: 13px; font-weight: 600; }
+  .checkout-form .delivery-address { margin: 16px 0; padding: 16px; border: 1px solid ${colors.line}; border-radius: 16px; background: ${colors.blushSoft}; }
+  .delivery-address label { display: block; margin: 12px 0; color: #6B5659; font-size: 13px; font-weight: 500; }
+  .delivery-address label:first-child { margin-top: 0; }
   .delivery-address label:last-child { margin-bottom: 0; }
-  .delivery-address .optional { color: #a39394; font-size: 10px; font-weight: 400; }
-  .delivery-address .address-status, .delivery-address .address-hint { display: block; margin-top: 6px; color: #9b8b8c; font-size: 10px; line-height: 1.5; }
-  .delivery-address .address-hint { color: #a39394; }
-  .address-suggestions { max-height: 190px; margin-top: 7px; padding: 4px; overflow-y: auto; border: 1px solid #ebdede; background: #fff; list-style: none; }
-  .address-suggestions button { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 9px; background: transparent; color: #735f60; font: inherit; text-align: left; }
-  .address-suggestions button:hover, .address-suggestions button:focus-visible { outline: none; background: #fde9eb; }
-  .address-suggestions strong { font-size: 11px; font-weight: 600; }
-  .address-suggestions span { color: #9b8b8c; font-size: 9px; }
-  .delivery-fee { margin: 13px 0 4px; padding: 10px; background: #fde9eb; color: #735f60; font-size: 11px; }
-  .delivery-fee strong { color: #684b50; }
-  .delivery-address > label select { margin-top: 6px; }
-  .payment-option { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 11px 0; color: #574849; font-size: 12px; cursor: pointer; }
-  .payment-option input { accent-color: #a76f79; }
-  .payment-option span { width: 100%; margin-left: 22px; color: #9d8e8f; font-size: 10px; }
-  .payment-option.unavailable { color: #a39696; cursor: not-allowed; }
-  .secure-note { margin: 12px 0 4px; color: #9b8c8d; font-size: 10px; line-height: 1.5; text-align: center; }
-  .privacy-note { margin: 8px 0 4px; color: #9b8c8d; font-size: 10px; line-height: 1.5; text-align: center; }
-  .privacy-note a { color: #c2405b; text-decoration: underline; }
-  .card-fee-disclosure { margin: 8px 0; color: #8c5b63; font-size: 10px; line-height: 1.5; }
-  .card-fee-disclosure a { color: #c2405b; text-decoration: underline; }
+  .delivery-address .optional { color: ${colors.soft}; font-size: 12px; font-weight: 400; }
+  .delivery-address .address-status, .delivery-address .address-hint { display: block; margin-top: 6px; color: ${colors.muted}; font-size: 12px; font-weight: 400; line-height: 1.5; }
+  .delivery-address .address-hint { color: ${colors.soft}; }
+  .address-suggestions { max-height: 200px; margin-top: 8px; padding: 4px; overflow-y: auto; border: 1px solid ${colors.lineStrong}; border-radius: 12px; background: ${colors.white}; list-style: none; }
+  .address-suggestions button { width: 100%; display: flex; flex-direction: column; gap: 3px; padding: 10px; border-radius: 8px; background: transparent; color: ${colors.plum}; font: inherit; text-align: left; }
+  .address-suggestions button:hover, .address-suggestions button:focus-visible { outline: none; background: ${colors.blush}; }
+  .address-suggestions strong { font-size: 13px; font-weight: 600; }
+  .address-suggestions span { color: ${colors.muted}; font-size: 12px; }
+  .delivery-fee { margin: 14px 0 4px; padding: 12px; border-radius: 12px; background: ${colors.blush}; color: #6B5659; font-size: 13px; }
+  .delivery-fee strong { color: ${colors.plum}; }
+  .payment-option { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 12px 0; color: ${colors.plum}; font-size: 14px; cursor: pointer; }
+  .payment-option input { width: 18px; height: 18px; accent-color: ${colors.rose}; }
+  .payment-option span { width: 100%; margin-left: 26px; color: ${colors.muted}; font-size: 12px; }
+  .payment-option.unavailable { color: ${colors.soft}; cursor: not-allowed; }
+  .secure-note, .privacy-note { margin: 12px 0 4px; color: ${colors.soft}; font-size: 12px; line-height: 1.5; text-align: center; }
+  .privacy-note a, .card-fee-disclosure a { color: ${colors.roseDark}; text-decoration: underline; }
+  .card-fee-disclosure { margin: 10px 0; color: #8C5B63; font-size: 12px; line-height: 1.5; }
   button:disabled { cursor: not-allowed; opacity: .55; }
-  @media (max-width: 420px) { padding: 20px 16px; }
+  @media (max-width: 420px) { padding: 20px 16px 28px; }
 `
 
 export const DrawerHeader = styled.div`
@@ -57,23 +72,28 @@ export const DrawerHeader = styled.div`
   align-items: flex-start;
   justify-content: space-between;
   padding-bottom: 18px;
-  border-bottom: 1px solid #f0e6e5;
-  .eyebrow { color: #b2868a; font-size: 9px; letter-spacing: 1.5px; }
-  h2 { margin-top: 6px; color: #513d40; font: 25px 'Playfair Display', Georgia, serif; }
-  h2 span { color: #a68e90; font: 13px Arial, sans-serif; }
+  border-bottom: 1px solid ${colors.line};
+  .eyebrow { color: ${colors.rose}; font-size: 11px; font-weight: 600; letter-spacing: 2.4px; }
+  h2 { margin-top: 6px; font: 400 28px ${fonts.serif}; }
+  h2 span { color: ${colors.soft}; font: 15px ${fonts.sans}; }
 `
 
 export const CloseButton = styled.button`
-  width: 34px;
-  height: 34px;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  display: grid;
+  place-items: center;
   border-radius: 50%;
-  background: #fde9eb;
-  color: #6f4c52;
-  font-size: 23px;
+  background: ${colors.blushSoft};
+  color: ${colors.plum};
+  font-size: 22px;
+  transition: background .2s;
+  &:hover { background: ${colors.blush}; }
 `
 
 export const Items = styled.div`
-  max-height: 34vh;
+  max-height: 38vh;
   overflow-y: auto;
 `
 
@@ -81,69 +101,79 @@ export const ItemRow = styled.div`
   display: flex;
   gap: 14px;
   padding: 16px 0;
-  border-bottom: 1px solid #f0e8e7;
+  border-bottom: 1px solid ${colors.line};
 `
 
 export const ItemImage = styled.img`
-  width: 76px;
-  height: 94px;
+  width: 78px;
+  height: 104px;
+  flex: none;
+  border-radius: 12px;
   object-fit: cover;
-  background: #f5eeee;
+  background: ${colors.photoBg};
 `
 
 export const ItemDetails = styled.div`
   flex: 1;
-  h3 { color: #574446; font: 16px 'Playfair Display', Georgia, serif; }
-  p { margin: 5px 0; color: #968687; font-size: 11px; }
-  strong { color: #755159; font-size: 12px; }
-  .quantity { display: flex; align-items: center; gap: 10px; margin-top: 9px; }
-  .quantity button:not(:last-child) { width: 22px; height: 22px; border: 1px solid #eadbdc; background: #fff; color: #735158; }
-  .quantity span { font-size: 11px; }
+  min-width: 0;
+  h3 { font-size: 15px; font-weight: 600; }
+  p { margin: 4px 0 6px; color: ${colors.muted}; font-size: 13px; }
+  strong { color: ${colors.plum}; font-size: 15px; }
+  small { display: block; margin-top: 6px; color: ${colors.soft}; font-size: 11px; }
+  .quantity { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .quantity button:not(:last-child) { width: 30px; height: 30px; border: 1px solid ${colors.lineStrong}; border-radius: 50%; background: ${colors.white}; color: ${colors.plum}; font-size: 15px; }
+  .quantity span { min-width: 14px; text-align: center; font-size: 14px; font-weight: 600; }
 `
 
 export const RemoveButton = styled.button`
   margin-left: auto;
   padding: 2px;
   background: transparent;
-  color: #a18b8c;
-  font-size: 10px;
+  color: ${colors.muted};
+  font-size: 12px;
   text-decoration: underline;
+  &:hover { color: ${colors.roseDark}; }
 `
 
 export const Summary = styled.div`
   padding: 16px 0 4px;
-  .subtotal, > div { display: flex; justify-content: space-between; color: #716365; font-size: 12px; }
-  p { margin-top: 7px; color: #9b8f8f; font-size: 10px; }
+  .subtotal, > div { display: flex; justify-content: space-between; color: #6B5659; font-size: 14px; }
+  p { margin-top: 8px; color: ${colors.muted}; font-size: 12px; }
 `
 
 export const Total = styled.div`
-  margin-top: 16px;
-  padding-top: 13px;
-  border-top: 1px solid #ebdfdf;
-  color: #584346;
-  strong { font-size: 17px; }
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid ${colors.line};
+  color: ${colors.plum};
+  font-size: 15px;
+  strong { font-size: 20px; }
 `
 
 export const EmptyCart = styled.div`
-  padding: 76px 12px;
+  padding: 72px 12px;
   text-align: center;
-  > span { color: #bc8c94; font-size: 42px; }
-  h3 { margin: 12px 0 8px; color: #584246; font: 22px 'Playfair Display', Georgia, serif; }
-  p { color: #958788; font-size: 13px; }
-  button { margin-top: 22px; padding: 12px 20px; background: #f5e5e6; color: #65494e; font-size: 12px; }
+  > span { color: ${colors.roseLight}; font-size: 46px; }
+  h3 { margin: 12px 0 8px; font: 400 24px ${fonts.serif}; }
+  p { color: ${colors.muted}; font-size: 14px; }
+  button { margin-top: 22px; height: 46px; padding: 0 24px; border-radius: 999px; background: ${colors.rose}; color: ${colors.white}; font-size: 14px; font-weight: 600; }
+  button:hover { background: ${colors.roseDark}; }
 `
 
 export const WhatsAppButton = styled.button`
   width: 100%;
+  min-height: 54px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 12px;
-  padding: 15px;
-  background: #75525a;
-  color: white;
-  font-size: 12px;
+  margin-top: 14px;
+  padding: 0 22px;
+  border-radius: 999px;
+  background: ${colors.rose};
+  color: ${colors.white};
+  font-size: 15px;
+  font-weight: 600;
   transition: background .2s;
-  &:hover { background: #a72f48; }
-  span { font-size: 17px; }
+  &:hover:not(:disabled) { background: ${colors.roseDark}; }
+  span { font-size: 18px; }
 `
