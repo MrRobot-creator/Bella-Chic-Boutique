@@ -125,7 +125,10 @@ export const OrderRow = styled.article`
   .order-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .order-status { padding: 3px 8px; border-radius: 12px; font-size: 10px; }
   .order-status.pending { background: #fff3d6; color: #80621f; }
-  .order-status.confirmed { background: #e6f4e4; color: #496a4b; }
+  .order-status.confirmed { background: #fde9eb; color: #a72f48; }
+  .order-status.paid { background: #e3eefc; color: #2f5d8a; }
+  .order-status.shipped { background: #efe6fb; color: #5b3f8a; }
+  .order-status.delivered { background: #e6f4e4; color: #496a4b; }
   .order-status.cancelled { background: #f7e7e7; color: #983f3f; }
   .actions { margin-top: 4px; }
   @media (max-width: 520px) { padding: 12px; .order-heading { align-items: flex-start; flex-direction: column; } }
@@ -199,4 +202,55 @@ export const RestockList = styled.div`
   a.whatsapp { display: inline-flex; align-items: center; min-height: 40px; padding: 10px 15px; border: 1px solid #2f7a46; background: #2f7a46; color: #fff; font-size: 12px; text-decoration: none; }
   a.whatsapp:hover { background: #256238; }
   @media (max-width: 620px) { article { grid-template-columns: 1fr; } .actions { justify-content: flex-start; } }
+`
+
+export const AdminTabs = styled.nav`
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  gap: 6px;
+  margin: 0 -4px 20px;
+  padding: 8px 4px;
+  overflow-x: auto;
+  background: #fbf6f5;
+  scrollbar-width: thin;
+  button {
+    flex: none;
+    min-height: 40px;
+    padding: 0 16px;
+    border: 1px solid #efe2e1;
+    border-radius: 999px;
+    background: #fff;
+    color: #594548;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  button[aria-current='page'] { border-color: #c2405b; background: #c2405b; color: #fff; }
+  .badge { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: #fff3d6; color: #80621f; font-size: 11px; font-weight: 700; }
+`
+
+export const DataTable = styled.div`
+  overflow-x: auto;
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 9px 8px; border-bottom: 1px solid #f0e7e6; text-align: left; vertical-align: top; color: #755f62; }
+  th { color: #594548; font-weight: 600; white-space: nowrap; }
+  .in { color: #2f7a46; font-weight: 700; }
+  .out { color: #a72f48; font-weight: 700; }
+  .muted { color: #9b8b8c; }
+  .actions { display: flex; flex-wrap: wrap; gap: 6px; }
+`
+
+export const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  label { display: grid; gap: 6px; color: #755f62; font-size: 12px; }
+  input, select, textarea { width: 100%; padding: 10px 11px; border: 1px solid #e8dedd; background: #fff; color: #503f41; font: inherit; font-size: 13px; }
+  .wide { grid-column: 1 / -1; }
+  .check { display: flex; align-items: center; gap: 8px; }
+  .check input { width: auto; accent-color: #c2405b; }
+  .hint { color: #9b8b8c; font-size: 11px; line-height: 1.5; }
+  @media (max-width: 760px) { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 520px) { grid-template-columns: 1fr; }
 `

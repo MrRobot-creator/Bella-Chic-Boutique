@@ -66,10 +66,12 @@ function TermsContent() {
 
       <h2>2. Produtos, preços e disponibilidade</h2>
       <p>
-        O catálogo e o estoque exibidos são consultados no sistema da loja e podem mudar
-        enquanto o pedido não for confirmado. O envio do pedido pelo site registra uma
-        solicitação pendente: não reserva unidades nem conclui a venda. A atendente
-        confere os itens, a disponibilidade, a entrega e o total com você pelo WhatsApp.
+        O catálogo e o estoque exibidos são consultados no sistema da loja. Ao finalizar
+        o pedido pelo site, as peças ficam separadas para você por tempo limitado
+        (normalmente 2 horas, informado na tela). O pedido continua pendente até a
+        atendente confirmar com você, pelo WhatsApp, os itens, a entrega e o total. Se a
+        reserva vencer, as peças voltam para a vitrine; pedidos sem confirmação em até
+        48 horas são cancelados automaticamente.
       </p>
       <p>
         As opções de retirada/entrega e seus valores são apresentados durante o pedido
@@ -93,6 +95,12 @@ function TermsContent() {
         depois de você confirmar o valor total.
       </p>
 
+      <h3>Cupons de desconto</h3>
+      <p>
+        Cada cupom tem regras próprias (valor mínimo, validade, limite de usos e uso por
+        cliente), conferidas no momento do pedido. É possível usar um cupom por pedido.
+      </p>
+
       <h2>4. Pedidos e atendimento</h2>
       <p>
         Ao enviar um pedido, você autoriza o contato da loja para validar os dados,
@@ -109,7 +117,14 @@ function TermsContent() {
         indicado acima.
       </p>
 
-      <h2>6. Privacidade</h2>
+      <h2>6. Avaliações</h2>
+      <p>
+        Depois da entrega, você pode avaliar as peças pelo link enviado pela loja. As
+        avaliações são publicadas depois de conferidas pela loja, que pode recusar
+        conteúdo ofensivo, sem relação com a peça ou com dados pessoais.
+      </p>
+
+      <h2>7. Privacidade</h2>
       <p>
         Os dados informados para validar e registrar o pedido são tratados conforme a{' '}
         <Link to="/privacidade">Política de Privacidade</Link>.
@@ -160,6 +175,23 @@ function PrivacyContent() {
           avisar quando ela voltar ao estoque. Você pode pedir a remoção a qualquer momento.
         </li>
         <li>
+          <strong>Reserva das peças:</strong> ao finalizar, o pedido separa as peças por tempo
+          limitado. Se você estiver logada, o pedido fica ligado à sua conta para aparecer
+          em “Meus pedidos”.
+        </li>
+        <li>
+          <strong>Avaliações (opcional):</strong> se você avaliar uma compra, guardamos a nota,
+          o comentário e as fotos que enviar. No site aparecem só o seu primeiro nome e a
+          inicial do sobrenome, depois da aprovação da loja. As fotos ficam públicas no
+          armazenamento do Supabase. Você pode pedir a remoção pelo e-mail abaixo.
+        </li>
+        <li>
+          <strong>Lista VIP (opcional):</strong> se você entrar na lista, guardamos seu nome
+          (opcional), WhatsApp, a data e o texto da autorização, só para enviar novidades e
+          cupons da loja. Você sai quando quiser respondendo à mensagem ou pelo e-mail
+          abaixo, e seus dados não são compartilhados com outras empresas.
+        </li>
+        <li>
           <strong>Conta da cliente (opcional):</strong> se você criar uma conta, guardamos nome,
           e-mail e a senha protegida (criptografada pelo Supabase, a loja não tem acesso a ela)
           para você entrar no site e ter seus dados preenchidos ao fazer um pedido. Você pode
@@ -168,7 +200,8 @@ function PrivacyContent() {
       </ul>
       <p>
         O site não solicita nem armazena número completo do cartão, código de segurança
-        ou senha bancária. A escolha do meio de pagamento é registrada para a atendente
+        ou senha bancária. O código do Pix copia e cola é montado no seu navegador com a
+        chave da loja e o valor do pedido; o pagamento acontece no app do seu banco. A escolha do meio de pagamento é registrada para a atendente
         combinar a conclusão da compra.
       </p>
 
@@ -176,7 +209,8 @@ function PrivacyContent() {
       <ul>
         <li>
           <strong>Supabase:</strong> armazena o registro do pedido, os pedidos de aviso de
-          reposição e os dados necessários para conferência e atendimento. Pedidos ficam
+          reposição, as avaliações, a lista VIP e os dados necessários para conferência e
+          atendimento. Pedidos ficam
           pendentes até serem confirmados ou cancelados pela loja.
         </li>
         <li>

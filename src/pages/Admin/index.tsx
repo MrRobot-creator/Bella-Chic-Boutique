@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useState } from 'react'
+import { ChangeEvent, FormEvent, useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Session } from '@supabase/supabase-js'
 import {
@@ -8,9 +8,8 @@ import {
   AdminNotice,
   AdminPage,
   AdminPanel,
+  AdminTabs,
   AdminTopbar,
-  OrderList,
-  OrderRow,
   ProductList,
   ProductRow
 } from './styles'
@@ -22,17 +21,43 @@ import {
   supabase,
   uploadProductImage
 } from '../../services/catalog'
-import {
-  cancelStoreOrder,
-  confirmStoreOrder,
-  fetchAdminOrders,
-  StoreOrder
-} from '../../services/orders'
+import { defaultSettings, fetchStoreSettings, StoreSettings } from '../../services/settings'
 import { CatalogProductInput } from '../../services/catalog'
 import { Product, VariantStock } from '../../types/store'
 import { buildVariantStock, getVariantStock } from '../../utils/inventory'
 import SalesSummary from './SalesSummary'
 import RestockPanel from './RestockPanel'
+import OrdersPanel from './OrdersPanel'
+import StoreSalePanel from './StoreSalePanel'
+import StockHistoryPanel from './StockHistoryPanel'
+import CouponsPanel from './CouponsPanel'
+import ReviewsPanel from './ReviewsPanel'
+import VipPanel from './VipPanel'
+import SettingsPanel from './SettingsPanel'
+
+type Tab = 'summary' | 'orders' | 'counter' | 'products' | 'stock' | 'coupons' | 'reviews' | 'vip' | 'settings'
+
+const tabLabels: Record<Tab, string> = {
+  summary: 'Resumo',
+  orders: 'Pedidos',
+  counter: 'Venda no balcão',
+  products: 'Peças',
+  stock: 'Estoque',
+  coupons: 'Cupons',
+  reviews: 'Avaliações',
+  vip: 'Lista VIP',
+  settings: 'Configurações'
+}
+
+const TAB_KEY = 'bella-chic-admin-tab'
+const readTab = (): Tab => {
+  try {
+    const saved = localStorage.getItem(TAB_KEY) as Tab | null
+    return saved && saved in tabLabels ? saved : 'orders'
+  } catch {
+    return 'orders'
+  }
+}
 
 type ProductDraft = {
   name: string
@@ -71,9 +96,6 @@ const blankDraft: ProductDraft = {
   tag: '',
   available: true
 }
-
-const formatPrice = (value: number) =>
-  value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
 const draftFromProduct = (product: Product): ProductDraft => ({
   name: product.name,
@@ -130,9 +152,9 @@ const Admin = () => {
   const [adminAllowed, setAdminAllowed] = useState(false)
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [products, setProducts] = useState<Product[]>([])
-  const [orders, setOrders] = useState<StoreOrder[]>([])
-  const [loadingOrders, setLoadingOrders] = useState(false)
-  const [processingOrderId, setProcessingOrderId] = useState<string | null>(null)
+  const [tab, setTab] = useState<Tab>(readTab)
+  const [settings, setSettings] = useState<StoreSettings>(defaultSettings)
+  const [pendingReviews, setPendingReviews] = useState(0)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [draft, setDraft] = useState<ProductDraft>(blankDraft)
@@ -188,25 +210,23 @@ const Admin = () => {
     if (!session) {
       setAdminAllowed(false)
       setProducts([])
-      setOrders([])
       return () => { active = false }
     }
 
     setLoadingProducts(true)
-    setLoadingOrders(true)
     setError('')
     hasCatalogAdminAccess(session.user.id)
       .then(async (allowed) => {
         if (!active) return
         setAdminAllowed(allowed)
         if (!allowed) return
-        const [catalog, loadedOrders] = await Promise.all([
+        const [catalog, loadedSettings] = await Promise.all([
           fetchAdminProducts(),
-          fetchAdminOrders()
+          fetchStoreSettings()
         ])
         if (active) {
           setProducts(catalog)
-          setOrders(loadedOrders)
+          setSettings(loadedSettings)
         }
       })
       .catch((loadError: Error) => {
@@ -214,54 +234,30 @@ const Admin = () => {
       })
       .finally(() => {
         if (active) setLoadingProducts(false)
-        if (active) setLoadingOrders(false)
       })
 
     return () => { active = false }
   }, [session])
 
-  const handleOrderStatusChange = async (order: StoreOrder, action: 'confirm' | 'cancel') => {
-    const actionLabel = action === 'confirm' ? 'confirmar a venda e baixar o estoque' : 'cancelar o pedido'
-    if (!window.confirm(`Deseja ${actionLabel} do pedido ${order.reference}?`)) return
-
-    setError('')
-    setNotice('')
-    setProcessingOrderId(order.id)
-    try {
-      if (action === 'confirm') {
-        await confirmStoreOrder(order.id)
-      } else {
-        await cancelStoreOrder(order.id)
-      }
-      const [loadedOrders, catalog] = await Promise.all([
-        fetchAdminOrders(),
-        fetchAdminProducts()
-      ])
-      setOrders(loadedOrders)
-      setProducts(catalog)
-      setSummaryRefreshKey((key) => key + 1)
-      setNotice(action === 'confirm'
-        ? `Pedido ${order.reference} confirmado e estoque atualizado.`
-        : `Pedido ${order.reference} cancelado.`)
-    } catch (actionError) {
-      setError(`Não foi possível ${action === 'confirm' ? 'confirmar o pedido' : 'cancelar o pedido'}: ${errorMessage(actionError)}`)
-    } finally {
-      setProcessingOrderId(null)
-    }
+  const changeTab = (next: Tab) => {
+    setTab(next)
+    try { localStorage.setItem(TAB_KEY, next) } catch { /* sem armazenamento */ }
   }
 
-  const handleRefreshOrders = async () => {
-    setLoadingOrders(true)
-    setError('')
+  /** Depois de mexer em pedidos ou vendas: recarrega o estoque das peças e os resumos. */
+  const refreshAfterChange = useCallback(async () => {
+    setSummaryRefreshKey((key) => key + 1)
     try {
-      setOrders(await fetchAdminOrders())
-      setSummaryRefreshKey((key) => key + 1)
-    } catch (loadError) {
-      setError(`Não foi possível atualizar os pedidos: ${errorMessage(loadError)}`)
-    } finally {
-      setLoadingOrders(false)
+      setProducts(await fetchAdminProducts())
+    } catch {
+      // A lista de peças atualiza na próxima vez.
     }
-  }
+  }, [])
+
+  // Peças e balcão mostram o estoque atual (pedidos do site reservam peças a qualquer momento).
+  useEffect(() => {
+    if (adminAllowed && (tab === 'products' || tab === 'counter')) refreshAfterChange()
+  }, [adminAllowed, refreshAfterChange, tab])
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -462,7 +458,7 @@ const Admin = () => {
         <AdminTopbar>
           <div>
             <span className="eyebrow">BELLA CHIC BOUTIQUE</span>
-            <h1>Administração do catálogo</h1>
+            <h1>Painel da loja</h1>
           </div>
           <Link to="/">Voltar à loja</Link>
         </AdminTopbar>
@@ -496,10 +492,31 @@ const Admin = () => {
           </AdminPanel>
         ) : (
           <>
+            <AdminTabs aria-label="Seções do painel">
+              {(Object.keys(tabLabels) as Tab[]).map((key) => (
+                <button key={key} type="button" aria-current={tab === key ? 'page' : undefined} onClick={() => changeTab(key)}>
+                  {tabLabels[key]}
+                  {key === 'reviews' && pendingReviews > 0 && <span className="badge">{pendingReviews}</span>}
+                </button>
+              ))}
+            </AdminTabs>
             {error && <AdminNotice $error role="alert">{error}</AdminNotice>}
             {notice && <AdminNotice role="status">{notice}</AdminNotice>}
-            <SalesSummary products={products} refreshKey={summaryRefreshKey} />
-            <RestockPanel products={products} />
+            {tab === 'summary' && (
+              <>
+                <SalesSummary products={products} refreshKey={summaryRefreshKey} />
+                <RestockPanel products={products} />
+              </>
+            )}
+            {tab === 'orders' && <OrdersPanel settings={settings} refreshKey={0} onChanged={refreshAfterChange} />}
+            {tab === 'counter' && <StoreSalePanel products={products} onSold={refreshAfterChange} />}
+            {tab === 'stock' && <StockHistoryPanel products={products} refreshKey={summaryRefreshKey} />}
+            {tab === 'coupons' && <CouponsPanel />}
+            {tab === 'reviews' && <ReviewsPanel onCountChange={setPendingReviews} />}
+            {tab === 'vip' && <VipPanel />}
+            {tab === 'settings' && <SettingsPanel settings={settings} onSaved={setSettings} />}
+            {tab === 'products' && (
+            <>
             <AdminPanel>
               <h2>{editingId ? 'Editar peça' : 'Adicionar nova peça'}</h2>
               <AdminForm onSubmit={handleSaveProduct}>
@@ -687,61 +704,8 @@ const Admin = () => {
               )}
             </AdminPanel>
 
-            <AdminPanel>
-              <div className="order-list-heading">
-                <h2>Pedidos recentes ({orders.length})</h2>
-                <AdminButton type="button" className="secondary" disabled={loadingOrders} onClick={handleRefreshOrders}>
-                  {loadingOrders ? 'Atualizando...' : 'Atualizar pedidos'}
-                </AdminButton>
-              </div>
-              <p>Pedidos enviados pela loja aguardam confirmação. Confirme a venda somente após combinar com a cliente pelo WhatsApp; essa ação baixa o estoque de todas as variações do pedido.</p>
-              {loadingOrders ? <p>Carregando pedidos...</p> : orders.length === 0 ? <p>Nenhum pedido registrado ainda.</p> : (
-                <OrderList>
-                  {orders.map((order) => {
-                    const deliveryFee = order.fulfillment.deliveryFee
-                    const total = order.subtotal - order.discount + (deliveryFee || 0)
-                    const customerPhone = order.customer.phone.replace(/\D/g, '')
-                    const whatsappPhone = customerPhone.startsWith('55') ? customerPhone : `55${customerPhone}`
-                    return (
-                      <OrderRow key={order.id}>
-                        <div className="order-heading">
-                          <h3>Pedido {order.reference}</h3>
-                          <span className={`order-status ${order.status}`}>{{
-                            pending: 'Aguardando confirmação',
-                            confirmed: 'Venda confirmada',
-                            cancelled: 'Cancelado'
-                          }[order.status]}</span>
-                        </div>
-                        <p>{new Date(order.created_at).toLocaleString('pt-BR')} · {order.unit.name} · {order.payment}</p>
-                        <p><strong>{order.customer.name}</strong> · <a href={`https://wa.me/${whatsappPhone}`} target="_blank" rel="noreferrer">{order.customer.phone}</a>{order.customer.email ? ` · ${order.customer.email}` : ''}</p>
-                        <ul>
-                          {order.items.map((item, index) => (
-                            <li key={`${item.productId}-${item.size}-${item.color}-${index}`}>
-                              {item.quantity}× {item.name} · {item.size}{item.sizeFit ? ` (${item.sizeFit})` : ''} · {item.color} — {formatPrice(item.unitPrice * item.quantity)}
-                            </li>
-                          ))}
-                        </ul>
-                        <p>{order.fulfillment.type === 'Entrega'
-                          ? `Entrega: ${order.fulfillment.street}, ${order.fulfillment.houseNumber}${order.fulfillment.complement ? `, ${order.fulfillment.complement}` : ''} · ${order.fulfillment.neighborhood}, ${order.fulfillment.deliveryCity}${deliveryFee === null ? ' · frete a combinar' : ` · frete ${formatPrice(deliveryFee)}`}`
-                          : `Retirada em ${order.unit.address}`}</p>
-                        {order.fulfillment.type === 'Entrega' && (order.fulfillment.referencePoint || order.fulfillment.deliveryNotes) && (
-                          <p>{[order.fulfillment.referencePoint ? `Referência: ${order.fulfillment.referencePoint}` : '', order.fulfillment.deliveryNotes ? `Observação: ${order.fulfillment.deliveryNotes}` : ''].filter(Boolean).join(' · ')}</p>
-                        )}
-                        <p>Subtotal: {formatPrice(order.subtotal)}{order.discount > 0 ? ` · Desconto: -${formatPrice(order.discount)}` : ''} · <strong>Total: {deliveryFee === null ? 'a combinar' : formatPrice(total)}</strong></p>
-                        {order.status === 'pending' && (
-                          <div className="actions">
-                            <AdminButton type="button" disabled={processingOrderId === order.id} onClick={() => handleOrderStatusChange(order, 'confirm')}>
-                              {processingOrderId === order.id ? 'Processando...' : 'Confirmar venda e baixar estoque'}
-                            </AdminButton>
-                            <AdminButton type="button" className="danger" disabled={processingOrderId === order.id} onClick={() => handleOrderStatusChange(order, 'cancel')}>Cancelar pedido</AdminButton>
-                          </div>
-                        )}
-                      </OrderRow>
-                    )
-                  })}
-                </OrderList>
-              )}
-            </AdminPanel>
+            </>
+            )}
 
             <AdminButton type="button" className="secondary" onClick={handleLogout}>Sair da administração</AdminButton>
           </>

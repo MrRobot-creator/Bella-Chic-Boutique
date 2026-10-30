@@ -7,12 +7,15 @@ import CartDrawer from '../../components/CartDrawer'
 import ProductCard, { formatPrice, getDiscount, getProductImages } from '../../components/ProductCard'
 import ProductDialog from '../../components/ProductDialog'
 import Toast from '../../components/Toast'
+import VipSignup from '../../components/VipSignup'
 import { SkeletonCard } from '../../components/ProductCard/styles'
 import { Wrap } from '../../components/ui'
 import { useFavorites } from '../../hooks/useFavorites'
 import { useCustomer } from '../../hooks/useCustomer'
 import { trackEvent } from '../../services/analytics'
 import { fetchCatalogProducts } from '../../services/catalog'
+import { defaultSettings, fetchStoreSettings, StoreSettings } from '../../services/settings'
+import type { StoreOrderItem } from '../../services/orders'
 import { createWhatsAppUrl } from '../../services/whatsapp'
 import { storeConfig } from '../../config/store'
 import { cardFeeRates } from '../../config/paymentFees'
@@ -104,6 +107,7 @@ const Home = () => {
   const [heroPaused, setHeroPaused] = useState(false)
   const [couponCopied, setCouponCopied] = useState(false)
   const [toast, setToast] = useState('')
+  const [settings, setSettings] = useState<StoreSettings>(defaultSettings)
   const toastTimer = useRef<number>()
   const cartTriggerRef = useRef<HTMLElement | null>(null)
   const pushedProductRef = useRef(false)
@@ -126,6 +130,12 @@ const Home = () => {
       .then((loadedProducts) => { if (active) setCatalogProducts(loadedProducts) })
       .catch((error: Error) => { if (active) setCatalogError(`Não foi possível carregar o catálogo: ${error.message}`) })
       .finally(() => { if (active) setCatalogLoading(false) })
+    return () => { active = false }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    fetchStoreSettings().then((loaded) => { if (active) setSettings(loaded) })
     return () => { active = false }
   }, [])
 
@@ -369,6 +379,32 @@ const Home = () => {
     ))
   }
 
+  /** "Comprar de novo" em Meus pedidos: devolve à sacola o que ainda tem estoque. */
+  const reorder = (orderItems: StoreOrderItem[]) => {
+    let added = 0
+    let next = [...cartItems]
+    orderItems.forEach((item) => {
+      const product = catalogProducts.find((candidate) => candidate.id === item.productId)
+      if (!product || product.available === false) return
+      const existing = next.find((entry) => entry.product.id === product.id && entry.size === item.size && entry.color === item.color)
+      const room = getVariantStock(product.variantStock, item.size, item.color) - (existing?.quantity || 0)
+      const quantity = Math.min(item.quantity, room)
+      if (quantity < 1) return
+      added += quantity
+      next = existing
+        ? next.map((entry) => (entry === existing ? { ...entry, quantity: entry.quantity + quantity } : entry))
+        : [...next, { product, size: item.size, color: item.color, quantity }]
+    })
+    if (!added) {
+      notify('As peças deste pedido não estão disponíveis agora.')
+      return
+    }
+    setCartItems(next)
+    setIsAccountOpen(false)
+    notify(added === 1 ? '1 peça voltou para a sacola' : `${added} peças voltaram para a sacola`)
+    window.setTimeout(() => setIsCartOpen(true), 200)
+  }
+
   /* ---------- Favoritos, conta e navegação ---------- */
 
   const handleToggleFavorite = useCallback((product: Product) => {
@@ -466,7 +502,7 @@ const Home = () => {
     ...(offers.length ? [{ label: 'Ofertas', count: offers.length }] : []),
     { label: 'Favoritos', count: favoriteProducts.length }
   ]
-  const promotionEnd = formatPromotionEnd(storeConfig.promotionEndsAt)
+  const promotionEnd = formatPromotionEnd(settings.promotionEndsAt || storeConfig.promotionEndsAt)
   const tickerItems = [
     'OFERTAS DA SEMANA',
     `CUPOM ${COUPON_CODE}`,
@@ -996,6 +1032,8 @@ const Home = () => {
             </S.InfoGrid>
           </Wrap>
         </S.Block>
+
+        <VipSignup />
       </main>
 
       <S.Footer>
@@ -1075,11 +1113,16 @@ const Home = () => {
         onClose={closeAccount}
         onNotify={notify}
         onPasswordUpdated={finishPasswordRecovery}
+        settings={settings}
+        onReorder={reorder}
       />
       <CartDrawer
         isOpen={isCartOpen}
         items={cartItems}
         customer={customer}
+        settings={settings}
+        onOrderPlaced={() => setCartItems([])}
+        onKeepShopping={() => window.requestAnimationFrame(() => scrollToSection('catalogo'))}
         onClose={closeCart}
         onChangeQuantity={updateQuantity}
         onRemove={removeFromCart}

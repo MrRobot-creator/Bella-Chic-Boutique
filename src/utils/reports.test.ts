@@ -19,6 +19,16 @@ const order = (overrides: Partial<StoreOrder>): StoreOrder => ({
   couponCode: 'Bella10',
   created_at: '2026-10-10T12:00:00Z',
   confirmed_at: null,
+  channel: 'site',
+  paid_at: null,
+  shipped_at: null,
+  delivered_at: null,
+  cancelled_at: null,
+  cancel_reason: null,
+  reserved_until: null,
+  stock_taken: true,
+  review_token: null,
+  note: null,
   ...overrides
 })
 
@@ -39,6 +49,18 @@ describe('buildSalesSummary', () => {
     expect(summary.averageTicket).toBe(130)
     expect(summary.itemsSold).toBe(3)
     expect(summary.topProducts.map((product) => product.name)).toEqual(['Vestido Dress', 'Blusa'])
+  })
+
+  it('conta pago, enviado, entregue e balcão como venda, e separa o balcão', () => {
+    const summary = buildSalesSummary([
+      order({ status: 'paid' }),
+      order({ id: '2', status: 'delivered', channel: 'balcao', subtotal: 100, discount: 0 }),
+      order({ id: '3', status: 'shipped', subtotal: 50, discount: 0 })
+    ], new Date('2026-10-01T00:00:00Z'))
+    expect(summary.confirmedCount).toBe(3)
+    expect(summary.revenue).toBe(330)
+    expect(summary.storeCount).toBe(1)
+    expect(summary.storeRevenue).toBe(100)
   })
 })
 

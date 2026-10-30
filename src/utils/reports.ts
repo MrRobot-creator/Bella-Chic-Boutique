@@ -1,10 +1,13 @@
 import type { StoreOrder } from '../services/orders'
+import { isCompletedSale, orderStatusLabel } from '../services/orders'
 
 export type SalesSummary = {
   confirmedCount: number
   pendingCount: number
   cancelledCount: number
   revenue: number
+  storeRevenue: number
+  storeCount: number
   averageTicket: number
   itemsSold: number
   topProducts: { productId: number; name: string; quantity: number; revenue: number }[]
@@ -18,7 +21,9 @@ export const startOfMonth = (date: Date) => new Date(date.getFullYear(), date.ge
 
 export const buildSalesSummary = (orders: StoreOrder[], since: Date): SalesSummary => {
   const inPeriod = orders.filter((order) => new Date(order.created_at) >= since)
-  const confirmed = inPeriod.filter((order) => order.status === 'confirmed')
+  const confirmed = inPeriod.filter((order) => isCompletedSale(order.status))
+  const storeSales = confirmed.filter((order) => order.channel === 'balcao')
+  const storeRevenue = storeSales.reduce((total, order) => total + orderNetValue(order), 0)
   const revenue = confirmed.reduce((total, order) => total + orderNetValue(order), 0)
 
   const byProduct = new Map<number, { productId: number; name: string; quantity: number; revenue: number }>()
@@ -40,17 +45,14 @@ export const buildSalesSummary = (orders: StoreOrder[], since: Date): SalesSumma
     pendingCount: inPeriod.filter((order) => order.status === 'pending').length,
     cancelledCount: inPeriod.filter((order) => order.status === 'cancelled').length,
     revenue: Math.round(revenue * 100) / 100,
+    storeRevenue: Math.round(storeRevenue * 100) / 100,
+    storeCount: storeSales.length,
     averageTicket: confirmed.length ? Math.round((revenue / confirmed.length) * 100) / 100 : 0,
     itemsSold: Array.from(byProduct.values()).reduce((total, product) => total + product.quantity, 0),
     topProducts
   }
 }
 
-const statusLabel: Record<StoreOrder['status'], string> = {
-  pending: 'Aguardando confirmação',
-  confirmed: 'Venda confirmada',
-  cancelled: 'Cancelado'
-}
 
 const csvCell = (value: unknown) => {
   const text = value === null || value === undefined ? '' : String(value)
@@ -64,7 +66,7 @@ const money = (value: number) => value.toFixed(2).replace('.', ',')
 /** Planilha CSV (separada por ponto e vírgula, abre direto no Excel em português). */
 export const ordersToCsv = (orders: StoreOrder[]) => {
   const header = [
-    'Pedido', 'Data', 'Status', 'Cliente', 'WhatsApp', 'E-mail', 'Unidade', 'Atendimento', 'Pagamento',
+    'Pedido', 'Data', 'Status', 'Canal', 'Cliente', 'WhatsApp', 'E-mail', 'Unidade', 'Atendimento', 'Pagamento',
     'Entrega', 'Cidade', 'Bairro', 'Peças', 'Qtd. peças', 'Subtotal', 'Desconto', 'Cupom', 'Frete', 'Total'
   ]
   const rows = orders.map((order) => {
@@ -73,7 +75,8 @@ export const ordersToCsv = (orders: StoreOrder[]) => {
     return [
       order.reference,
       new Date(order.created_at).toLocaleString('pt-BR'),
-      statusLabel[order.status],
+      orderStatusLabel(order),
+      order.channel === 'balcao' ? 'Balcão' : 'Site',
       order.customer.name,
       order.customer.phone,
       order.customer.email || '',

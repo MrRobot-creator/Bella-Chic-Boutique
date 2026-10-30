@@ -346,3 +346,31 @@ export const Look = styled.section`
   strong { overflow: hidden; color: ${colors.plum}; font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
   small { color: ${colors.muted}; font-size: 12px; }
 `
+
+export const RatingLink = styled.a`
+  width: fit-content;
+  margin-top: -6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: ${colors.muted};
+  font-size: 13px;
+  .stars { color: #D9A21B; letter-spacing: 1px; }
+  &:hover { color: ${colors.roseDark}; }
+`
+
+export const Reviews = styled.section`
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid ${colors.line};
+  scroll-margin-top: 16px;
+  h3 { color: ${colors.plum}; font: italic 400 20px ${fonts.serif}; }
+  article { display: grid; gap: 6px; padding: 12px 14px; border-radius: 14px; background: ${colors.blushSoft}; }
+  .head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; }
+  .stars { color: #D9A21B; letter-spacing: 1px; font-size: 14px; }
+  .who { color: ${colors.soft}; font-size: 12px; }
+  p { color: ${colors.plum}; font-size: 14px; line-height: 1.55; }
+  .photos { display: flex; gap: 8px; }
+  .photos img { width: 64px; height: 80px; border-radius: 10px; object-fit: cover; }
+`

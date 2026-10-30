@@ -4,7 +4,9 @@ import { CartItem, PaymentMethod } from '../../types/store'
 import { getSizeFitLabel } from '../../utils/productSize'
 import { getVariantStock } from '../../utils/inventory'
 import { createOrderMessage, createOrderReference, createWhatsAppUrl } from '../../services/whatsapp'
-import { validateCoupon, recordCouponUsage as recordCouponUsageService } from '../../services/coupon'
+import { checkCoupon, CouponCheck, couponDiscount, couponMessage as couponResultMessage, describeCoupon } from '../../services/coupon'
+import { hasPix, StoreSettings } from '../../services/settings'
+import PixPayment from '../PixPayment'
 import { createStoreOrder } from '../../services/orders'
 import { Customer } from '../../hooks/useCustomer'
 import { trackEvent } from '../../services/analytics'
@@ -18,7 +20,9 @@ import {
 } from '../../services/delivery'
 import {
   CloseButton,
+  Done,
   Drawer,
+  FreeShipping,
   DrawerHeader,
   EmptyCart,
   ItemDetails,
@@ -36,6 +40,9 @@ type CartDrawerProps = {
   isOpen: boolean
   items: CartItem[]
   customer?: Customer | null
+  settings: StoreSettings
+  onOrderPlaced: () => void
+  onKeepShopping?: () => void
   onClose: () => void
   onChangeQuantity: (productId: number, size: string, color: string, quantity: number) => void
   onRemove: (productId: number, size: string, color: string) => void
@@ -44,12 +51,22 @@ type CartDrawerProps = {
 const formatPrice = (value: number) =>
   value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
-const CartDrawer = ({ isOpen, items, customer, onClose, onChangeQuantity, onRemove }: CartDrawerProps) => {
+type PlacedOrder = {
+  reference: string
+  total: number
+  payment: PaymentMethod
+  whatsappUrl: string
+  reservedUntil: string | null
+}
+
+const CartDrawer = ({ isOpen, items, customer, settings, onOrderPlaced, onKeepShopping, onClose, onChangeQuantity, onRemove }: CartDrawerProps) => {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [couponCode, setCouponCode] = useState('')
-  const [couponApplied, setCouponApplied] = useState(false)
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponCheck | null>(null)
+  const [checkingCoupon, setCheckingCoupon] = useState(false)
+  const [placedOrder, setPlacedOrder] = useState<PlacedOrder | null>(null)
   const [couponMessage, setCouponMessage] = useState('')
   const [inventoryMessage, setInventoryMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -73,12 +90,18 @@ const CartDrawer = ({ isOpen, items, customer, onClose, onChangeQuantity, onRemo
   const drawerRef = useRef<HTMLElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
-  const discount = couponApplied ? total * 0.10 : 0
+  const couponApplied = Boolean(appliedCoupon?.valid)
+  const discount = appliedCoupon?.valid && appliedCoupon.kind && appliedCoupon.value !== undefined
+    ? couponDiscount(appliedCoupon.kind, appliedCoupon.value, total)
+    : 0
+  const freeShippingMin = settings.freeShippingMin
+  const freeShipping = freeShippingMin !== null && total - discount >= freeShippingMin
+  const missingForFreeShipping = freeShippingMin !== null ? Math.max(0, freeShippingMin - (total - discount)) : 0
   const selectedUnit = storeConfig.units.find((unit) => unit.id === selectedUnitId) || storeConfig.units[0]
   const availableContacts = storeConfig.whatsappContacts.filter((contact) => contact.unitId === selectedUnit.id)
   const selectedContact = availableContacts.find((contact) => contact.id === selectedContactId) || availableContacts[0]
   const deliveryFee = fulfillment === 'Entrega'
-    ? deliveryCity ? calculateDeliveryFee(selectedUnit.city, deliveryCity) : null
+    ? deliveryCity ? (freeShipping ? 0 : calculateDeliveryFee(selectedUnit.city, deliveryCity)) : null
     : 0
   const finalTotal = total - discount + (deliveryFee === null ? 0 : deliveryFee)
 
@@ -90,17 +113,43 @@ const CartDrawer = ({ isOpen, items, customer, onClose, onChangeQuantity, onRemo
   }, [customer, isOpen])
 
   useEffect(() => {
-    if (couponApplied && total < 300) {
-      setCouponApplied(false)
-      setCouponMessage('O cupom Bella10 exige subtotal mínimo de R$ 300,00. Aplique-o novamente quando atingir o mínimo.')
+    if (appliedCoupon?.valid && total < (appliedCoupon.minSubtotal || 0)) {
+      setAppliedCoupon(null)
+      setCouponMessage(couponResultMessage({ valid: false, reason: 'min_subtotal', minSubtotal: appliedCoupon.minSubtotal }, appliedCoupon.code || couponCode))
     }
-  }, [couponApplied, total])
+  }, [appliedCoupon, couponCode, total])
 
-  const handleApplyCoupon = () => {
-    const result = validateCoupon(email, couponCode, total)
-    setCouponMessage(result.message)
-    setCouponApplied(result.valid)
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponMessage('Digite o código do cupom.')
+      return
+    }
+    setCheckingCoupon(true)
+    try {
+      const result = await checkCoupon(couponCode, total)
+      if (result.valid && (result.oncePerCustomer || result.firstPurchaseOnly) && !email.includes('@')) {
+        setAppliedCoupon(null)
+        setCouponMessage('Informe seu e-mail antes de aplicar este cupom.')
+        return
+      }
+      setAppliedCoupon(result.valid ? result : null)
+      setCouponMessage(couponResultMessage(result, couponCode))
+    } catch (couponError) {
+      setAppliedCoupon(null)
+      setCouponMessage(couponError instanceof Error ? couponError.message : 'Não foi possível conferir o cupom.')
+    } finally {
+      setCheckingCoupon(false)
+    }
   }
+
+  // Ao fechar depois de um pedido, a próxima sacola começa limpa.
+  useEffect(() => {
+    if (isOpen || !placedOrder) return
+    setPlacedOrder(null)
+    setAppliedCoupon(null)
+    setCouponCode('')
+    setCouponMessage('')
+  }, [isOpen, placedOrder])
 
   useEffect(() => {
     if (
@@ -281,9 +330,9 @@ const CartDrawer = ({ isOpen, items, customer, onClose, onChangeQuantity, onRemo
       return
     }
 
-    if (couponApplied && total < 300) {
-      setCouponApplied(false)
-      setCouponMessage('O cupom Bella10 exige subtotal mínimo de R$ 300,00. Aplique-o novamente quando atingir o mínimo.')
+    if (appliedCoupon?.valid && total < (appliedCoupon.minSubtotal || 0)) {
+      setAppliedCoupon(null)
+      setCouponMessage(couponResultMessage({ valid: false, reason: 'min_subtotal', minSubtotal: appliedCoupon.minSubtotal }, appliedCoupon.code || couponCode))
       return
     }
 
@@ -318,12 +367,9 @@ const CartDrawer = ({ isOpen, items, customer, onClose, onChangeQuantity, onRemo
           deliveryFee
         },
         payment,
-        couponCode: couponApplied ? 'Bella10' : undefined
+        couponCode: couponApplied ? appliedCoupon?.code : undefined
       })
-
-      if (couponApplied) {
-        recordCouponUsageService(email, 'Bella10')
-      }
+      const pixAvailable = payment === 'Pix' && hasPix(settings)
 
       const messageItems = createdOrder.items.map((item) => ({
         product: { name: item.name, sizeFit: item.sizeFit, sizes: item.sizes },
@@ -349,11 +395,13 @@ const CartDrawer = ({ isOpen, items, customer, onClose, onChangeQuantity, onRemo
         deliveryCity: fulfillment === 'Entrega' ? deliveryCity : '',
         referencePoint: fulfillment === 'Entrega' ? referencePoint.trim() : '',
         deliveryNotes: fulfillment === 'Entrega' ? deliveryNotes.trim() : '',
-        deliveryFee,
+        deliveryFee: createdOrder.deliveryFee,
         payment,
         subtotal: createdOrder.subtotal,
         discount: createdOrder.discount,
-        couponCode: createdOrder.couponCode || ''
+        couponCode: createdOrder.couponCode || '',
+        pixAvailable,
+        reservedUntil: createdOrder.reservedUntil
       })
       trackEvent('generate_lead', {
         currency: 'BRL',
@@ -367,7 +415,14 @@ const CartDrawer = ({ isOpen, items, customer, onClose, onChangeQuantity, onRemo
           quantity: item.quantity
         }))
       })
-      window.location.assign(createWhatsAppUrl(orderMessage, selectedContact.number))
+      setPlacedOrder({
+        reference: createdOrder.reference,
+        total: createdOrder.total,
+        payment,
+        whatsappUrl: createWhatsAppUrl(orderMessage, selectedContact.number),
+        reservedUntil: createdOrder.reservedUntil
+      })
+      onOrderPlaced()
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro inesperado ao consultar o estoque.'
       setInventoryMessage(`Não foi possível registrar o pedido: ${message}`)
@@ -387,7 +442,29 @@ const CartDrawer = ({ isOpen, items, customer, onClose, onChangeQuantity, onRemo
           <CloseButton ref={closeButtonRef} type="button" onClick={onClose} aria-label="Fechar sacola">×</CloseButton>
         </DrawerHeader>
 
-        {items.length === 0 ? (
+        {placedOrder ? (
+          <Done>
+            <span className="check" aria-hidden="true">✓</span>
+            <h3>Pedido registrado!</h3>
+            <p className="ref">Código <strong>{placedOrder.reference}</strong></p>
+            {placedOrder.reservedUntil && (
+              <p className="reserve">
+                Separamos suas peças até <strong>{new Date(placedOrder.reservedUntil).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</strong>.
+                Envie o pedido no WhatsApp para a atendente confirmar.
+              </p>
+            )}
+            <a className="whatsapp" href={placedOrder.whatsappUrl} target="_blank" rel="noopener noreferrer">
+              Enviar pedido no WhatsApp <span aria-hidden="true">↗</span>
+            </a>
+            {placedOrder.payment === 'Pix' && hasPix(settings) && settings.pixKey && settings.pixName && settings.pixCity && (
+              <div className="pix">
+                <p>Quer adiantar o pagamento? As peças já estão separadas:</p>
+                <PixPayment pixKey={settings.pixKey} name={settings.pixName} city={settings.pixCity} amount={placedOrder.total} reference={placedOrder.reference} compact />
+              </div>
+            )}
+            <button type="button" className="keep" onClick={() => { onClose(); onKeepShopping?.() }}>Continuar comprando</button>
+          </Done>
+        ) : items.length === 0 ? (
           <EmptyCart>
             <span>♡</span>
             <h3>Sua sacola está esperando</h3>
@@ -421,9 +498,9 @@ const CartDrawer = ({ isOpen, items, customer, onClose, onChangeQuantity, onRemo
 
             <Summary>
               <div className="subtotal"><span>Subtotal</span><span>{formatPrice(total)}</span></div>
-              {couponApplied && (
-                <div className="subtotal" style={{ color: '#25a244', marginTop: '4px' }}>
-                  <span>Desconto (Cupom Bella10 - 10%)</span>
+              {couponApplied && appliedCoupon?.kind && appliedCoupon.value !== undefined && (
+                <div className="subtotal" style={{ color: '#2F7A46', marginTop: '4px' }}>
+                  <span>Desconto (cupom {appliedCoupon.code}, {describeCoupon({ kind: appliedCoupon.kind, value: appliedCoupon.value })})</span>
                   <span>-{formatPrice(discount)}</span>
                 </div>
               )}
@@ -434,6 +511,17 @@ const CartDrawer = ({ isOpen, items, customer, onClose, onChangeQuantity, onRemo
                     ? 'Selecione o município para calcular o frete.'
                     : `Taxa de entrega para ${deliveryCity}: ${formatPrice(deliveryFee)}.`}
               </p>
+              {freeShippingMin !== null && (
+                <FreeShipping $done={freeShipping}>
+                  {freeShipping
+                    ? <strong>Você ganhou frete grátis na entrega {'\u{1F389}'}</strong>
+                    : <span>Faltam <strong>{formatPrice(missingForFreeShipping)}</strong> para o frete grátis</span>}
+                  <span className="bar" aria-hidden="true"><span style={{ width: `${Math.min(100, ((total - discount) / freeShippingMin) * 100)}%` }} /></span>
+                  {!freeShipping && onKeepShopping && (
+                    <button type="button" onClick={() => { onClose(); onKeepShopping() }}>Ver mais peças</button>
+                  )}
+                </FreeShipping>
+              )}
               <Total>
                 <span>Total {fulfillment === 'Entrega' ? '(com entrega)' : '(retirada)'}</span>
                 <strong>{deliveryFee === null ? 'Aguardando município' : formatPrice(finalTotal)}</strong>
@@ -488,7 +576,7 @@ const CartDrawer = ({ isOpen, items, customer, onClose, onChangeQuantity, onRemo
                   onChange={(event) => {
                     setEmail(event.target.value)
                     if (couponApplied) {
-                      setCouponApplied(false)
+                      setAppliedCoupon(null)
                       setCouponMessage('E-mail alterado. Aplique o cupom novamente.')
                     }
                   }}
@@ -504,28 +592,31 @@ const CartDrawer = ({ isOpen, items, customer, onClose, onChangeQuantity, onRemo
                   <input
                     value={couponCode}
                     onChange={(event) => setCouponCode(event.target.value)}
-                    placeholder="Ex.: Bella10"
-                    style={{ flex: 1, margin: '0' }}
+                    placeholder="Ex.: BELLA10"
+                    style={{ flex: 1 }}
                   />
                   <button
                     type="button"
                     onClick={handleApplyCoupon}
+                    disabled={checkingCoupon}
                     style={{
-                      padding: '0 16px',
-                      background: '#75525a',
+                      padding: '0 18px',
+                      background: '#3E2A2E',
                       color: '#fff',
                       border: 'none',
-                      borderRadius: '2px',
-                      fontSize: '11px',
+                      borderRadius: '12px',
+                      fontSize: '13px',
+                      fontWeight: 600,
                       cursor: 'pointer',
-                      whiteSpace: 'nowrap'
+                      whiteSpace: 'nowrap',
+                      marginTop: '6px'
                     }}
                   >
-                    Aplicar
+                    {checkingCoupon ? 'Conferindo...' : 'Aplicar'}
                   </button>
                 </div>
                 {couponMessage && (
-                  <span className="address-status" role="status" style={{ color: couponApplied ? '#25a244' : '#c2405b', marginTop: '4px', display: 'block' }}>
+                  <span className="address-status" role="status" style={{ color: couponApplied ? '#2F7A46' : '#A72F48', marginTop: '6px', display: 'block' }}>
                     {couponMessage}
                   </span>
                 )}
@@ -637,7 +728,7 @@ const CartDrawer = ({ isOpen, items, customer, onClose, onChangeQuantity, onRemo
                 </label>
                 <label className="payment-option">
                   <input type="radio" name="payment" value="Pix" checked={payment === 'Pix'} onChange={() => setPayment('Pix')} />
-                  Pix <span>a atendente envia os dados para pagamento no WhatsApp</span>
+                  Pix <span>{hasPix(settings) ? 'Pix copia e cola na hora, sem taxa' : 'a atendente envia os dados para pagamento no WhatsApp'}</span>
                 </label>
                 <label className="payment-option">
                   <input type="radio" name="payment" value="Link de pagamento" checked={payment === 'Link de pagamento'} onChange={() => setPayment('Link de pagamento')} />
@@ -646,10 +737,10 @@ const CartDrawer = ({ isOpen, items, customer, onClose, onChangeQuantity, onRemo
               </fieldset>
               {inventoryMessage && <span role="alert" className="address-status">{inventoryMessage}</span>}
               <WhatsAppButton type="submit" disabled={isSubmitting || (fulfillment === 'Entrega' && deliveryFee === null)}>
-                {isSubmitting ? 'Conferindo estoque...' : 'Confirmar pedido com a atendente'}
+                {isSubmitting ? 'Separando suas peças...' : 'Finalizar pedido'}
                 <span aria-hidden="true">↗</span>
               </WhatsAppButton>
-              <p className="secure-note">O pedido e a forma de pagamento serão confirmados diretamente com a atendente pelo WhatsApp.</p>
+              <p className="secure-note">Ao finalizar, separamos as peças por {settings.reservationMinutes >= 60 ? `${Math.round(settings.reservationMinutes / 60)} ${Math.round(settings.reservationMinutes / 60) === 1 ? 'hora' : 'horas'}` : `${settings.reservationMinutes} minutos`} e você envia o pedido para a atendente no WhatsApp.</p>
               <p className="privacy-note">
                 Seus dados serão usados para validar e registrar o pedido.{' '}
                 <a href="/privacidade">Leia a Política de Privacidade</a>.

@@ -1,4 +1,7 @@
 import { FormEvent, MouseEvent, useEffect, useRef, useState } from 'react'
+import { fetchMyOrders, orderStatusLabel, orderTotal, StoreOrder, StoreOrderItem } from '../../services/orders'
+import { hasPix, StoreSettings } from '../../services/settings'
+import PixPayment from '../PixPayment'
 import styled from 'styled-components'
 import { Backdrop, ModalCard, PrimaryButton, RoundButton } from '../ui'
 import { colors, fonts } from '../../styles/tokens'
@@ -21,6 +24,8 @@ type AccountModalProps = {
   onClose: () => void
   onNotify: (message: string) => void
   onPasswordUpdated: () => void
+  settings: StoreSettings
+  onReorder: (items: StoreOrderItem[]) => void
 }
 
 const Body = styled.form`
@@ -45,6 +50,26 @@ const Body = styled.form`
   @media (max-width: 480px) { padding: 28px 20px; }
 `
 
+const Orders = styled.section`
+  display: grid;
+  gap: 10px;
+  max-height: 46vh;
+  overflow-y: auto;
+  h3 { color: ${colors.plum}; font: italic 400 20px ${fonts.serif}; }
+  .muted { color: ${colors.muted}; font-size: 13px; }
+  article { display: grid; gap: 6px; padding: 14px; border: 1px solid ${colors.line}; border-radius: 16px; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .top strong { font-size: 14px; letter-spacing: .4px; }
+  .items { color: ${colors.plum}; font-size: 13px; line-height: 1.5; }
+  .pill { padding: 3px 10px; border-radius: 999px; background: #EFE9E9; color: #6F5F61; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .pill.pending { background: #FFF2DC; color: #9A5B00; }
+  .pill.confirmed, .pill.paid, .pill.shipped { background: ${colors.blush}; color: ${colors.roseDark}; }
+  .pill.delivered { background: #EAF5EC; color: ${colors.success}; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .actions button, .actions a { min-height: 36px; padding: 0 14px; display: inline-flex; align-items: center; border: 0; border-radius: 999px; background: ${colors.rose}; color: ${colors.white}; font: 600 12px ${fonts.sans}; cursor: pointer; }
+  .actions .ghost { border: 1px solid ${colors.lineStrong}; background: ${colors.white}; color: ${colors.plum}; }
+`
+
 const Close = styled(RoundButton)`
   position: absolute;
   top: 14px;
@@ -54,7 +79,9 @@ const Close = styled(RoundButton)`
   font-size: 20px;
 `
 
-const AccountModal = ({ isOpen, customer, recoveringPassword, onClose, onNotify, onPasswordUpdated }: AccountModalProps) => {
+const formatPrice = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+
+const AccountModal = ({ isOpen, customer, recoveringPassword, onClose, onNotify, onPasswordUpdated, settings, onReorder }: AccountModalProps) => {
   const [mode, setMode] = useState<Mode>('signin')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -63,6 +90,19 @@ const AccountModal = ({ isOpen, customer, recoveringPassword, onClose, onNotify,
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const firstFieldRef = useRef<HTMLInputElement>(null)
+  const [orders, setOrders] = useState<StoreOrder[]>([])
+  const [ordersState, setOrdersState] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [pixOrderId, setPixOrderId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isOpen || !customer) return undefined
+    let active = true
+    setOrdersState('loading')
+    fetchMyOrders(customer.id)
+      .then((loaded) => { if (active) { setOrders(loaded); setOrdersState('idle') } })
+      .catch(() => { if (active) setOrdersState('error') })
+    return () => { active = false }
+  }, [customer, isOpen])
 
   useEffect(() => {
     if (!isOpen) return undefined
@@ -147,16 +187,52 @@ const AccountModal = ({ isOpen, customer, recoveringPassword, onClose, onNotify,
 
   return (
     <Backdrop $center $z={120} onMouseDown={(event: MouseEvent<HTMLDivElement>) => { if (event.target === event.currentTarget) onClose() }}>
-      <ModalCard role="dialog" aria-modal="true" aria-labelledby="account-title">
+      <ModalCard role="dialog" aria-modal="true" aria-labelledby="account-title" $width={customer && mode !== 'newPassword' ? '520px' : undefined}>
         <Close type="button" onClick={onClose} aria-label="Fechar">×</Close>
         {customer && mode !== 'newPassword' ? (
           <Body as="div">
             <img src={boutiqueLogo} alt="" />
             <h2 id="account-title">Olá{customer.name ? `, ${customer.name.split(' ')[0]}` : ''}!</h2>
             <p className="lead">{customer.email}</p>
-            <div className="info">
-              Ao finalizar um pedido, seu nome e e-mail já aparecem preenchidos. Em breve você vai acompanhar seus pedidos por aqui.
-            </div>
+            <Orders aria-labelledby="my-orders-title">
+              <h3 id="my-orders-title">Meus pedidos</h3>
+              {ordersState === 'loading' && <p className="muted">Carregando seus pedidos...</p>}
+              {ordersState === 'error' && <p className="muted">Não foi possível carregar seus pedidos agora.</p>}
+              {ordersState === 'idle' && orders.length === 0 && (
+                <p className="muted">Seus pedidos feitos com a conta aparecem aqui, com a etapa de cada um.</p>
+              )}
+              {orders.map((order) => {
+                const canPay = order.payment === 'Pix' && (order.status === 'pending' || order.status === 'confirmed') && hasPix(settings)
+                return (
+                  <article key={order.id}>
+                    <div className="top">
+                      <strong>{order.reference}</strong>
+                      <span className={`pill ${order.status}`}>{orderStatusLabel(order)}</span>
+                    </div>
+                    <p className="muted">
+                      {new Date(order.created_at).toLocaleDateString('pt-BR')} · {order.items.reduce((sum, item) => sum + item.quantity, 0)} peça(s) · {formatPrice(orderTotal(order))}
+                    </p>
+                    <p className="items">{order.items.map((item) => `${item.quantity}x ${item.name} (${item.size}, ${item.color})`).join(' · ')}</p>
+                    <div className="actions">
+                      {canPay && (
+                        <button type="button" onClick={() => setPixOrderId((current) => (current === order.id ? null : order.id))}>
+                          {pixOrderId === order.id ? 'Fechar Pix' : 'Pagar com Pix'}
+                        </button>
+                      )}
+                      {order.status === 'delivered' && order.review_token && (
+                        <a href={`/avaliar/${order.review_token}`}>Avaliar peças</a>
+                      )}
+                      {order.status !== 'pending' && (
+                        <button type="button" className="ghost" onClick={() => onReorder(order.items)}>Comprar de novo</button>
+                      )}
+                    </div>
+                    {canPay && pixOrderId === order.id && settings.pixKey && settings.pixName && settings.pixCity && (
+                      <PixPayment pixKey={settings.pixKey} name={settings.pixName} city={settings.pixCity} amount={orderTotal(order)} reference={order.reference} compact />
+                    )}
+                  </article>
+                )
+              })}
+            </Orders>
             {error && <p className="error" role="alert">{error}</p>}
             <PrimaryButton type="button" onClick={handleSignOut} disabled={busy}>{busy ? 'Saindo...' : 'Sair da conta'}</PrimaryButton>
           </Body>

@@ -91,10 +91,10 @@ const SalesSummary = ({ products, refreshKey }: SalesSummaryProps) => {
         <div className="stat">
           <span>Faturamento confirmado</span>
           <strong>{loading ? '…' : formatPrice(summary.revenue)}</strong>
-          <small>peças após desconto, sem frete</small>
+          <small>{loading || !summary.storeCount ? 'peças após desconto, sem frete' : `${formatPrice(summary.storeRevenue)} no balcão (${summary.storeCount})`}</small>
         </div>
         <div className="stat">
-          <span>Vendas confirmadas</span>
+          <span>Vendas</span>
           <strong>{loading ? '…' : summary.confirmedCount}</strong>
           <small>{loading ? '' : `${summary.itemsSold} ${summary.itemsSold === 1 ? 'peça vendida' : 'peças vendidas'}`}</small>
         </div>

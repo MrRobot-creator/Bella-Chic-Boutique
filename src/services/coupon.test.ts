@@ -1,42 +1,29 @@
-import { describe, expect, it, beforeEach } from '@jest/globals'
-import { recordCouponUsage, validateCoupon } from './coupon'
+import { describe, expect, it } from '@jest/globals'
+import { couponDiscount, couponMessage, describeCoupon, legacyCouponCheck, normalizeCouponCode } from './coupon'
 
-describe('Coupon and Account service', () => {
-  beforeEach(() => {
-    localStorage.clear()
+describe('Cupons', () => {
+  it('calcula desconto em porcentagem e em reais', () => {
+    expect(couponDiscount('percent', 10, 350)).toBe(35)
+    expect(couponDiscount('percent', 15, 99.9)).toBe(14.99)
+    expect(couponDiscount('fixed', 20, 150)).toBe(20)
+    expect(couponDiscount('fixed', 50, 30)).toBe(30)
   })
 
-  it('validates Bella10 coupon successfully for a new email with cart total >= 300', () => {
-    const result = validateCoupon('cliente@teste.com', 'Bella10', 300)
-    expect(result.valid).toBe(true)
-    expect(result.message).toContain('aplicado com sucesso')
+  it('normaliza o código digitado', () => {
+    expect(normalizeCouponCode('  bella10 ')).toBe('BELLA10')
   })
 
-  it('rejects Bella10 coupon when cart total is below 300', () => {
-    const result = validateCoupon('cliente@teste.com', 'Bella10', 250)
-    expect(result.valid).toBe(false)
-    expect(result.message).toContain('a partir de R$ 300,00')
+  it('mantém a regra antiga do BELLA10 enquanto o banco não é atualizado', () => {
+    expect(legacyCouponCheck('Bella10', 300)).toMatchObject({ valid: true, discount: 30, code: 'BELLA10' })
+    expect(legacyCouponCheck('Bella10', 250)).toMatchObject({ valid: false, reason: 'min_subtotal' })
+    expect(legacyCouponCheck('DESCONTO50', 500)).toMatchObject({ valid: false, reason: 'not_found' })
   })
 
-  it('rejects invalid coupon codes', () => {
-    const result = validateCoupon('cliente@teste.com', 'DESCONTO50')
-    expect(result.valid).toBe(false)
-    expect(result.message).toContain('Cupom inválido')
-  })
-
-  it('rejects empty or invalid emails', () => {
-    const result = validateCoupon('invalid-email', 'Bella10')
-    expect(result.valid).toBe(false)
-    expect(result.message).toContain('e-mail válido')
-  })
-
-  it('prevents reusing Bella10 coupon for the same email address', () => {
-    const email = 'cliente@teste.com'
-    expect(validateCoupon(email, 'Bella10', 300).valid).toBe(true)
-    recordCouponUsage(email, 'Bella10')
-
-    const secondTry = validateCoupon(email, 'Bella10', 300)
-    expect(secondTry.valid).toBe(false)
-    expect(secondTry.message).toContain('já foi utilizado')
+  it('explica o resultado para a cliente', () => {
+    expect(couponMessage({ valid: true, code: 'BELLA10', kind: 'percent', value: 10 }, 'bella10')).toBe('Cupom BELLA10 aplicado: 10% de desconto.')
+    expect(couponMessage({ valid: false, reason: 'min_subtotal', minSubtotal: 300 }, 'bella10')).toContain('a partir de R$')
+    expect(couponMessage({ valid: false, reason: 'expired' }, 'natal')).toBe('O cupom NATAL já venceu.')
+    expect(couponMessage({ valid: false, reason: 'not_found' }, 'xyz')).toContain('não encontrado')
+    expect(describeCoupon({ kind: 'fixed', value: 20 })).toContain('20,00')
   })
 })

@@ -1,4 +1,4 @@
-import styled, { keyframes } from 'styled-components'
+import styled, { css, keyframes } from 'styled-components'
 import { colors, fonts } from '../../styles/tokens'
 
 const fade = keyframes`from { opacity: 0 } to { opacity: 1 }`
@@ -176,4 +176,37 @@ export const WhatsAppButton = styled.button`
   transition: background .2s;
   &:hover:not(:disabled) { background: ${colors.roseDark}; }
   span { font-size: 18px; }
+`
+
+export const FreeShipping = styled.div<{ $done: boolean }>`
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: ${({ $done }) => ($done ? '#EAF5EC' : colors.blushSoft)};
+  color: ${colors.plum};
+  font-size: 13px;
+  strong { color: ${({ $done }) => ($done ? colors.success : colors.roseDark)}; }
+  .bar { display: block; height: 7px; margin-top: 8px; overflow: hidden; border-radius: 999px; background: ${colors.line}; }
+  .bar span { display: block; height: 100%; border-radius: 999px; background: ${({ $done }) => ($done ? colors.success : colors.rose)}; transition: width .4s ease; }
+  button { margin-top: 8px; padding: 0; border: 0; background: none; color: ${colors.roseDark}; font: 600 13px ${fonts.sans}; text-decoration: underline; cursor: pointer; }
+  ${({ $done }) => $done && css`.bar { display: none; }`}
+`
+
+export const Done = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 36px 4px 20px;
+  text-align: center;
+  .check { width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; background: #EAF5EC; color: ${colors.success}; font-size: 30px; font-weight: 700; }
+  h3 { font: 400 28px ${fonts.serif}; }
+  .ref { color: ${colors.muted}; font-size: 14px; }
+  .ref strong { color: ${colors.plum}; letter-spacing: .5px; }
+  .reserve { max-width: 360px; color: #6B5659; font-size: 14px; line-height: 1.6; }
+  .whatsapp { width: 100%; min-height: 54px; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 999px; background: #1F9D55; color: ${colors.white}; font-size: 15px; font-weight: 700; }
+  .whatsapp:hover { background: #17834A; color: ${colors.white}; }
+  .pix { width: 100%; margin-top: 8px; text-align: left; }
+  .pix > p { margin-bottom: 8px; color: ${colors.muted}; font-size: 13px; }
+  .keep { margin-top: 6px; padding: 10px; border: 0; background: none; color: ${colors.roseDark}; font: 600 14px ${fonts.sans}; cursor: pointer; }
 `

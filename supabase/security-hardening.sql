@@ -14,16 +14,22 @@ revoke execute on function public.cancel_store_order(uuid) from public, anon;
 revoke execute on function public.is_store_admin() from public, anon;
 
 do $$
+declare
+  v_function regprocedure;
 begin
-  if to_regprocedure('public.finalizar_recebimento(uuid)') is not null then
-    execute 'revoke execute on function public.finalizar_recebimento(uuid) from public, anon, authenticated';
-  end if;
-  if to_regprocedure('public.match_documents(vector, integer, jsonb)') is not null then
-    execute 'revoke execute on function public.match_documents(vector, integer, jsonb) from public, anon, authenticated';
-  end if;
-  if to_regprocedure('public.set_updated_at()') is not null then
-    execute 'alter function public.set_updated_at() set search_path = ''''';
-  end if;
+  -- Funções antigas de outro projeto (apontam para tabelas que não existem neste banco).
+  for v_function in
+    select p.oid::regprocedure from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname in ('finalizar_recebimento', 'match_documents')
+  loop
+    execute format('revoke execute on function %s from public, anon, authenticated', v_function);
+  end loop;
+  for v_function in
+    select p.oid::regprocedure from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'set_updated_at'
+  loop
+    execute format('alter function %s set search_path = %L', v_function, '');
+  end loop;
 end;
 $$;
 

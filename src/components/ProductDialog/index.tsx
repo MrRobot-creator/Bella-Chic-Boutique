@@ -7,6 +7,7 @@ import { trackEvent } from '../../services/analytics'
 import { Backdrop } from '../ui'
 import { formatPrice, getDiscount, getProductImages } from '../ProductCard'
 import RestockForm from '../ProductCard/RestockForm'
+import { averageRating, fetchApprovedReviews, ProductReview } from '../../services/reviews'
 import {
   AddRow,
   Arrow,
@@ -20,6 +21,8 @@ import {
   MainImage,
   PriceRow,
   Quantity,
+  RatingLink,
+  Reviews,
   Share,
   SizeGuide,
   StockNote,
@@ -52,6 +55,13 @@ const ProductDialog = ({ product, relatedProducts, isFavorite, onToggleFavorite,
   const [zoomPaused, setZoomPaused] = useState(false)
   const [origin, setOrigin] = useState({ x: 50, y: 50 })
   const [shareStatus, setShareStatus] = useState('')
+  const [reviews, setReviews] = useState<ProductReview[]>([])
+
+  useEffect(() => {
+    let active = true
+    fetchApprovedReviews(product.id).then((loaded) => { if (active) setReviews(loaded) })
+    return () => { active = false }
+  }, [product.id])
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const lastTouch = useRef(0)
@@ -239,6 +249,15 @@ const ProductDialog = ({ product, relatedProducts, isFavorite, onToggleFavorite,
         <Details>
           <span className="category">{product.category}</span>
           <h2 id={`product-title-${product.id}`}>{product.name}</h2>
+          {reviews.length > 0 && (
+            <RatingLink href={`#reviews-${product.id}`} onClick={(event: MouseEvent<HTMLAnchorElement>) => {
+              event.preventDefault()
+              document.getElementById(`reviews-${product.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }}>
+              <span className="stars" aria-hidden="true">{'★'.repeat(Math.round(averageRating(reviews)))}{'☆'.repeat(5 - Math.round(averageRating(reviews)))}</span>
+              {averageRating(reviews).toLocaleString('pt-BR')} · {reviews.length} {reviews.length === 1 ? 'avaliação' : 'avaliações'}
+            </RatingLink>
+          )}
           <PriceRow>
             <strong>{formatPrice(product.price)}</strong>
             {discount > 0 && product.oldPrice && <><s>{formatPrice(product.oldPrice)}</s><span className="off">-{discount}%</span></>}
@@ -347,6 +366,30 @@ const ProductDialog = ({ product, relatedProducts, isFavorite, onToggleFavorite,
             <svg width="18" height="18" viewBox="0 0 24 24" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" /></svg>
             {isFavorite ? 'Nos seus favoritos' : 'Salvar nos favoritos'}
           </FavoriteToggle>
+
+          {reviews.length > 0 && (
+            <Reviews id={`reviews-${product.id}`} aria-labelledby={`reviews-title-${product.id}`}>
+              <h3 id={`reviews-title-${product.id}`}>Quem comprou, amou</h3>
+              {reviews.slice(0, 6).map((review) => (
+                <article key={review.id}>
+                  <div className="head">
+                    <span className="stars" aria-label={`${review.rating} de 5 estrelas`}>{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</span>
+                    <span className="who">{review.customerName} · {new Date(review.createdAt).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })}</span>
+                  </div>
+                  {review.comment && <p>{review.comment}</p>}
+                  {review.photos.length > 0 && (
+                    <div className="photos">
+                      {review.photos.map((photo, index) => (
+                        <a key={photo} href={photo} target="_blank" rel="noopener noreferrer" aria-label={`Foto ${index + 1} enviada por ${review.customerName}`}>
+                          <img src={photo} alt="" loading="lazy" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              ))}
+            </Reviews>
+          )}
 
           {relatedProducts.length > 0 && (
             <Look aria-labelledby={`look-${product.id}`}>

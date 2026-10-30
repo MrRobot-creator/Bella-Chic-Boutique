@@ -25,6 +25,10 @@ type OrderDetails = {
   subtotal: number
   discount?: number
   couponCode?: string
+  /** Pix copia e cola disponível no site depois do pedido. */
+  pixAvailable?: boolean
+  /** Até quando as peças ficam separadas. */
+  reservedUntil?: string | null
 }
 
 export type OrderMessageItem = {
@@ -64,7 +68,7 @@ export const createOrderMessage = (items: OrderMessageItem[], order: OrderDetail
     `Nome: ${order.name}`,
     `Telefone: ${order.phone}`,
     order.email ? `E-mail: ${order.email}` : '',
-    order.couponCode ? `Cupom aplicado: ${order.couponCode} (-10%)` : '',
+    order.couponCode ? `Cupom aplicado: ${order.couponCode}` : '',
     '',
     separator,
     '\u{1F3E0} *UNIDADE E ATENDIMENTO*',
@@ -90,11 +94,14 @@ export const createOrderMessage = (items: OrderMessageItem[], order: OrderDetail
     separator,
     '\u{1F4B3} *FORMA DE PAGAMENTO*',
     order.payment === 'Pix'
-      ? 'PIX — Aguardo as instruções de pagamento Pix da atendente.'
+      ? order.pixAvailable
+        ? 'PIX — Vou pagar pelo Pix copia e cola do site e envio o comprovante aqui.'
+        : 'PIX — Aguardo as instruções de pagamento Pix da atendente.'
       : order.payment === 'Link de pagamento'
       ? 'Link de pagamento — aguardo o envio do link seguro pela atendente.'
       : `${order.payment} — confirmar detalhes com a atendente`,
     '',
+    order.reservedUntil ? `\u{23F3} Peças separadas para mim até ${new Date(order.reservedUntil).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.` : '',
     '_Pedido sujeito à confirmação de disponibilidade, frete e pagamento pela atendente._'
   ]
     .filter(Boolean)
