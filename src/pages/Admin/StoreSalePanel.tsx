@@ -2,7 +2,7 @@ import { FormEvent, useMemo, useState } from 'react'
 import { Product } from '../../types/store'
 import { storeConfig } from '../../config/store'
 import { registerStoreSale, StoreOrder } from '../../services/orders'
-import { getVariantStock } from '../../utils/inventory'
+import { availableInUnit } from '../../utils/inventory'
 import { AdminButton, AdminNotice, AdminPanel, DataTable, FormGrid } from './styles'
 
 type Line = { key: number; productId: string; size: string; color: string; quantity: string }
@@ -15,11 +15,14 @@ const newLine = (): Line => ({ key: ++lineKey, productId: '', size: '', color: '
 
 type StoreSalePanelProps = {
   products: Product[]
+  /** Loja da atendente (fixa); null para a dona escolher. */
+  adminUnitId: string | null
   onSold: () => void
 }
 
-const StoreSalePanel = ({ products, onSold }: StoreSalePanelProps) => {
-  const [unitId, setUnitId] = useState(storeConfig.units[0].id)
+const StoreSalePanel = ({ products, adminUnitId, onSold }: StoreSalePanelProps) => {
+  const [chosenUnitId, setUnitId] = useState(storeConfig.units[0].id)
+  const unitId = adminUnitId || chosenUnitId
   const [payment, setPayment] = useState<StoreOrder['payment']>('Pix')
   const [lines, setLines] = useState<Line[]>([newLine()])
   const [discount, setDiscount] = useState('')
@@ -71,9 +74,9 @@ const StoreSalePanel = ({ products, onSold }: StoreSalePanelProps) => {
     }
     for (const item of items) {
       const product = products.find((candidate) => candidate.id === item.productId)
-      const stock = product ? getVariantStock(product.variantStock, item.size, item.color) : 0
+      const stock = product ? availableInUnit(product, unitId, item.size, item.color) : 0
       if (item.quantity > stock) {
-        setError(`${product?.name || 'Peça'} (${item.size}, ${item.color}) tem só ${stock} no estoque.`)
+        setError(`${product?.name || 'Peça'} (${item.size}, ${item.color}) tem só ${stock} nesta loja.`)
         return
       }
     }
@@ -111,15 +114,19 @@ const StoreSalePanel = ({ products, onSold }: StoreSalePanelProps) => {
   return (
     <AdminPanel>
       <h2>Venda no balcão</h2>
-      <p>Registre aqui as vendas feitas na loja física. O estoque do site baixa na hora e a venda entra no resumo, separada como balcão.</p>
+      <p>Registre aqui as vendas feitas na loja física. O estoque da loja baixa na hora e a venda entra no resumo da loja, separada como balcão.</p>
       {error && <AdminNotice $error role="alert">{error}</AdminNotice>}
       {notice && <AdminNotice role="status">{notice}</AdminNotice>}
       <form onSubmit={submit}>
         <FormGrid>
           <label>Loja
-            <select value={unitId} onChange={(event) => setUnitId(event.target.value)}>
-              {storeConfig.units.map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}
-            </select>
+            {adminUnitId ? (
+              <input id="sale-unit" value={storeConfig.units.find((unit) => unit.id === adminUnitId)?.name || ''} readOnly />
+            ) : (
+              <select id="sale-unit" value={unitId} onChange={(event) => setUnitId(event.target.value)}>
+                {storeConfig.units.map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}
+              </select>
+            )}
           </label>
           <label>Pagamento
             <select value={payment} onChange={(event) => setPayment(event.target.value as StoreOrder['payment'])}>
@@ -133,11 +140,11 @@ const StoreSalePanel = ({ products, onSold }: StoreSalePanelProps) => {
 
         <DataTable style={{ margin: '16px 0' }}>
           <table>
-            <thead><tr><th>Peça</th><th>Tamanho</th><th>Cor</th><th>Qtd.</th><th>Estoque</th><th>Valor</th><th /></tr></thead>
+            <thead><tr><th>Peça</th><th>Tamanho</th><th>Cor</th><th>Qtd.</th><th>Nesta loja</th><th>Valor</th><th /></tr></thead>
             <tbody>
               {lines.map((line) => {
                 const product = productOf(line)
-                const stock = product && line.size && line.color ? getVariantStock(product.variantStock, line.size, line.color) : null
+                const stock = product && line.size && line.color ? availableInUnit(product, unitId, line.size, line.color) : null
                 return (
                   <tr key={line.key}>
                     <td style={{ minWidth: 180 }}>

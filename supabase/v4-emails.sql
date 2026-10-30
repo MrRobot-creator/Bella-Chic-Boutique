@@ -1,6 +1,6 @@
 -- Bella Chic v4: e-mails automáticos de pedido para a cliente, enviados pelo Resend.
 --
--- Rode DEPOIS de supabase/v3-gestao.sql. Pode ser executado mais de uma vez.
+-- Rode DEPOIS de supabase/v3-gestao.sql e supabase/v5-unidades.sql. Pode ser executado mais de uma vez.
 -- Os e-mails só saem depois que você:
 --   1. verificar o domínio no Resend (ex.: bellachicboutique.com.br);
 --   2. guardar a chave da API do Resend no cofre do Supabase (passo no fim deste arquivo);
@@ -17,6 +17,9 @@ do $$
 begin
   if to_regclass('public.store_settings') is null then
     raise exception 'Rode primeiro supabase/v3-gestao.sql';
+  end if;
+  if to_regclass('public.store_units') is null then
+    raise exception 'Rode primeiro supabase/v5-unidades.sql';
   end if;
 end;
 $$;
@@ -64,7 +67,7 @@ drop policy if exists "Store admins can read email log" on public.email_log;
 create policy "Store admins can read email log"
   on public.email_log for select
   to authenticated
-  using ((select public.is_store_admin()));
+  using ((select public.is_store_owner()));
 
 do $$
 begin
@@ -207,6 +210,7 @@ set search_path = ''
 as $$
 declare
   v_settings public.store_settings%rowtype;
+  v_unit public.store_units%rowtype;
   v_site text;
   -- Só o primeiro nome, só com letras: o campo é digitado pela cliente.
   v_first text := left(regexp_replace(split_part(btrim(coalesce(p_order.customer->>'name', '')), ' ', 1), '[^[:alpha:]]', '', 'g'), 20);
@@ -225,6 +229,8 @@ declare
   v_cta_url text;
 begin
   select * into v_settings from public.store_settings where id = 1;
+  -- Pix da loja do pedido.
+  select * into v_unit from public.store_units where id = p_order.unit_id;
   v_site := coalesce(nullif(v_settings.site_url, ''), 'https://bella-chic-boutique.vercel.app');
   v_hello := case when v_first <> '' then 'Oi, ' || public.html_escape(v_first) || '!' else 'Oi!' end;
 
@@ -254,12 +260,12 @@ begin
     || '<p style="margin:8px 0 0;font-size:13px;color:#7A6567;">' || v_where || ' · Pagamento: ' || public.html_escape(p_order.payment) || '</p>';
 
   if p_order.payment = 'Pix' and p_order.paid_at is null
-    and v_settings.pix_key is not null and v_settings.pix_name is not null and v_settings.pix_city is not null then
+    and v_unit.pix_key is not null and v_unit.pix_name is not null and v_unit.pix_city is not null then
     v_pix := '<div style="margin:18px 0 0;padding:16px;border-radius:14px;background:#FBF1F2;">'
       || '<div style="font-size:13px;font-weight:bold;color:#A72F48;">Pix copia e cola · ' || public.brl(v_total) || '</div>'
       || '<div style="margin-top:6px;font-size:13px;color:#5E474B;">No app do seu banco, escolha <b>Pix copia e cola</b> e cole o código abaixo. Depois envie o comprovante no WhatsApp da loja.</div>'
       || '<div style="margin-top:10px;padding:10px;border-radius:10px;background:#FFFFFF;font-family:Menlo,Consolas,monospace;font-size:12px;color:#3E2A2E;word-break:break-all;">'
-      || public.html_escape(public.pix_payload(v_settings.pix_key, v_settings.pix_name, v_settings.pix_city, v_total, p_order.reference)) || '</div></div>';
+      || public.html_escape(public.pix_payload(v_unit.pix_key, v_unit.pix_name, v_unit.pix_city, v_total, p_order.reference)) || '</div></div>';
   end if;
 
   v_cta_label := 'Falar com a loja no WhatsApp';
@@ -434,7 +440,7 @@ declare
   v_sample public.store_orders;
   v_content jsonb;
 begin
-  if not (select public.is_store_admin()) then
+  if not (select public.is_store_owner()) then
     raise exception 'Not authorized';
   end if;
   if p_to is null or btrim(p_to) !~ '^[^\s@]+@[^\s@]+\.[^\s@]+$' then
@@ -452,6 +458,7 @@ begin
   v_sample.reference := 'BC-TESTE000000000';
   v_sample.status := 'pending';
   v_sample.channel := 'site';
+  v_sample.unit_id := 'galeria-portuense';
   v_sample.customer := jsonb_build_object('name', 'Cliente Teste', 'phone', '', 'email', btrim(p_to));
   v_sample.items := '[{"name":"Vestido Dress","size":"U","color":"Rosa","quantity":1,"unitPrice":75}]'::jsonb;
   v_sample.unit := '{"name":"Galeria Portuense","address":"Tv. Padre Eutíquio, 1055 - Batista Campos","storePhone":"5591980648559"}'::jsonb;
@@ -492,7 +499,7 @@ security definer
 set search_path = ''
 as $$
 begin
-  if not (select public.is_store_admin()) then
+  if not (select public.is_store_owner()) then
     raise exception 'Not authorized';
   end if;
   if to_regclass('net._http_response') is null then

@@ -1,5 +1,6 @@
 import type { StoreOrder } from '../services/orders'
 import { orderTotal } from '../services/orders'
+import { unitPix } from '../services/settings'
 import type { StoreSettings } from '../services/settings'
 import { buildPixPayload } from './pix'
 
@@ -12,10 +13,11 @@ export const firstName = (name: string) => name.trim().split(/\s+/)[0] || ''
 export const reviewUrl = (order: Pick<StoreOrder, 'review_token'>, origin: string) =>
   order.review_token ? `${origin.replace(/\/+$/, '')}/avaliar/${order.review_token}` : ''
 
-export const orderPixPayload = (order: Pick<StoreOrder, 'reference' | 'subtotal' | 'discount' | 'fulfillment'>, settings: StoreSettings) =>
-  settings.pixKey && settings.pixName && settings.pixCity
-    ? buildPixPayload({ key: settings.pixKey, name: settings.pixName, city: settings.pixCity, amount: orderTotal(order), txid: order.reference })
-    : ''
+/** Pix copia e cola do pedido, com a chave da loja do pedido. */
+export const orderPixPayload = (order: Pick<StoreOrder, 'reference' | 'subtotal' | 'discount' | 'fulfillment' | 'unit' | 'unit_id'>, settings: StoreSettings) => {
+  const pix = unitPix(settings, order.unit_id || order.unit.name)
+  return pix ? buildPixPayload({ key: pix.key, name: pix.name, city: pix.city, amount: orderTotal(order), txid: order.reference }) : ''
+}
 
 /** Mensagem pronta para mandar à cliente em cada etapa do pedido. */
 export const orderStatusMessage = (order: StoreOrder, step: MessageStep, settings: StoreSettings, origin: string) => {

@@ -70,8 +70,8 @@ o e-mail de outra pessoa poderia usar o campo para mandar uma mensagem falsa.
 
 ## 5. Ligar os e-mails de pedido
 
-1. No SQL Editor do Supabase, rode `supabase/v3-gestao.sql` (se ainda não rodou) e depois
-   `supabase/v4-emails.sql`.
+1. No SQL Editor do Supabase, rode `supabase/v3-gestao.sql` e `supabase/v5-unidades.sql` (se ainda
+   não rodou) e depois `supabase/v4-emails.sql`. O Pix copia e cola do e-mail usa a chave da loja do pedido.
 2. Resend › **API Keys › Create API Key**, permissão **Sending access**, domínio da loja. Copie a chave
    (começa com `re_`). Ela só aparece uma vez.
 3. No SQL Editor, rode a linha abaixo colando a sua chave no lugar de `re_SUA_CHAVE`. A chave fica

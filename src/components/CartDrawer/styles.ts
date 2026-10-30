@@ -28,6 +28,7 @@ export const Drawer = styled.aside`
   .checkout-form h3 { margin-bottom: 14px; font: 400 24px ${fonts.serif}; }
   .checkout-form > label { display: block; margin: 14px 0; color: #6B5659; font-size: 13px; font-weight: 500; }
   .checkout-form > label .unit-address { display: block; margin-top: 6px; color: ${colors.soft}; font-size: 12px; font-weight: 400; line-height: 1.5; }
+  .checkout-form .unit-warning { margin: 14px 0 0; padding: 12px 14px; border-radius: 14px; background: ${colors.blushSoft}; color: ${colors.roseDark}; font-size: 13px; font-weight: 600; line-height: 1.5; }
   .checkout-form input:not([type="radio"]), .checkout-form select, .checkout-form textarea {
     width: 100%;
     min-height: 46px;
@@ -120,6 +121,7 @@ export const ItemDetails = styled.div`
   p { margin: 4px 0 6px; color: ${colors.muted}; font-size: 13px; }
   strong { color: ${colors.plum}; font-size: 15px; }
   small { display: block; margin-top: 6px; color: ${colors.soft}; font-size: 11px; }
+  small.warn { color: ${colors.roseDark}; font-size: 12px; font-weight: 600; line-height: 1.4; }
   .quantity { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
   .quantity button:not(:last-child) { width: 30px; height: 30px; border: 1px solid ${colors.lineStrong}; border-radius: 50%; background: ${colors.white}; color: ${colors.plum}; font-size: 15px; }
   .quantity span { min-width: 14px; text-align: center; font-size: 14px; font-weight: 600; }

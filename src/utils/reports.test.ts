@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals'
-import { buildSalesSummary, ordersToCsv } from './reports'
+import { buildSalesSummary, ordersOfUnit, ordersToCsv } from './reports'
 import type { StoreOrder } from '../services/orders'
 
 const order = (overrides: Partial<StoreOrder>): StoreOrder => ({
@@ -61,6 +61,23 @@ describe('buildSalesSummary', () => {
     expect(summary.revenue).toBe(330)
     expect(summary.storeCount).toBe(1)
     expect(summary.storeRevenue).toBe(100)
+  })
+
+  it('separa o faturamento por loja (pelo unit_id ou pelo nome gravado no pedido)', () => {
+    const cidade = { name: 'Cidade Nova 4', address: '', attendant: '', storePhone: '' }
+    const orders = [
+      order({ unit: { name: 'Galeria Portuense', address: '', attendant: '', storePhone: '' } }),
+      order({ id: '2', unit_id: 'cidade-nova-4', unit: cidade, subtotal: 100, discount: 0 }),
+      order({ id: '3', unit: cidade, channel: 'balcao', status: 'delivered', subtotal: 50, discount: 0 }),
+      order({ id: '4', unit: cidade, status: 'cancelled', subtotal: 999, discount: 0 })
+    ]
+    const summary = buildSalesSummary(orders, new Date('2026-10-01T00:00:00Z'))
+    const galeria = summary.byUnit.find((unit) => unit.unitId === 'galeria-portuense')
+    const cidadeNova = summary.byUnit.find((unit) => unit.unitId === 'cidade-nova-4')
+    expect(galeria?.revenue).toBe(180)
+    expect(cidadeNova).toMatchObject({ revenue: 150, count: 2, storeRevenue: 50, storeCount: 1, siteCount: 1 })
+    expect(ordersOfUnit(orders, 'cidade-nova-4').map((item) => item.id)).toEqual(['2', '3', '4'])
+    expect(ordersOfUnit(orders, null)).toHaveLength(4)
   })
 })
 

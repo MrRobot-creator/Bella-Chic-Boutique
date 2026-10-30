@@ -24,6 +24,8 @@ export type StoreOrder = {
   customer: { name: string; phone: string; email?: string }
   items: StoreOrderItem[]
   unit: { name: string; address: string; attendant: string; storePhone: string }
+  /** Loja do pedido (supabase/v5-unidades.sql). */
+  unit_id?: string | null
   fulfillment: {
     type: 'Entrega' | 'Retirada na loja'
     street: string
@@ -141,6 +143,12 @@ export const orderError = (error: Error) => {
   }
   if (message.includes('invalid customer phone')) {
     return new Error('Informe seu WhatsApp com DDD, por exemplo (91) 99999-9999.')
+  }
+  if (message.includes('insufficient stock in this store')) {
+    const product = error.message.match(/for product (.+)$/i)?.[1]
+    return new Error(product
+      ? `A loja escolhida não tem ${product} suficiente nesta variação. Troque a loja ou diminua a quantidade.`
+      : 'A loja escolhida não tem estoque suficiente. Troque a loja ou diminua a quantidade.')
   }
   if (message.includes('insufficient stock')) {
     const product = error.message.match(/for product (.+)$/i)?.[1]

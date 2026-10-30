@@ -2,6 +2,14 @@ import { customerWhatsApp, orderStatusMessage, reviewUrl } from './orderMessages
 import type { StoreOrder } from '../services/orders'
 import { defaultSettings } from '../services/settings'
 
+const withPix = {
+  ...defaultSettings,
+  units: [
+    { unitId: 'galeria-portuense', name: 'Galeria Portuense', pixKey: '+5591980648559', pixName: 'Bella Chic', pixCity: 'Belem' },
+    { unitId: 'cidade-nova-4', name: 'Cidade Nova 4', pixKey: 'cidadenova@exemplo.com', pixName: 'Bella Chic CN', pixCity: 'Ananindeua' }
+  ]
+}
+
 const order: StoreOrder = {
   id: '1',
   reference: 'BC-0000000000000001',
@@ -30,10 +38,21 @@ const order: StoreOrder = {
 
 describe('Mensagens das etapas do pedido', () => {
   it('confirmação com Pix copia e cola quando a loja configurou a chave', () => {
-    const message = orderStatusMessage(order, 'confirmed', { ...defaultSettings, pixKey: '+5591980648559', pixName: 'Bella Chic', pixCity: 'Belem' }, 'https://loja.com')
+    const message = orderStatusMessage(order, 'confirmed', withPix, 'https://loja.com')
     expect(message).toContain('Oi, Maria!')
     expect(message.replace(/ /g, ' ')).toContain('Total: R$ 87,00 (com entrega)')
     expect(message).toContain('br.gov.bcb.pix')
+    expect(message).toContain('+5591980648559')
+  })
+
+  it('cada loja usa a sua chave Pix', () => {
+    const cidadeNova = orderStatusMessage({ ...order, unit_id: 'cidade-nova-4', unit: { ...order.unit, name: 'Cidade Nova 4' } }, 'confirmed', withPix, '')
+    expect(cidadeNova).toContain('cidadenova@exemplo.com')
+    expect(cidadeNova).not.toContain('+5591980648559')
+    // Pedido antigo, sem unit_id: a loja vem pelo nome.
+    expect(orderStatusMessage({ ...order, unit: { ...order.unit, name: 'Cidade Nova 4' } }, 'confirmed', withPix, '')).toContain('cidadenova@exemplo.com')
+    const onlyGaleria = { ...defaultSettings, units: withPix.units.map((unit) => (unit.unitId === 'cidade-nova-4' ? { ...unit, pixKey: null } : unit)) }
+    expect(orderStatusMessage({ ...order, unit_id: 'cidade-nova-4' }, 'confirmed', onlyGaleria, '')).not.toContain('br.gov.bcb.pix')
   })
 
   it('confirmação sem Pix configurado não inventa código', () => {

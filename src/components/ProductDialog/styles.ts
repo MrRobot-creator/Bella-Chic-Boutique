@@ -277,6 +277,18 @@ export const StockNote = styled.p<{ $tone: 'ok' | 'low' | 'out' }>`
   font-weight: ${({ $tone }) => ($tone === 'ok' ? 400 : 600)};
 `
 
+export const UnitAvailability = styled.ul`
+  display: grid;
+  gap: 6px;
+  margin: -4px 0 0;
+  padding: 0;
+  list-style: none;
+  li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; border-radius: 12px; background: ${colors.blushSoft}; font-size: 13px; }
+  li span { color: ${colors.muted}; }
+  li strong { color: ${colors.plum}; font-weight: 600; }
+  li.none strong { color: ${colors.soft}; font-weight: 500; }
+`
+
 export const AddRow = styled.div`
   display: flex;
   gap: 10px;

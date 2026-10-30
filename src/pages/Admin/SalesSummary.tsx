@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Product } from '../../types/store'
 import { fetchOrdersSince, StoreOrder } from '../../services/orders'
 import { getLowStockVariants } from '../../utils/inventory'
-import { buildSalesSummary, downloadTextFile, ordersToCsv, startOfMonth } from '../../utils/reports'
-import { AdminButton, AdminNotice, AdminPanel, PanelHeading, StatGrid, SummaryColumns } from './styles'
+import { buildSalesSummary, downloadTextFile, ordersOfUnit, ordersToCsv, startOfMonth } from '../../utils/reports'
+import { storeConfig } from '../../config/store'
+import { unitNameOf } from '../../utils/units'
+import { AdminButton, AdminNotice, AdminPanel, DataTable, PanelHeading, StatGrid, SummaryColumns } from './styles'
 
 type Period = 'month' | 'last-month' | '30d' | '90d' | 'all'
 
@@ -30,11 +32,14 @@ const formatPrice = (value: number) => value.toLocaleString('pt-BR', { style: 'c
 type SalesSummaryProps = {
   products: Product[]
   refreshKey: number
+  /** Loja da atendente (o banco só devolve a dela); null para a dona. */
+  adminUnitId: string | null
 }
 
-const SalesSummary = ({ products, refreshKey }: SalesSummaryProps) => {
+const SalesSummary = ({ products, refreshKey, adminUnitId }: SalesSummaryProps) => {
   const [period, setPeriod] = useState<Period>('month')
-  const [orders, setOrders] = useState<StoreOrder[]>([])
+  const [unitFilter, setUnitFilter] = useState('')
+  const [allOrders, setOrders] = useState<StoreOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -56,23 +61,39 @@ const SalesSummary = ({ products, refreshKey }: SalesSummaryProps) => {
     load(period)
   }, [load, period, refreshKey])
 
+  const unitId = adminUnitId || unitFilter || null
+  const orders = useMemo(() => ordersOfUnit(allOrders, unitId), [allOrders, unitId])
   const summary = useMemo(
     () => buildSalesSummary(orders, getPeriodRange(period).since || new Date(0)),
     [orders, period]
   )
-  const lowStock = useMemo(() => getLowStockVariants(products), [products])
+  const byUnit = useMemo(
+    () => buildSalesSummary(allOrders, getPeriodRange(period).since || new Date(0)).byUnit,
+    [allOrders, period]
+  )
+  const lowStock = useMemo(() => getLowStockVariants(products, unitId), [products, unitId])
 
   const exportCsv = () => {
     const today = new Date().toISOString().slice(0, 10)
     const slug = period === 'all' ? 'todos' : period
-    downloadTextFile(`pedidos-bella-chic-${slug}-${today}.csv`, ordersToCsv(orders))
+    const unitSlug = unitId ? `-${unitId}` : ''
+    downloadTextFile(`pedidos-bella-chic${unitSlug}-${slug}-${today}.csv`, ordersToCsv(orders))
   }
 
   return (
     <AdminPanel>
       <PanelHeading>
-        <h2>Resumo de vendas</h2>
+        <h2>Resumo de vendas{unitId ? ` · ${unitNameOf(unitId)}` : ''}</h2>
         <div className="controls">
+          {!adminUnitId && (
+            <>
+              <label className="sr-only" htmlFor="summary-unit">Loja</label>
+              <select id="summary-unit" value={unitFilter} onChange={(event) => setUnitFilter(event.target.value)}>
+                <option value="">As duas lojas</option>
+                {storeConfig.units.map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}
+              </select>
+            </>
+          )}
           <label className="sr-only" htmlFor="summary-period">Período</label>
           <select id="summary-period" value={period} onChange={(event) => setPeriod(event.target.value as Period)}>
             {(Object.keys(periodLabels) as Period[]).map((option) => (
@@ -110,6 +131,27 @@ const SalesSummary = ({ products, refreshKey }: SalesSummaryProps) => {
         </div>
       </StatGrid>
 
+      {!adminUnitId && !unitFilter && (
+        <DataTable style={{ marginBottom: 18 }}>
+          <table>
+            <thead>
+              <tr><th>Loja</th><th style={{ textAlign: 'right' }}>Faturamento</th><th style={{ textAlign: 'right' }}>Vendas</th><th style={{ textAlign: 'right' }}>Site</th><th style={{ textAlign: 'right' }}>Balcão</th></tr>
+            </thead>
+            <tbody>
+              {byUnit.map((unit) => (
+                <tr key={unit.unitId}>
+                  <td>{unit.name}</td>
+                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}><strong>{loading ? '…' : formatPrice(unit.revenue)}</strong></td>
+                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{loading ? '…' : unit.count}</td>
+                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{loading ? '…' : unit.siteCount}</td>
+                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{loading ? '…' : `${unit.storeCount} · ${formatPrice(unit.storeRevenue)}`}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </DataTable>
+      )}
+
       <SummaryColumns>
         <section>
           <h3>Mais vendidas · {periodLabels[period].toLowerCase()}</h3>
@@ -126,7 +168,7 @@ const SalesSummary = ({ products, refreshKey }: SalesSummaryProps) => {
           )}
         </section>
         <section>
-          <h3>Estoque baixo ({lowStock.length})</h3>
+          <h3>Estoque baixo{unitId ? ` na ${unitNameOf(unitId)}` : ''} ({lowStock.length})</h3>
           {lowStock.length === 0 ? (
             <p className="empty">Nenhuma variação com 2 unidades ou menos. 🎉</p>
           ) : (

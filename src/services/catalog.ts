@@ -1,10 +1,11 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
-import { Product, VariantStock } from '../types/store'
+import { Product, UnitStock, VariantStock } from '../types/store'
 
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY
 const productImagesBucket = 'bella-chic-products'
-const catalogColumns = 'id,name,category,description,price,old_price,image,images,sizes,size_fit,colors,variant_stock,tag,is_available'
+const baseColumns = 'id,name,category,description,price,old_price,image,images,sizes,size_fit,colors,variant_stock,tag,is_available'
+const catalogColumns = `${baseColumns},unit_stock`
 
 export const supabase: SupabaseClient | null = supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey)
@@ -23,14 +24,15 @@ type CatalogRow = {
   size_fit: string | null
   colors: Product['colors']
   variant_stock: VariantStock[] | null
+  unit_stock?: UnitStock[] | null
   tag: string | null
   is_available: boolean
 }
 
-export type CatalogProductInput = Omit<Product, 'id' | 'available'> & {
+/** O estoque não vai junto: cada loja lança o seu em Estoque (setUnitStock). */
+export type CatalogProductInput = Omit<Product, 'id' | 'available' | 'variantStock' | 'unitStock'> & {
   available: boolean
   enabled: boolean
-  variantStock: VariantStock[]
 }
 
 const toProduct = (row: CatalogRow): Product => {
@@ -48,6 +50,7 @@ const toProduct = (row: CatalogRow): Product => {
     sizeFit: row.size_fit || undefined,
     colors: row.colors,
     variantStock,
+    unitStock: Array.isArray(row.unit_stock) ? row.unit_stock : undefined,
     tag: row.tag || undefined,
     available: row.is_available && variantStock.some((variant) => variant.quantity > 0),
     enabled: row.is_available
@@ -65,7 +68,6 @@ const toRow = (product: CatalogProductInput) => ({
   sizes: product.sizes,
   size_fit: product.sizeFit?.trim() || null,
   colors: product.colors,
-  variant_stock: product.variantStock,
   tag: product.tag || null,
   is_available: product.enabled
 })
@@ -84,37 +86,35 @@ const requireSupabase = () => {
   return supabase
 }
 
-export const fetchCatalogProducts = async (): Promise<Product[]> => {
-  const { data, error } = await requireSupabase()
-    .from('catalog_products')
-    .select(catalogColumns)
-    .order('id', { ascending: true })
-
-  if (error) throw catalogError(error)
-  return (data as CatalogRow[]).map(toProduct)
+/** Lê o catálogo; antes do v5-unidades.sql o banco ainda não tem o estoque por loja. */
+const loadCatalog = async (): Promise<Product[]> => {
+  const client = requireSupabase()
+  const first = await client.from('catalog_products').select(catalogColumns).order('id', { ascending: true })
+  if (!first.error) return (first.data as unknown as CatalogRow[]).map(toProduct)
+  if (!first.error.message.includes('unit_stock')) throw catalogError(first.error)
+  const fallback = await client.from('catalog_products').select(baseColumns).order('id', { ascending: true })
+  if (fallback.error) throw catalogError(fallback.error)
+  return (fallback.data as unknown as CatalogRow[]).map(toProduct)
 }
 
-export const fetchAdminProducts = async (): Promise<Product[]> => {
+export const fetchCatalogProducts = loadCatalog
+
+export const fetchAdminProducts = loadCatalog
+
+/** Acesso ao painel: unitId null é a dona (vê tudo); com loja, é a atendente daquela loja. */
+export type AdminAccess = { allowed: boolean; unitId: string | null }
+
+export const fetchAdminAccess = async (userId: string): Promise<AdminAccess> => {
   const client = requireSupabase()
-  const { data, error } = await client
-    .from('catalog_products')
-    .select(catalogColumns)
-    .order('id', { ascending: true })
-
-  if (error) throw catalogError(error)
-  return (data as CatalogRow[]).map(toProduct)
-}
-
-export const hasCatalogAdminAccess = async (userId: string): Promise<boolean> => {
-  const client = requireSupabase()
-  const { data, error } = await client
-    .from('store_admins')
-    .select('user_id')
-    .eq('user_id', userId)
-    .maybeSingle()
-
-  if (error) throw catalogError(error)
-  return Boolean(data)
+  const first = await client.from('store_admins').select('user_id,unit_id').eq('user_id', userId).maybeSingle()
+  if (!first.error) {
+    const row = first.data as { unit_id: string | null } | null
+    return { allowed: Boolean(row), unitId: row?.unit_id ?? null }
+  }
+  if (!first.error.message.includes('unit_id')) throw catalogError(first.error)
+  const fallback = await client.from('store_admins').select('user_id').eq('user_id', userId).maybeSingle()
+  if (fallback.error) throw catalogError(fallback.error)
+  return { allowed: Boolean(fallback.data), unitId: null }
 }
 
 export const saveCatalogProduct = async (product: CatalogProductInput, id?: number): Promise<Product> => {

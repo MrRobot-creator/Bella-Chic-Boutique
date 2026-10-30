@@ -9,6 +9,8 @@ import {
   updateOrderStatus
 } from '../../services/orders'
 import { hasPix, StoreSettings } from '../../services/settings'
+import { storeConfig } from '../../config/store'
+import { orderUnitId, unitNameOf } from '../../utils/units'
 import { createWhatsAppUrl } from '../../services/whatsapp'
 import { customerWhatsApp, MessageStep, orderPixPayload, orderStatusMessage } from '../../utils/orderMessages'
 import { AdminButton, AdminNotice, AdminPanel, OrderList, OrderRow, PanelHeading } from './styles'
@@ -63,11 +65,14 @@ const printLabel = (order: StoreOrder) => {
 type OrdersPanelProps = {
   settings: StoreSettings
   refreshKey: number
+  /** Loja da atendente (o banco só devolve os pedidos dela); null para a dona. */
+  adminUnitId: string | null
   onChanged: () => void
 }
 
-const OrdersPanel = ({ settings, refreshKey, onChanged }: OrdersPanelProps) => {
-  const [orders, setOrders] = useState<StoreOrder[]>([])
+const OrdersPanel = ({ settings, refreshKey, adminUnitId, onChanged }: OrdersPanelProps) => {
+  const [allOrders, setOrders] = useState<StoreOrder[]>([])
+  const [unitFilter, setUnitFilter] = useState('')
   const [loading, setLoading] = useState(true)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('open')
@@ -89,6 +94,11 @@ const OrdersPanel = ({ settings, refreshKey, onChanged }: OrdersPanelProps) => {
   }, [])
 
   useEffect(() => { load() }, [load, refreshKey])
+
+  const orders = useMemo(
+    () => (unitFilter ? allOrders.filter((order) => orderUnitId(order) === unitFilter) : allOrders),
+    [allOrders, unitFilter]
+  )
 
   const counts = useMemo(() => {
     const result = {} as Record<Filter, number>
@@ -160,6 +170,15 @@ const OrdersPanel = ({ settings, refreshKey, onChanged }: OrdersPanelProps) => {
         <h2>Pedidos</h2>
         <div className="controls">
           <label className="sr-only" htmlFor="orders-search">Buscar pedido</label>
+          {!adminUnitId && (
+            <>
+              <label className="sr-only" htmlFor="orders-unit">Loja</label>
+              <select id="orders-unit" value={unitFilter} onChange={(event) => setUnitFilter(event.target.value)} style={{ padding: '9px 10px', border: '1px solid #e8dedd', fontSize: 12 }}>
+                <option value="">As duas lojas</option>
+                {storeConfig.units.map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}
+              </select>
+            </>
+          )}
           <input id="orders-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Código, nome ou WhatsApp" style={{ padding: '9px 10px', border: '1px solid #e8dedd', fontSize: 12 }} />
           <AdminButton type="button" className="secondary" disabled={loading} onClick={load}>{loading ? 'Atualizando...' : 'Atualizar'}</AdminButton>
         </div>
@@ -171,7 +190,8 @@ const OrdersPanel = ({ settings, refreshKey, onChanged }: OrdersPanelProps) => {
           </AdminButton>
         ))}
       </div>
-      <p>Pedidos do site separam as peças na hora, por {settings.reservationMinutes >= 60 ? `${Math.round(settings.reservationMinutes / 60)} h` : `${settings.reservationMinutes} min`}. Pedidos sem confirmação em {settings.pendingExpireHours} h são cancelados sozinhos e as peças voltam ao estoque.</p>
+      {adminUnitId && <p><strong>Pedidos da {unitNameOf(adminUnitId)}.</strong></p>}
+      <p>Pedidos do site separam as peças da loja escolhida na hora, por {settings.reservationMinutes >= 60 ? `${Math.round(settings.reservationMinutes / 60)} h` : `${settings.reservationMinutes} min`}. Pedidos sem confirmação em {settings.pendingExpireHours} h são cancelados sozinhos e as peças voltam ao estoque.</p>
       {error && <AdminNotice $error role="alert">{error}</AdminNotice>}
       {notice && <AdminNotice role="status">{notice}</AdminNotice>}
       {loading && !orders.length ? <p>Carregando pedidos...</p> : visible.length === 0 ? <p>Nenhum pedido aqui.</p> : (
@@ -183,7 +203,7 @@ const OrdersPanel = ({ settings, refreshKey, onChanged }: OrdersPanelProps) => {
             const step = messageStep(order)
             const reservationActive = order.status === 'pending' && order.stock_taken && order.reserved_until && new Date(order.reserved_until) > new Date()
             const isPickup = order.fulfillment.type !== 'Entrega'
-            const canPix = order.payment === 'Pix' && hasPix(settings) && !order.paid_at && order.status !== 'cancelled' && order.channel === 'site'
+            const canPix = order.payment === 'Pix' && hasPix(settings, orderUnitId(order)) && !order.paid_at && order.status !== 'cancelled' && order.channel === 'site'
             return (
               <OrderRow key={order.id}>
                 <div className="order-heading">

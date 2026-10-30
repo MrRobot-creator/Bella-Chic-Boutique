@@ -1,6 +1,6 @@
 import { FormEvent, MouseEvent, useEffect, useRef, useState } from 'react'
 import { fetchMyOrders, orderStatusLabel, orderTotal, StoreOrder, StoreOrderItem } from '../../services/orders'
-import { hasPix, StoreSettings } from '../../services/settings'
+import { StoreSettings, unitPix } from '../../services/settings'
 import PixPayment from '../PixPayment'
 import styled from 'styled-components'
 import { Backdrop, ModalCard, PrimaryButton, RoundButton } from '../ui'
@@ -202,7 +202,8 @@ const AccountModal = ({ isOpen, customer, recoveringPassword, onClose, onNotify,
                 <p className="muted">Seus pedidos feitos com a conta aparecem aqui, com a etapa de cada um.</p>
               )}
               {orders.map((order) => {
-                const canPay = order.payment === 'Pix' && (order.status === 'pending' || order.status === 'confirmed') && hasPix(settings)
+                const pix = unitPix(settings, order.unit_id || order.unit.name)
+                const canPay = order.payment === 'Pix' && (order.status === 'pending' || order.status === 'confirmed') && Boolean(pix)
                 return (
                   <article key={order.id}>
                     <div className="top">
@@ -226,8 +227,8 @@ const AccountModal = ({ isOpen, customer, recoveringPassword, onClose, onNotify,
                         <button type="button" className="ghost" onClick={() => onReorder(order.items)}>Comprar de novo</button>
                       )}
                     </div>
-                    {canPay && pixOrderId === order.id && settings.pixKey && settings.pixName && settings.pixCity && (
-                      <PixPayment pixKey={settings.pixKey} name={settings.pixName} city={settings.pixCity} amount={orderTotal(order)} reference={order.reference} compact />
+                    {canPay && pixOrderId === order.id && pix && (
+                      <PixPayment pixKey={pix.key} name={pix.name} city={pix.city} amount={orderTotal(order)} reference={order.reference} compact />
                     )}
                   </article>
                 )

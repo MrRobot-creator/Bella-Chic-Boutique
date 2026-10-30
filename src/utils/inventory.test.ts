@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals'
-import { buildVariantStock, getLowStockVariants, getTotalStock, getVariantStock, isLowStock } from './inventory'
+import { availableInUnit, buildVariantStock, getLowStockVariants, getTotalStock, getUnitStock, getUnitTotal, getVariantStock, isLowStock } from './inventory'
 import { Product, VariantStock } from '../types/store'
 
 const makeProduct = (overrides: Partial<Product>): Product => ({
@@ -14,6 +14,32 @@ const makeProduct = (overrides: Partial<Product>): Product => ({
   available: true,
   enabled: true,
   ...overrides
+})
+
+describe('estoque por loja', () => {
+  const unitStock = [
+    { unit: 'galeria-portuense', size: 'P', color: 'Rosa', quantity: 3 },
+    { unit: 'cidade-nova-4', size: 'P', color: 'Rosa', quantity: 1 },
+    { unit: 'cidade-nova-4', size: 'M', color: 'Rosa', quantity: 2 }
+  ]
+  const product = makeProduct({ unitStock, variantStock: [{ size: 'P', color: 'Rosa', quantity: 4 }, { size: 'M', color: 'Rosa', quantity: 2 }] })
+
+  it('lê a quantidade de cada loja', () => {
+    expect(getUnitStock(unitStock, 'galeria-portuense', 'P', 'Rosa')).toBe(3)
+    expect(getUnitStock(unitStock, 'galeria-portuense', 'M', 'Rosa')).toBe(0)
+    expect(getUnitTotal(product, 'cidade-nova-4')).toBe(3)
+  })
+
+  it('sem estoque por loja (antes da v5), vale o total', () => {
+    expect(availableInUnit(product, 'cidade-nova-4', 'P', 'Rosa')).toBe(1)
+    expect(availableInUnit(makeProduct({ variantStock: [{ size: 'P', color: 'Rosa', quantity: 4 }] }), 'cidade-nova-4', 'P', 'Rosa')).toBe(4)
+  })
+
+  it('estoque baixo olha a loja escolhida', () => {
+    expect(getLowStockVariants([product], 'galeria-portuense').map((variant) => `${variant.size} ${variant.quantity}`)).toEqual(['M 0'])
+    expect(getLowStockVariants([product], 'cidade-nova-4').map((variant) => `${variant.size} ${variant.quantity}`)).toEqual(['P 1', 'M 2'])
+    expect(getLowStockVariants([product]).map((variant) => `${variant.size} ${variant.quantity}`)).toEqual(['M 2'])
+  })
 })
 
 describe('stock helpers', () => {

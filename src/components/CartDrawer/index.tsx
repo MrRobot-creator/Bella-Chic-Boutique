@@ -2,10 +2,10 @@ import { ChangeEvent, FormEvent, MouseEvent, useEffect, useRef, useState } from 
 import { storeConfig } from '../../config/store'
 import { CartItem, PaymentMethod } from '../../types/store'
 import { getSizeFitLabel } from '../../utils/productSize'
-import { getVariantStock } from '../../utils/inventory'
+import { availableInUnit, getVariantStock } from '../../utils/inventory'
 import { createOrderMessage, createOrderReference, createWhatsAppUrl } from '../../services/whatsapp'
 import { checkCoupon, CouponCheck, couponDiscount, couponMessage as couponResultMessage, describeCoupon } from '../../services/coupon'
-import { hasPix, StoreSettings } from '../../services/settings'
+import { hasPix, StoreSettings, unitPix } from '../../services/settings'
 import PixPayment from '../PixPayment'
 import { createStoreOrder } from '../../services/orders'
 import { Customer } from '../../hooks/useCustomer'
@@ -57,6 +57,7 @@ type PlacedOrder = {
   payment: PaymentMethod
   whatsappUrl: string
   reservedUntil: string | null
+  unitId: string
 }
 
 const CartDrawer = ({ isOpen, items, customer, settings, onOrderPlaced, onKeepShopping, onClose, onChangeQuantity, onRemove }: CartDrawerProps) => {
@@ -99,6 +100,11 @@ const CartDrawer = ({ isOpen, items, customer, settings, onOrderPlaced, onKeepSh
   const missingForFreeShipping = freeShippingMin !== null ? Math.max(0, freeShippingMin - (total - discount)) : 0
   const selectedUnit = storeConfig.units.find((unit) => unit.id === selectedUnitId) || storeConfig.units[0]
   const availableContacts = storeConfig.whatsappContacts.filter((contact) => contact.unitId === selectedUnit.id)
+  const otherUnit = storeConfig.units.find((unit) => unit.id !== selectedUnit.id)
+  // Cada loja tem o seu estoque: o pedido sai da loja escolhida.
+  const shortages = items.filter(({ product, size, color, quantity }) => availableInUnit(product, selectedUnit.id, size, color) < quantity)
+  const otherUnitCovers = Boolean(otherUnit) && shortages.length > 0 && items.every(({ product, size, color, quantity }) =>
+    availableInUnit(product, otherUnit?.id || '', size, color) >= quantity)
   const selectedContact = availableContacts.find((contact) => contact.id === selectedContactId) || availableContacts[0]
   const deliveryFee = fulfillment === 'Entrega'
     ? deliveryCity ? (freeShipping ? 0 : calculateDeliveryFee(selectedUnit.city, deliveryCity)) : null
@@ -311,6 +317,8 @@ const CartDrawer = ({ isOpen, items, customer, settings, onOrderPlaced, onKeepSh
 
   if (!isOpen) return null
 
+  const placedPix = placedOrder ? unitPix(settings, placedOrder.unitId) : null
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setInventoryMessage('')
@@ -322,6 +330,11 @@ const CartDrawer = ({ isOpen, items, customer, settings, onOrderPlaced, onKeepSh
     const phoneDigits = phone.replace(/\D/g, '')
     if (phoneDigits.length < 10 || phoneDigits.length > 11) {
       setInventoryMessage('Informe seu WhatsApp com DDD, por exemplo (91) 99999-9999.')
+      return
+    }
+
+    if (shortages.length) {
+      setInventoryMessage(`A ${selectedUnit.name} não tem todas as peças da sacola. ${otherUnitCovers ? `Escolha a ${otherUnit?.name}, que tem tudo, ` : 'Troque a loja '}ou ajuste as quantidades.`)
       return
     }
 
@@ -369,7 +382,7 @@ const CartDrawer = ({ isOpen, items, customer, settings, onOrderPlaced, onKeepSh
         payment,
         couponCode: couponApplied ? appliedCoupon?.code : undefined
       })
-      const pixAvailable = payment === 'Pix' && hasPix(settings)
+      const pixAvailable = payment === 'Pix' && hasPix(settings, selectedUnit.id)
 
       const messageItems = createdOrder.items.map((item) => ({
         product: { name: item.name, sizeFit: item.sizeFit, sizes: item.sizes },
@@ -420,7 +433,8 @@ const CartDrawer = ({ isOpen, items, customer, settings, onOrderPlaced, onKeepSh
         total: createdOrder.total,
         payment,
         whatsappUrl: createWhatsAppUrl(orderMessage, selectedContact.number),
-        reservedUntil: createdOrder.reservedUntil
+        reservedUntil: createdOrder.reservedUntil,
+        unitId: selectedUnit.id
       })
       onOrderPlaced()
     } catch (error) {
@@ -456,10 +470,10 @@ const CartDrawer = ({ isOpen, items, customer, settings, onOrderPlaced, onKeepSh
             <a className="whatsapp" href={placedOrder.whatsappUrl} target="_blank" rel="noopener noreferrer">
               Enviar pedido no WhatsApp <span aria-hidden="true">↗</span>
             </a>
-            {placedOrder.payment === 'Pix' && hasPix(settings) && settings.pixKey && settings.pixName && settings.pixCity && (
+            {placedOrder.payment === 'Pix' && placedPix && (
               <div className="pix">
                 <p>Quer adiantar o pagamento? As peças já estão separadas:</p>
-                <PixPayment pixKey={settings.pixKey} name={settings.pixName} city={settings.pixCity} amount={placedOrder.total} reference={placedOrder.reference} compact />
+                <PixPayment pixKey={placedPix.key} name={placedPix.name} city={placedPix.city} amount={placedOrder.total} reference={placedOrder.reference} compact />
               </div>
             )}
             <button type="button" className="keep" onClick={() => { onClose(); onKeepShopping?.() }}>Continuar comprando</button>
@@ -476,6 +490,8 @@ const CartDrawer = ({ isOpen, items, customer, settings, onOrderPlaced, onKeepSh
             <Items>
               {items.map(({ product, size, color, quantity }) => {
                 const selectedColor = product.colors.find((option) => option.name === color)
+                const inUnit = availableInUnit(product, selectedUnit.id, size, color)
+                const inOther = otherUnit ? availableInUnit(product, otherUnit.id, size, color) : 0
                 return (
                   <ItemRow key={`${product.id}-${size}-${color}`}>
                     <ItemImage src={selectedColor?.image || product.image} alt="" />
@@ -486,10 +502,20 @@ const CartDrawer = ({ isOpen, items, customer, settings, onOrderPlaced, onKeepSh
                       <div className="quantity">
                         <button type="button" aria-label={`Diminuir quantidade de ${product.name}`} onClick={() => onChangeQuantity(product.id, size, color, quantity - 1)}>−</button>
                         <span>{quantity}</span>
-                        <button type="button" aria-label={`Aumentar quantidade de ${product.name}`} disabled={quantity >= getVariantStock(product.variantStock, size, color)} onClick={() => onChangeQuantity(product.id, size, color, quantity + 1)}>+</button>
+                        <button type="button" aria-label={`Aumentar quantidade de ${product.name}`} disabled={quantity >= (product.unitStock ? inUnit : getVariantStock(product.variantStock, size, color))} onClick={() => onChangeQuantity(product.id, size, color, quantity + 1)}>+</button>
                         <RemoveButton type="button" onClick={() => onRemove(product.id, size, color)}>Remover</RemoveButton>
                       </div>
-                      <small>{getVariantStock(product.variantStock, size, color)} unidades em estoque</small>
+                      {product.unitStock ? (
+                        <small>{inUnit} na {selectedUnit.name}{otherUnit ? ` · ${inOther} na ${otherUnit.name}` : ''}</small>
+                      ) : (
+                        <small>{getVariantStock(product.variantStock, size, color)} unidades em estoque</small>
+                      )}
+                      {inUnit < quantity && (
+                        <small className="warn" role="status">
+                          {inUnit === 0 ? `Esta peça não tem na ${selectedUnit.name}.` : `A ${selectedUnit.name} tem só ${inUnit}.`}
+                          {otherUnit && inOther >= quantity ? ` A ${otherUnit.name} tem: troque a loja abaixo.` : ' Diminua a quantidade ou troque a loja.'}
+                        </small>
+                      )}
                     </ItemDetails>
                   </ItemRow>
                 )
@@ -728,7 +754,7 @@ const CartDrawer = ({ isOpen, items, customer, settings, onOrderPlaced, onKeepSh
                 </label>
                 <label className="payment-option">
                   <input type="radio" name="payment" value="Pix" checked={payment === 'Pix'} onChange={() => setPayment('Pix')} />
-                  Pix <span>{hasPix(settings) ? 'Pix copia e cola na hora, sem taxa' : 'a atendente envia os dados para pagamento no WhatsApp'}</span>
+                  Pix <span>{hasPix(settings, selectedUnit.id) ? 'Pix copia e cola na hora, sem taxa' : 'a atendente envia os dados para pagamento no WhatsApp'}</span>
                 </label>
                 <label className="payment-option">
                   <input type="radio" name="payment" value="Link de pagamento" checked={payment === 'Link de pagamento'} onChange={() => setPayment('Link de pagamento')} />
@@ -736,7 +762,12 @@ const CartDrawer = ({ isOpen, items, customer, settings, onOrderPlaced, onKeepSh
                 </label>
               </fieldset>
               {inventoryMessage && <span role="alert" className="address-status">{inventoryMessage}</span>}
-              <WhatsAppButton type="submit" disabled={isSubmitting || (fulfillment === 'Entrega' && deliveryFee === null)}>
+              {shortages.length > 0 && (
+                <p className="unit-warning" role="status">
+                  A {selectedUnit.name} não tem todas as peças da sacola.{otherUnitCovers ? ` A ${otherUnit?.name} tem tudo: troque a unidade lá em cima.` : ' Ajuste as quantidades ou troque a unidade.'}
+                </p>
+              )}
+              <WhatsAppButton type="submit" disabled={isSubmitting || shortages.length > 0 || (fulfillment === 'Entrega' && deliveryFee === null)}>
                 {isSubmitting ? 'Separando suas peças...' : 'Finalizar pedido'}
                 <span aria-hidden="true">↗</span>
               </WhatsAppButton>

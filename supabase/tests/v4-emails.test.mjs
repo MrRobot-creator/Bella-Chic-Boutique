@@ -117,7 +117,7 @@ await db.exec(`
   create table vault.decrypted_secrets (id uuid default gen_random_uuid(), name text, decrypted_secret text);
 `)
 
-for (const file of ['setup.sql', 'order-management.sql', 'order-protection.sql', 'restock-alerts.sql', 'storage.sql', 'v3-gestao.sql']) {
+for (const file of ['setup.sql', 'order-management.sql', 'order-protection.sql', 'restock-alerts.sql', 'storage.sql', 'v3-gestao.sql', 'v5-unidades.sql']) {
   await db.exec(sql(file))
 }
 await db.exec(`
@@ -162,7 +162,9 @@ await expectError('remetente precisa ter domínio', () => asAdmin(() => db.query
 await expectError('endereço do site precisa ser https sem barra no fim', () => asAdmin(() => db.query(`update public.store_settings set site_url = 'http://bellachic.com.br/' where id = 1`)), 'store_settings_email_check')
 await asAdmin(() => db.query(`update public.store_settings set order_emails_enabled = true,
   email_from = 'Bella Chic Boutique <pedidos@bellachicboutique.com.br>', site_url = 'https://bellachicboutique.com.br',
-  pix_key = '+5591980648559', pix_name = 'Bella Chic Boutique', pix_city = 'Belem', free_shipping_min = 400 where id = 1`))
+  free_shipping_min = 400 where id = 1`))
+await asAdmin(() => db.query(`update public.store_units set pix_key = '+5591980648559', pix_name = 'Bella Chic Boutique', pix_city = 'Belem' where id = 'galeria-portuense'`))
+await asAdmin(() => db.query(`update public.store_units set pix_key = 'cidadenova@example.com', pix_name = 'Bella Chic CN', pix_city = 'Ananindeua' where id = 'cidade-nova-4'`))
 check('administradora configura remetente e site', (await one('select email_from from public.store_settings')).email_from.includes('pedidos@'))
 
 console.log('\nSem chave no cofre:')
@@ -225,6 +227,12 @@ await asAdmin(() => db.query(`select public.update_order_status($1, 'shipped')`,
 check('retirada manda "pronto para retirar"', (await lastSent()).body.subject === 'Seu pedido está pronto para retirar')
 saved.retirada = (await lastSent()).body.html
 
+await asAdmin(() => db.query(`select public.transfer_stock('galeria-portuense', 'cidade-nova-4', '[{"productId":2,"size":"M","color":"Bege","quantity":2}]'::jsonb, null)`))
+const cidadeOrder = await createOrder({ ...order({ email: 'cidade@example.com' }), unit: { name: 'Cidade Nova 4', address: 'Av. Dr. Nonato Sanova, 161A', attendant: 'Cidade Nova — atendente 1', storePhone: '5591980408420' } })
+const cidadePix = ((await lastSent()).body.html.match(/(000201[^<]+6304[0-9A-F]{4})/) || [])[1] || ''
+check('pedido da Cidade Nova leva o Pix da Cidade Nova', cidadePix.includes('cidadenova@example.com') && cidadePix.slice(-4) === crc16(cidadePix.slice(0, -4)) && Boolean(cidadeOrder.reference))
+check('pedido da Galeria leva o Pix da Galeria', pixCode.includes('+5591980648559'))
+
 const toCancel = await createOrder(order({ email: 'cancela@example.com' }))
 const toCancelId = (await orderByRef(toCancel.reference)).id
 await asAdmin(() => db.query('select public.cancel_store_order($1, $2)', [toCancelId, 'A cliente pediu <b>outra cor</b>']))
@@ -241,7 +249,7 @@ console.log('\nQuando não manda:')
 let count = await sentCount()
 await createOrder(order({ email: '' }))
 check('pedido sem e-mail não manda nada', (await sentCount()) === count)
-await asAdmin(() => db.query('select public.register_store_sale($1::jsonb)', [JSON.stringify({ unitName: 'Cidade Nova 4', payment: 'Pix', items: [{ productId: 1, size: 'U', color: 'Rosa', quantity: 1 }] })]))
+await asAdmin(() => db.query('select public.register_store_sale($1::jsonb)', [JSON.stringify({ unitName: 'Galeria Portuense', payment: 'Pix', items: [{ productId: 1, size: 'U', color: 'Rosa', quantity: 1 }] })]))
 check('venda no balcão não manda e-mail', (await sentCount()) === count)
 await db.exec(`set test.fail_http = 'on'`)
 const offline = await createOrder(order({ email: 'offline@example.com' }))

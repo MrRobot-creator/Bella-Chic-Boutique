@@ -1,5 +1,17 @@
 import type { StoreOrder } from '../services/orders'
 import { isCompletedSale, orderStatusLabel } from '../services/orders'
+import { storeConfig } from '../config/store'
+import { orderUnitId } from './units'
+
+export type UnitSales = {
+  unitId: string
+  name: string
+  revenue: number
+  count: number
+  storeRevenue: number
+  storeCount: number
+  siteCount: number
+}
 
 export type SalesSummary = {
   confirmedCount: number
@@ -11,7 +23,12 @@ export type SalesSummary = {
   averageTicket: number
   itemsSold: number
   topProducts: { productId: number; name: string; quantity: number; revenue: number }[]
+  byUnit: UnitSales[]
 }
+
+/** Pedidos de uma loja (ou todos, sem loja escolhida). */
+export const ordersOfUnit = <T extends Pick<StoreOrder, 'unit' | 'unit_id'>>(orders: T[], unitId: string | null) =>
+  unitId ? orders.filter((order) => orderUnitId(order) === unitId) : orders
 
 /** Valor das peças após desconto (sem frete), usado como faturamento. */
 export const orderNetValue = (order: Pick<StoreOrder, 'subtotal' | 'discount'>) =>
@@ -36,6 +53,21 @@ export const buildSalesSummary = (orders: StoreOrder[], since: Date): SalesSumma
     })
   })
 
+  const byUnit = storeConfig.units.map((unit) => {
+    const sales = confirmed.filter((order) => orderUnitId(order) === unit.id)
+    const store = sales.filter((order) => order.channel === 'balcao')
+    const round = (value: number) => Math.round(value * 100) / 100
+    return {
+      unitId: unit.id,
+      name: unit.name,
+      revenue: round(sales.reduce((total, order) => total + orderNetValue(order), 0)),
+      count: sales.length,
+      storeRevenue: round(store.reduce((total, order) => total + orderNetValue(order), 0)),
+      storeCount: store.length,
+      siteCount: sales.length - store.length
+    }
+  })
+
   const topProducts = Array.from(byProduct.values())
     .sort((first, second) => second.quantity - first.quantity || second.revenue - first.revenue)
     .slice(0, 5)
@@ -49,7 +81,8 @@ export const buildSalesSummary = (orders: StoreOrder[], since: Date): SalesSumma
     storeCount: storeSales.length,
     averageTicket: confirmed.length ? Math.round((revenue / confirmed.length) * 100) / 100 : 0,
     itemsSold: Array.from(byProduct.values()).reduce((total, product) => total + product.quantity, 0),
-    topProducts
+    topProducts,
+    byUnit
   }
 }
 

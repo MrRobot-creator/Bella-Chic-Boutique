@@ -10,7 +10,10 @@ export type Product = {
   sizes: string[]
   sizeFit?: string
   colors: { name: string; hex: string; image?: string }[]
+  /** Total das duas lojas. */
   variantStock?: VariantStock[]
+  /** Quantidade em cada loja (depois do supabase/v5-unidades.sql). */
+  unitStock?: UnitStock[]
   tag?: string
   available?: boolean
   enabled?: boolean
@@ -20,6 +23,10 @@ export type VariantStock = {
   size: string
   color: string
   quantity: number
+}
+
+export type UnitStock = VariantStock & {
+  unit: string
 }
 
 export type CartItem = {

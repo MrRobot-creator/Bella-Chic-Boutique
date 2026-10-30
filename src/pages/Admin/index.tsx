@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useCallback, useEffect, useState } from 'react'
+import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Session } from '@supabase/supabase-js'
 import {
@@ -15,28 +15,32 @@ import {
 } from './styles'
 import {
   deleteCatalogProduct,
+  fetchAdminAccess,
   fetchAdminProducts,
-  hasCatalogAdminAccess,
   saveCatalogProduct,
   supabase,
   uploadProductImage
 } from '../../services/catalog'
 import { defaultSettings, fetchStoreSettings, StoreSettings } from '../../services/settings'
 import { CatalogProductInput } from '../../services/catalog'
-import { Product, VariantStock } from '../../types/store'
-import { buildVariantStock, getVariantStock } from '../../utils/inventory'
+import { Product } from '../../types/store'
+import { getUnitTotal } from '../../utils/inventory'
+import { storeConfig } from '../../config/store'
+import { unitNameOf } from '../../utils/units'
 import SalesSummary from './SalesSummary'
 import RestockPanel from './RestockPanel'
 import OrdersPanel from './OrdersPanel'
 import StoreSalePanel from './StoreSalePanel'
 import StockHistoryPanel from './StockHistoryPanel'
+import StockPanel from './StockPanel'
+import TeamPanel from './TeamPanel'
 import CouponsPanel from './CouponsPanel'
 import ReviewsPanel from './ReviewsPanel'
 import VipPanel from './VipPanel'
 import SettingsPanel from './SettingsPanel'
 import EmailPanel from './EmailPanel'
 
-type Tab = 'summary' | 'orders' | 'counter' | 'products' | 'stock' | 'coupons' | 'reviews' | 'vip' | 'settings'
+type Tab = 'summary' | 'orders' | 'counter' | 'products' | 'stock' | 'coupons' | 'reviews' | 'vip' | 'team' | 'settings'
 
 const tabLabels: Record<Tab, string> = {
   summary: 'Resumo',
@@ -47,8 +51,12 @@ const tabLabels: Record<Tab, string> = {
   coupons: 'Cupons',
   reviews: 'Avaliações',
   vip: 'Lista VIP',
+  team: 'Equipe',
   settings: 'Configurações'
 }
+
+/** O que a atendente vê: o resto (peças, cupons, avaliações, lista VIP, equipe e configurações) é só da dona. */
+const attendantTabs: Tab[] = ['summary', 'orders', 'counter', 'stock']
 
 const TAB_KEY = 'bella-chic-admin-tab'
 const readTab = (): Tab => {
@@ -71,7 +79,6 @@ type ProductDraft = {
   sizes: string
   sizeFit: string
   colors: ColorDraft[]
-  variantStock: VariantStock[]
   tag: string
   available: boolean
 }
@@ -93,7 +100,6 @@ const blankDraft: ProductDraft = {
   sizes: '',
   sizeFit: '',
   colors: [{ name: '', hex: '#e5a1ad', image: '' }],
-  variantStock: [],
   tag: '',
   available: true
 }
@@ -113,7 +119,6 @@ const draftFromProduct = (product: Product): ProductDraft => ({
     hex: color.hex,
     image: color.image || ''
   })),
-  variantStock: product.variantStock || [],
   tag: product.tag || '',
   available: product.enabled !== false
 })
@@ -151,6 +156,8 @@ const Admin = () => {
   const [session, setSession] = useState<Session | null>(null)
   const [authReady, setAuthReady] = useState(false)
   const [adminAllowed, setAdminAllowed] = useState(false)
+  const [adminUnitId, setAdminUnitId] = useState<string | null>(null)
+  const [focusProductId, setFocusProductId] = useState<number | null>(null)
   const [loadingProducts, setLoadingProducts] = useState(false)
   const [products, setProducts] = useState<Product[]>([])
   const [tab, setTab] = useState<Tab>(readTab)
@@ -216,10 +223,11 @@ const Admin = () => {
 
     setLoadingProducts(true)
     setError('')
-    hasCatalogAdminAccess(session.user.id)
-      .then(async (allowed) => {
+    fetchAdminAccess(session.user.id)
+      .then(async ({ allowed, unitId }) => {
         if (!active) return
         setAdminAllowed(allowed)
+        setAdminUnitId(unitId)
         if (!allowed) return
         const [catalog, loadedSettings] = await Promise.all([
           fetchAdminProducts(),
@@ -240,6 +248,12 @@ const Admin = () => {
     return () => { active = false }
   }, [session])
 
+  const visibleTabs = useMemo(
+    () => (adminUnitId ? attendantTabs : (Object.keys(tabLabels) as Tab[])),
+    [adminUnitId]
+  )
+  const currentTab: Tab = visibleTabs.includes(tab) ? tab : 'orders'
+
   const changeTab = (next: Tab) => {
     setTab(next)
     try { localStorage.setItem(TAB_KEY, next) } catch { /* sem armazenamento */ }
@@ -257,8 +271,8 @@ const Admin = () => {
 
   // Peças e balcão mostram o estoque atual (pedidos do site reservam peças a qualquer momento).
   useEffect(() => {
-    if (adminAllowed && (tab === 'products' || tab === 'counter')) refreshAfterChange()
-  }, [adminAllowed, refreshAfterChange, tab])
+    if (adminAllowed && (currentTab === 'products' || currentTab === 'counter' || currentTab === 'stock')) refreshAfterChange()
+  }, [adminAllowed, refreshAfterChange, currentTab])
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -392,16 +406,6 @@ const Admin = () => {
       return
     }
 
-    const variantStock = buildVariantStock(
-      sizes,
-      colors.map((color) => color.name),
-      draft.variantStock
-    )
-    if (variantStock.some((variant) => !Number.isInteger(variant.quantity) || variant.quantity < 0)) {
-      setError('As quantidades de estoque devem ser números inteiros iguais ou maiores que zero.')
-      return
-    }
-
     const mainImage = draft.image.trim() || colors.find((color) => color.image)?.image || draft.images[0] || ''
     const product: CatalogProductInput = {
       name: draft.name.trim(),
@@ -417,7 +421,6 @@ const Admin = () => {
       sizes,
       sizeFit: draft.sizeFit.trim() || undefined,
       colors,
-      variantStock,
       tag: draft.tag.trim() || undefined,
       available: draft.available,
       enabled: draft.available
@@ -429,7 +432,14 @@ const Admin = () => {
       setProducts((current) => editingId
         ? current.map((item) => item.id === savedProduct.id ? savedProduct : item)
         : [...current, savedProduct].sort((first, second) => first.id - second.id))
-      setNotice(editingId ? 'Peça atualizada no catálogo.' : 'Peça adicionada ao catálogo.')
+      if (editingId) {
+        setNotice('Peça atualizada no catálogo.')
+      } else {
+        // Peça nova começa sem estoque: abre o Estoque para lançar as quantidades de cada loja.
+        setNotice(`${savedProduct.name} foi adicionada. Agora lance as quantidades de cada loja.`)
+        setFocusProductId(savedProduct.id)
+        changeTab('stock')
+      }
       resetDraft()
     } catch (saveError) {
       setError(`Não foi possível salvar a peça: ${errorMessage(saveError)}`)
@@ -493,9 +503,12 @@ const Admin = () => {
           </AdminPanel>
         ) : (
           <>
+            {adminUnitId && (
+              <AdminNotice role="status">Você está no painel da <strong>{unitNameOf(adminUnitId)}</strong>: pedidos, vendas e faturamento desta loja, e o estoque das duas.</AdminNotice>
+            )}
             <AdminTabs aria-label="Seções do painel">
-              {(Object.keys(tabLabels) as Tab[]).map((key) => (
-                <button key={key} type="button" aria-current={tab === key ? 'page' : undefined} onClick={() => changeTab(key)}>
+              {visibleTabs.map((key) => (
+                <button key={key} type="button" aria-current={currentTab === key ? 'page' : undefined} onClick={() => changeTab(key)}>
                   {tabLabels[key]}
                   {key === 'reviews' && pendingReviews > 0 && <span className="badge">{pendingReviews}</span>}
                 </button>
@@ -503,25 +516,31 @@ const Admin = () => {
             </AdminTabs>
             {error && <AdminNotice $error role="alert">{error}</AdminNotice>}
             {notice && <AdminNotice role="status">{notice}</AdminNotice>}
-            {tab === 'summary' && (
+            {currentTab === 'summary' && (
               <>
-                <SalesSummary products={products} refreshKey={summaryRefreshKey} />
+                <SalesSummary products={products} refreshKey={summaryRefreshKey} adminUnitId={adminUnitId} />
                 <RestockPanel products={products} />
               </>
             )}
-            {tab === 'orders' && <OrdersPanel settings={settings} refreshKey={0} onChanged={refreshAfterChange} />}
-            {tab === 'counter' && <StoreSalePanel products={products} onSold={refreshAfterChange} />}
-            {tab === 'stock' && <StockHistoryPanel products={products} refreshKey={summaryRefreshKey} />}
-            {tab === 'coupons' && <CouponsPanel />}
-            {tab === 'reviews' && <ReviewsPanel onCountChange={setPendingReviews} />}
-            {tab === 'vip' && <VipPanel />}
-            {tab === 'settings' && (
+            {currentTab === 'orders' && <OrdersPanel settings={settings} refreshKey={0} adminUnitId={adminUnitId} onChanged={refreshAfterChange} />}
+            {currentTab === 'counter' && <StoreSalePanel products={products} adminUnitId={adminUnitId} onSold={refreshAfterChange} />}
+            {currentTab === 'stock' && (
+              <>
+                <StockPanel products={products} unitId={adminUnitId} focusProductId={focusProductId} onChanged={refreshAfterChange} />
+                <StockHistoryPanel products={products} refreshKey={summaryRefreshKey} unitId={adminUnitId} />
+              </>
+            )}
+            {currentTab === 'coupons' && <CouponsPanel />}
+            {currentTab === 'reviews' && <ReviewsPanel onCountChange={setPendingReviews} />}
+            {currentTab === 'vip' && <VipPanel />}
+            {currentTab === 'team' && <TeamPanel />}
+            {currentTab === 'settings' && (
               <>
                 <SettingsPanel settings={settings} onSaved={setSettings} />
                 <EmailPanel adminEmail={session.user.email || ''} />
               </>
             )}
-            {tab === 'products' && (
+            {currentTab === 'products' && (
             <>
             <AdminPanel>
               <h2>{editingId ? 'Editar peça' : 'Adicionar nova peça'}</h2>
@@ -630,44 +649,7 @@ const Admin = () => {
                     {uploadingColorIndex !== null && <span role="status">Enviando foto da cor...</span>}
                   </div>
                 </div>
-                <div className="wide stock-list">
-                  <strong>Estoque por tamanho e cor</strong>
-                  <p>Novas combinações começam com estoque zero. Informe as unidades disponíveis de cada variação.</p>
-                  <div className="stock-grid">
-                    {draft.sizes.split(',').map((size) => size.trim()).filter(Boolean).flatMap((size) =>
-                      draft.colors.filter((color) => color.name.trim()).map((color) => (
-                        <label key={`${size}-${color.name}`}>
-                          {size} · {color.name}
-                          <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            value={getVariantStock(draft.variantStock, size, color.name.trim())}
-                            onChange={(event) => {
-                              const quantity = event.target.value === '' ? 0 : Number(event.target.value)
-                              setDraft((current) => {
-                                const variantStock = buildVariantStock(
-                                  current.sizes.split(',').map((item) => item.trim()).filter(Boolean),
-                                  current.colors.map((item) => item.name.trim()).filter(Boolean),
-                                  current.variantStock
-                                )
-                                return {
-                                  ...current,
-                                  variantStock: variantStock.map((variant) =>
-                                    variant.size === size && variant.color === color.name.trim()
-                                      ? { ...variant, quantity }
-                                      : variant
-                                  )
-                                }
-                              })
-                            }}
-                            required
-                          />
-                        </label>
-                      ))
-                    )}
-                  </div>
-                </div>
+                <p className="wide">O estoque de cada loja (Galeria e Cidade Nova) fica na aba <strong>Estoque</strong>. Peça nova começa sem estoque.</p>
                 <label>Etiqueta opcional
                   <input value={draft.tag} onChange={(event) => setDraft({ ...draft, tag: event.target.value })} placeholder="Novo, Mais vendido..." />
                 </label>
@@ -692,7 +674,9 @@ const Admin = () => {
                       <div>
                         <h3>{product.name}</h3>
                         <p>{product.category} · {product.sizes.join(', ')}{product.sizeFit ? ` (veste ${product.sizeFit})` : ''} · {product.colors.map((color) => color.name).join(', ')}</p>
-                        <p>Estoque: {(product.variantStock || []).reduce((total, variant) => total + variant.quantity, 0)} unidades</p>
+                        <p>Estoque: {product.unitStock
+                          ? storeConfig.units.map((unit) => `${unit.name} ${getUnitTotal(product, unit.id)}`).join(' · ')
+                          : `${(product.variantStock || []).reduce((total, variant) => total + variant.quantity, 0)} unidades`}</p>
                         {product.available === false && <span className="sold-out">Esgotado</span>}
                       </div>
                       <div className="actions">
