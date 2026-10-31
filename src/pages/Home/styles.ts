@@ -352,19 +352,17 @@ export const ComboCard = styled.article`
 /* ---------- Promoções ---------- */
 
 export const Ribbon = styled.div`
-  /* Faixa reta e fina, com filetes dourados: a versão inclinada e chamativa lembrava loja de liquidação. */
-  margin: 8px 0 56px;
-  padding: 13px 0;
+  margin: 8px -20px 56px;
+  padding: 14px 0;
   overflow: hidden;
-  border-top: 1px solid ${colors.goldLight};
-  border-bottom: 1px solid ${colors.goldLight};
-  background: ${colors.white};
-  color: ${colors.plum};
-  .track { width: max-content; display: flex; animation: ${marquee} 48s linear infinite; }
-  .group { display: flex; gap: 38px; padding-right: 38px; white-space: nowrap; font: 500 13px ${fonts.sans}; letter-spacing: 3px; }
-  .group > span > span { color: ${colors.gold}; }
+  background: ${colors.rose};
+  color: ${colors.white};
+  box-shadow: 0 10px 24px rgba(167, 47, 72, .22);
+  transform: rotate(-1.2deg);
+  .track { width: max-content; display: flex; animation: ${marquee} 38s linear infinite; }
+  .group { display: flex; gap: 38px; padding-right: 38px; white-space: nowrap; font-size: 15px; font-weight: 700; letter-spacing: 2px; }
   @media (prefers-reduced-motion: reduce) { .track { animation: none; } }
-  @media (max-width: 600px) { margin-bottom: 36px; padding: 11px 0; .group { font-size: 11px; gap: 24px; padding-right: 24px; } }
+  @media (max-width: 600px) { margin-bottom: 36px; padding: 11px 0; .group { font-size: 12px; gap: 24px; padding-right: 24px; } }
 `
 
 export const PromoGrid = styled.div<{ $columns: number }>`
