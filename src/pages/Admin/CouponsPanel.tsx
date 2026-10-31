@@ -169,7 +169,8 @@ const CouponsPanel = () => {
           <label>Termina em (opcional)
             <input type="datetime-local" value={draft.endsAt} onChange={(event) => setDraft({ ...draft, endsAt: event.target.value })} />
           </label>
-          <label>Limite de usos (opcional)
+          {/* O limite é da loja toda: com 1, só a primeira cliente usa. "1 vez por cliente" é a caixa abaixo. */}
+          <label>Limite total de usos, somando todas as clientes (opcional)
             <input type="number" min="1" step="1" value={draft.maxUses} onChange={(event) => setDraft({ ...draft, maxUses: event.target.value })} placeholder="Sem limite" />
           </label>
           <label className="wide">Descrição interna (opcional)
@@ -200,7 +201,7 @@ const CouponsPanel = () => {
                       {[coupon.minSubtotal ? `a partir de ${formatPrice(coupon.minSubtotal)}` : 'sem mínimo',
                         coupon.oncePerCustomer ? '1 vez por cliente' : '',
                         coupon.firstPurchaseOnly ? 'primeira compra' : '',
-                        coupon.maxUses ? `até ${coupon.maxUses} usos` : ''].filter(Boolean).join(' · ')}
+                        coupon.maxUses ? `até ${coupon.maxUses} ${coupon.maxUses === 1 ? 'uso' : 'usos'} no total` : ''].filter(Boolean).join(' · ')}
                     </td>
                     <td className="muted">
                       {coupon.startsAt ? `de ${new Date(coupon.startsAt).toLocaleDateString('pt-BR')} ` : ''}

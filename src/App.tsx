@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { ThemeProvider } from 'styled-components'
 import GlobalStyle from './styles/global'
 import { theme } from './styles/theme'
@@ -10,6 +10,12 @@ import CookieConsent, { AnalyticsTracker } from './components/CookieConsent'
 const Admin = lazy(() => import('./pages/Admin'))
 const LegalPage = lazy(() => import('./pages/Legal'))
 const ReviewPage = lazy(() => import('./pages/Review'))
+const NotFound = lazy(() => import('./pages/NotFound'))
+
+const HomeOrNotFound = () => {
+  const { pathname } = useLocation()
+  return pathname === '/' || pathname.startsWith('/produto/') ? <Home /> : <NotFound />
+}
 
 function App() {
   return (
@@ -23,8 +29,8 @@ function App() {
           <Route path="/termos-e-condicoes" element={<LegalPage />} />
           <Route path="/privacidade" element={<LegalPage />} />
           <Route path="/avaliar/:token" element={<ReviewPage />} />
-          {/* /produto/:id-nome abre a vitrine já com a peça aberta */}
-          <Route path="*" element={<Home />} />
+          {/* /produto/:id-nome abre a vitrine já com a peça aberta; uma rota só para a vitrine não recarregar ao fechar a peça */}
+          <Route path="*" element={<HomeOrNotFound />} />
         </Routes>
         </Suspense>
         <CookieConsent />

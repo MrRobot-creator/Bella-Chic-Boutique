@@ -550,7 +550,9 @@ const CartDrawer = ({ isOpen, items, customer, settings, onOrderPlaced, onKeepSh
               )}
               <Total>
                 <span>Total {fulfillment === 'Entrega' ? '(com entrega)' : '(retirada)'}</span>
-                <strong>{deliveryFee === null ? 'Aguardando município' : formatPrice(finalTotal)}</strong>
+                {deliveryFee === null
+                  ? <strong className="pending">escolha o município</strong>
+                  : <strong>{formatPrice(finalTotal)}</strong>}
               </Total>
               {payment === 'Cartão de crédito' && (
                 <p className="card-fee-disclosure">

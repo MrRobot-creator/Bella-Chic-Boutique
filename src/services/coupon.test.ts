@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals'
-import { couponDiscount, couponMessage, describeCoupon, legacyCouponCheck, normalizeCouponCode } from './coupon'
+import { couponDiscount, couponHeadline, couponMessage, describeCoupon, legacyCouponCheck, normalizeCouponCode } from './coupon'
 
 describe('Cupons', () => {
   it('calcula desconto em porcentagem e em reais', () => {
@@ -25,5 +25,13 @@ describe('Cupons', () => {
     expect(couponMessage({ valid: false, reason: 'expired' }, 'natal')).toBe('O cupom NATAL já venceu.')
     expect(couponMessage({ valid: false, reason: 'not_found' }, 'xyz')).toContain('não encontrado')
     expect(describeCoupon({ kind: 'fixed', value: 20 })).toContain('20,00')
+  })
+
+  it('monta a divulgação com a regra do banco e some quando o cupom não vale', () => {
+    const live = { valid: false, reason: 'min_subtotal' as const, kind: 'percent' as const, value: 10, minSubtotal: 180, firstPurchaseOnly: true }
+    expect(couponHeadline(live)?.replace(/\s/g, ' ')).toBe('10% de desconto na primeira compra a partir de R$ 180,00')
+    expect(couponHeadline({ ...live, minSubtotal: 0, firstPurchaseOnly: false })).toBe('10% de desconto')
+    expect(couponHeadline({ valid: false, reason: 'limit' })).toBeNull()
+    expect(couponHeadline(null)).toBeNull()
   })
 })

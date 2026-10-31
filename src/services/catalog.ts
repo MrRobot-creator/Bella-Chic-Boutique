@@ -133,7 +133,38 @@ export const deleteCatalogProduct = async (id: number): Promise<void> => {
   if (error) throw error
 }
 
-export const uploadProductImage = async (file: File): Promise<string> => {
+const MAX_PHOTO_SIDE = 1600
+
+/** Tamanho final para caber em `max` px no lado maior, sem aumentar fotos pequenas. */
+export const fitInside = (width: number, height: number, max = MAX_PHOTO_SIDE) => {
+  const scale = Math.min(1, max / Math.max(width, height))
+  return { width: Math.round(width * scale), height: Math.round(height * scale) }
+}
+
+/** Foto do celular (3 a 8 MB) vira JPEG de até 1600 px (~200 KB), para a vitrine abrir rápido no 4G. Se falhar, envia a original. */
+const shrinkImage = async (file: File): Promise<File> => {
+  if (typeof createImageBitmap !== 'function') return file
+  try {
+    const bitmap = await createImageBitmap(file)
+    const { width, height } = fitInside(bitmap.width, bitmap.height)
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const context = canvas.getContext('2d')
+    if (!context) return file
+    context.fillStyle = '#FFFFFF' // PNG com transparência não fica com fundo preto no JPEG
+    context.fillRect(0, 0, width, height)
+    context.drawImage(bitmap, 0, 0, width, height)
+    bitmap.close()
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85))
+    if (!blob || blob.size >= file.size) return file
+    return new File([blob], 'foto.jpg', { type: 'image/jpeg' })
+  } catch {
+    return file
+  }
+}
+
+export const uploadProductImage = async (original: File): Promise<string> => {
   const client = requireSupabase()
   const allowedTypes: Record<string, { extension: string; contentType: string }> = {
     'image/jpeg': { extension: 'jpg', contentType: 'image/jpeg' },
@@ -146,12 +177,14 @@ export const uploadProductImage = async (file: File): Promise<string> => {
     png: { extension: 'png', contentType: 'image/png' },
     webp: { extension: 'webp', contentType: 'image/webp' }
   }
-  const fileExtension = file.name.split('.').pop()?.toLowerCase() || ''
-  const imageType = allowedTypes[file.type] || (!file.type ? extensionByName[fileExtension] : undefined)
+  const fileExtension = original.name.split('.').pop()?.toLowerCase() || ''
+  const originalType = allowedTypes[original.type] || (!original.type ? extensionByName[fileExtension] : undefined)
 
-  if (!imageType) {
+  if (!originalType) {
     throw new Error('Formato não permitido. Envie uma imagem PNG, JPG ou WebP.')
   }
+  const file = await shrinkImage(original)
+  const imageType = allowedTypes[file.type] || originalType
   if (file.size > 5 * 1024 * 1024) {
     throw new Error('A imagem deve ter no máximo 5 MB.')
   }

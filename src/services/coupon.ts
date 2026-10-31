@@ -41,6 +41,17 @@ export const couponDiscount = (kind: CouponKind, value: number, subtotal: number
 export const describeCoupon = (coupon: Pick<StoreCoupon, 'kind' | 'value'>) =>
   coupon.kind === 'percent' ? `${coupon.value}% de desconto` : `${formatPrice(coupon.value)} de desconto`
 
+/**
+ * Texto de divulgação a partir da conferência com subtotal 0 ("10% de desconto na primeira compra a partir de R$ 180,00").
+ * null quando o cupom não está valendo (vencido, pausado, sem usos), para o site não anunciar cupom morto.
+ */
+export const couponHeadline = (check: CouponCheck | null) => {
+  if (!check?.kind || check.value === undefined || check.minSubtotal === undefined) return null
+  const first = check.firstPurchaseOnly ? ' na primeira compra' : ''
+  const min = check.minSubtotal > 0 ? ` a partir de ${formatPrice(check.minSubtotal)}` : ''
+  return `${describeCoupon({ kind: check.kind, value: check.value })}${first}${min}`
+}
+
 /** Mensagem para a cliente depois de conferir o cupom. */
 export const couponMessage = (check: CouponCheck, code: string) => {
   const label = normalizeCouponCode(code) || 'informado'

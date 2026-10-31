@@ -150,6 +150,7 @@ export const Total = styled.div`
   color: ${colors.plum};
   font-size: 15px;
   strong { font-size: 20px; }
+  strong.pending { color: ${colors.muted}; font-size: 14px; font-weight: 500; }
 `
 
 export const EmptyCart = styled.div`

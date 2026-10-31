@@ -208,7 +208,9 @@ export const HeroDots = styled.div`
   border-radius: 999px;
   background: rgba(255, 255, 255, .75);
   transform: translateX(-50%);
-  button { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 999px; background: #D29AA5; cursor: pointer; transition: width .3s, background .3s; }
+  button { position: relative; width: 8px; height: 8px; padding: 0; border: 0; border-radius: 999px; background: #D29AA5; cursor: pointer; transition: width .3s, background .3s; }
+  /* Área de toque maior que a bolinha (8 px é difícil de acertar no celular). */
+  button::after { content: ''; position: absolute; inset: -14px -4px; }
   button[aria-current='true'] { width: 26px; background: ${colors.rose}; }
   @media (max-width: 600px) { bottom: 12px; padding: 6px 10px; }
 `
@@ -364,7 +366,7 @@ export const Ribbon = styled.div`
 
 export const PromoGrid = styled.div<{ $columns: number }>`
   display: grid;
-  grid-template-columns: ${({ $columns }) => ($columns === 3 ? '1.05fr 1fr 1fr' : '1fr 1fr')};
+  grid-template-columns: ${({ $columns }) => ($columns === 3 ? '1.05fr 1fr 1fr' : $columns === 2 ? '1fr 1fr' : '1fr')};
   gap: 22px;
   @media (max-width: 1000px) { grid-template-columns: 1fr 1fr; > :first-child { grid-column: 1 / -1; } }
   @media (max-width: 640px) { grid-template-columns: 1fr; }

@@ -14,6 +14,7 @@ import { useFavorites } from '../../hooks/useFavorites'
 import { useCustomer } from '../../hooks/useCustomer'
 import { trackEvent } from '../../services/analytics'
 import { fetchCatalogProducts } from '../../services/catalog'
+import { checkCoupon, CouponCheck, couponHeadline } from '../../services/coupon'
 import { defaultSettings, fetchStoreSettings, StoreSettings } from '../../services/settings'
 import type { StoreOrderItem } from '../../services/orders'
 import { createWhatsAppUrl } from '../../services/whatsapp'
@@ -106,6 +107,7 @@ const Home = () => {
   const [heroIndex, setHeroIndex] = useState(0)
   const [heroPaused, setHeroPaused] = useState(false)
   const [couponCopied, setCouponCopied] = useState(false)
+  const [couponInfo, setCouponInfo] = useState<CouponCheck | null>(null)
   const [toast, setToast] = useState('')
   const [settings, setSettings] = useState<StoreSettings>(defaultSettings)
   const toastTimer = useRef<number>()
@@ -136,8 +138,12 @@ const Home = () => {
   useEffect(() => {
     let active = true
     fetchStoreSettings().then((loaded) => { if (active) setSettings(loaded) })
+    // Subtotal 0: o banco devolve a regra atual do cupom (mínimo, desconto) sem aplicá-lo.
+    checkCoupon(COUPON_CODE, 0).then((check) => { if (active) setCouponInfo(check) }).catch(() => {})
     return () => { active = false }
   }, [])
+
+  const couponText = couponHeadline(couponInfo)
 
   /* ---------- Sacola salva no navegador ---------- */
 
@@ -439,10 +445,10 @@ const Home = () => {
     try {
       await navigator.clipboard.writeText(COUPON_CODE)
       setCouponCopied(true)
-      notify(`Cupom ${COUPON_CODE} copiado. Use na sacola, em compras acima de R$ 300,00.`)
+      notify(`Cupom ${COUPON_CODE} copiado. Use na sacola: ${couponText}.`)
       window.setTimeout(() => setCouponCopied(false), 2500)
     } catch {
-      notify(`Use o cupom ${COUPON_CODE} na sacola, em compras acima de R$ 300,00.`)
+      notify(`Use o cupom ${COUPON_CODE} na sacola: ${couponText}.`)
     }
   }
 
@@ -507,19 +513,22 @@ const Home = () => {
   const promotionEnd = formatPromotionEnd(settings.promotionEndsAt || storeConfig.promotionEndsAt)
   const tickerItems = [
     'OFERTAS DA SEMANA',
-    `CUPOM ${COUPON_CODE}`,
+    ...(couponText ? [`CUPOM ${COUPON_CODE}`] : []),
     featuredOffer ? `${featuredOffer.name.toUpperCase()} -${getDiscount(featuredOffer)}%` : 'PEÇAS SELECIONADAS',
     combos.length ? 'COMBOS COM DESCONTO' : 'ATENDIMENTO PELO WHATSAPP'
   ]
   const generalWhatsApp = createWhatsAppUrl('Olá! Gostaria de falar com a Bella Chic Boutique.', storeConfig.whatsappContacts[0].number)
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
-  const promoColumns = featuredOffer ? 3 : 2
+  const hasPromoSide = Boolean(couponText) || combos.length > 0
+  const promoColumns = 1 + (featuredOffer ? 1 : 0) + (hasPromoSide ? 1 : 0)
 
   return (
     <S.Page>
-      <S.AnnouncementBar>
-        ✨ Cupom <strong>{COUPON_CODE}</strong>: 10% de desconto na primeira compra acima de R$ 300
-      </S.AnnouncementBar>
+      {couponText && (
+        <S.AnnouncementBar>
+          ✨ Cupom <strong>{COUPON_CODE}</strong>: {couponText}
+        </S.AnnouncementBar>
+      )}
 
       <SiteHeader
         cartCount={cartCount}
@@ -747,7 +756,7 @@ const Home = () => {
                   <span className="badge">TEMPO LIMITADO</span>
                   <span className="title">Ofertas<br /><em>da semana</em></span>
                   <span className="lead">
-                    {offers.length ? 'Peças selecionadas com desconto enquanto durar o estoque.' : 'Novas ofertas chegando! Enquanto isso, aproveite o cupom de primeira compra.'}
+                    {offers.length ? 'Peças selecionadas com desconto enquanto durar o estoque.' : couponText ? `Novas ofertas chegando! Enquanto isso, aproveite o cupom ${COUPON_CODE}.` : 'Novas ofertas chegando!'}
                   </span>
                 </div>
                 <div>
@@ -774,16 +783,22 @@ const Home = () => {
                 </S.OfferCard>
               )}
 
-              <S.PromoSide>
-                <S.Coupon>
-                  <span className="label">CUPOM DE PRIMEIRA COMPRA</span>
-                  <span className="value">10% <small>OFF</small></span>
-                  <span className="rule">Em compras acima de R$ 300,00. Aplique na sacola, antes de enviar o pedido.</span>
-                  <div className="code">
-                    <span>{COUPON_CODE}</span>
-                    <button type="button" onClick={copyCoupon}>{couponCopied ? 'Copiado!' : 'Copiar'}</button>
-                  </div>
-                </S.Coupon>
+              {hasPromoSide && <S.PromoSide>
+                {couponText && couponInfo && (
+                  <S.Coupon>
+                    <span className="label">{couponInfo.firstPurchaseOnly ? 'CUPOM DE PRIMEIRA COMPRA' : 'CUPOM DE DESCONTO'}</span>
+                    <span className="value">
+                      {couponInfo.kind === 'percent' ? `${couponInfo.value}%` : formatPrice(couponInfo.value || 0)} <small>OFF</small>
+                    </span>
+                    <span className="rule">
+                      {couponInfo.minSubtotal ? `Em compras a partir de ${formatPrice(couponInfo.minSubtotal)}. ` : ''}Aplique na sacola, antes de enviar o pedido.
+                    </span>
+                    <div className="code">
+                      <span>{COUPON_CODE}</span>
+                      <button type="button" onClick={copyCoupon}>{couponCopied ? 'Copiado!' : 'Copiar'}</button>
+                    </div>
+                  </S.Coupon>
+                )}
                 {combos.length > 0 && (
                   <S.ComboShortcut href="#combos">
                     <img src={combos[0].image} alt="" loading="lazy" />
@@ -794,7 +809,7 @@ const Home = () => {
                     </span>
                   </S.ComboShortcut>
                 )}
-              </S.PromoSide>
+              </S.PromoSide>}
             </S.PromoGrid>
           </Wrap>
         </S.Block>
@@ -1070,7 +1085,8 @@ const Home = () => {
             <div className="col">
               <strong>DADOS DA LOJA</strong>
               <span>{storeConfig.name} · CNPJ {storeConfig.cnpj}</span>
-              <span>{storeConfig.registeredAddress}</span>
+              <span>Endereço fiscal: {storeConfig.registeredAddress}</span>
+              {storeConfig.units.map((unit) => <span key={unit.id}>Loja {unit.name}: {unit.address}</span>)}
               <a href={`mailto:${storeConfig.contactEmail}`}>{storeConfig.contactEmail}</a>
               <div className="chips" aria-label="Formas de pagamento aceitas">
                 <span>Pix</span><span>Crédito até 21x</span><span>Débito</span><span>Dinheiro</span><span>Link de pagamento</span>

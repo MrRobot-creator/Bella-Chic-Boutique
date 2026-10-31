@@ -560,12 +560,12 @@ const Admin = () => {
                 <label className="wide">URL da imagem
                   <input type="url" value={draft.image} onChange={(event) => setDraft({ ...draft, image: event.target.value })} placeholder="Cole uma URL ou envie uma imagem abaixo" required={!draft.image.trim() && draft.colors.some((color) => !color.image.trim())} />
                 </label>
-                <label className="wide">Enviar foto do dispositivo (PNG, JPG ou WebP; até 5 MB)
+                <label className="wide">Enviar foto do dispositivo (PNG, JPG ou WebP; fotos grandes são reduzidas sozinhas)
                   <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleImageUpload} disabled={uploadingImage || uploadingGalleryImages || uploadingColorIndex !== null} />
                   {uploadingImage && <span role="status">Enviando imagem para o Supabase...</span>}
                   {draft.image && <img className="image-preview" src={draft.image} alt="Pré-visualização da imagem do produto" />}
                 </label>
-                <label className="wide">Enviar fotos de outros ângulos (opcional; PNG, JPG ou WebP; até 5 MB por foto)
+                <label className="wide">Enviar fotos de outros ângulos (opcional; PNG, JPG ou WebP; fotos grandes são reduzidas sozinhas)
                   <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={handleGalleryImagesUpload} disabled={uploadingImage || uploadingGalleryImages || uploadingColorIndex !== null} />
                   {uploadingGalleryImages && <span role="status">Enviando fotos dos ângulos para o Supabase...</span>}
                   {!!draft.images.length && (
