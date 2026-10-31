@@ -2,6 +2,8 @@ import { Product, UnitStock, VariantStock } from '../types/store'
 
 /** A partir de quantas unidades (ou menos) a peça mostra "Últimas unidades". */
 export const LOW_STOCK_LIMIT = 2
+/** Igual ao limite do banco (supabase/v6-limites.sql): mais que isso, a cliente fala com a loja. */
+export const MAX_UNITS_PER_ITEM = 5
 
 export const getVariantStock = (
   stock: VariantStock[] | undefined,

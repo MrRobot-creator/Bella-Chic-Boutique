@@ -686,6 +686,8 @@ export const Policy = styled.div`
   ul { display: grid; gap: 10px; }
   li { position: relative; padding-left: 22px; color: #5E474B; font-size: 14px; line-height: 1.55; }
   li::before { content: '♡'; position: absolute; left: 0; color: ${colors.rose}; }
+  li strong { color: ${colors.plum}; }
+  li a { color: ${colors.roseDark}; text-decoration: underline; overflow-wrap: anywhere; }
   .note { margin-top: 16px; color: ${colors.muted}; font-size: 13px; }
   .note a { color: ${colors.roseDark}; font-weight: 600; text-decoration: underline; }
   @media (max-width: 600px) { padding: 22px 18px; }

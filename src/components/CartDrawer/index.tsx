@@ -2,7 +2,7 @@ import { ChangeEvent, FormEvent, MouseEvent, useEffect, useRef, useState } from 
 import { storeConfig } from '../../config/store'
 import { CartItem, PaymentMethod } from '../../types/store'
 import { getSizeFitLabel } from '../../utils/productSize'
-import { availableInUnit, getVariantStock } from '../../utils/inventory'
+import { availableInUnit, getVariantStock, MAX_UNITS_PER_ITEM } from '../../utils/inventory'
 import { createOrderMessage, createOrderReference, createWhatsAppUrl } from '../../services/whatsapp'
 import { checkCoupon, CouponCheck, couponDiscount, couponMessage as couponResultMessage, describeCoupon } from '../../services/coupon'
 import { hasPix, StoreSettings, unitPix } from '../../services/settings'
@@ -502,7 +502,7 @@ const CartDrawer = ({ isOpen, items, customer, settings, onOrderPlaced, onKeepSh
                       <div className="quantity">
                         <button type="button" aria-label={`Diminuir quantidade de ${product.name}`} onClick={() => onChangeQuantity(product.id, size, color, quantity - 1)}>−</button>
                         <span>{quantity}</span>
-                        <button type="button" aria-label={`Aumentar quantidade de ${product.name}`} disabled={quantity >= (product.unitStock ? inUnit : getVariantStock(product.variantStock, size, color))} onClick={() => onChangeQuantity(product.id, size, color, quantity + 1)}>+</button>
+                        <button type="button" aria-label={`Aumentar quantidade de ${product.name}`} disabled={quantity >= Math.min(MAX_UNITS_PER_ITEM, product.unitStock ? inUnit : getVariantStock(product.variantStock, size, color))} onClick={() => onChangeQuantity(product.id, size, color, quantity + 1)}>+</button>
                         <RemoveButton type="button" onClick={() => onRemove(product.id, size, color)}>Remover</RemoveButton>
                       </div>
                       {product.unitStock ? (

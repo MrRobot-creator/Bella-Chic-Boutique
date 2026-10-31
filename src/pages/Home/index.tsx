@@ -21,7 +21,7 @@ import { createWhatsAppUrl } from '../../services/whatsapp'
 import { storeConfig } from '../../config/store'
 import { cardFeeRates } from '../../config/paymentFees'
 import { CartItem, Product } from '../../types/store'
-import { getVariantStock } from '../../utils/inventory'
+import { getVariantStock, MAX_UNITS_PER_ITEM } from '../../utils/inventory'
 import { getProductIdFromPath, getProductPath } from '../../utils/productLink'
 import * as S from './styles'
 import boutiqueLogo from '../../assets/bella-chic-logo.jpg'
@@ -31,6 +31,7 @@ import lojaCnImage from '../../assets/loja cn.jpeg'
 
 const PAGE_SIZE = 12
 const COUPON_CODE = 'BELLA10'
+const MAX_UNITS_MESSAGE = `Pelo site, até ${MAX_UNITS_PER_ITEM} unidades da mesma peça. Para mais, fale com a loja pelo WhatsApp.`
 const isCombo = (product: Pick<Product, 'category'>) => /combo/i.test(product.category)
 const unitImages: Record<string, string> = { 'galeria-portuense': lojaGaleriaImage, 'cidade-nova-4': lojaCnImage }
 
@@ -343,6 +344,10 @@ const Home = () => {
       (item) => item.product.id === product.id && item.size === size && item.color === color
     )?.quantity || 0
     const availableStock = currentProduct.available === false ? 0 : getVariantStock(currentProduct.variantStock, size, color)
+    if (existingQuantity + quantity > MAX_UNITS_PER_ITEM) {
+      notify(MAX_UNITS_MESSAGE)
+      return false
+    }
     if (existingQuantity + quantity > availableStock) {
       notify(`Há somente ${Math.max(0, availableStock - existingQuantity)} unidade(s) disponível(is) de ${product.name} (${size}, ${color}).`)
       return false
@@ -378,6 +383,10 @@ const Home = () => {
     const availableStock = currentProduct && currentProduct.available !== false
       ? getVariantStock(currentProduct.variantStock, size, color)
       : 0
+    if (quantity > MAX_UNITS_PER_ITEM) {
+      notify(MAX_UNITS_MESSAGE)
+      return
+    }
     if (quantity > availableStock) {
       notify(`Há somente ${availableStock} unidade(s) disponível(is) desta variação.`)
       return
@@ -625,7 +634,7 @@ const Home = () => {
               </li>
               <li>
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={'#C2405B'} strokeWidth="1.5" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2" /><path d="M3 10h18M7 15h4" /></svg>
-                <strong>Pix ou cartão</strong><span>Crédito em até 21x</span>
+                <strong>Pix ou cartão</strong><span>Crédito em até 12x</span>
               </li>
               <li>
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={'#C2405B'} strokeWidth="1.5" aria-hidden="true"><path d="M4 10l8-6 8 6v10H4z" /><path d="M10 20v-6h4v6" /></svg>
@@ -1020,7 +1029,7 @@ const Home = () => {
                         <div key={label}><dt>{label}</dt><dd>{rate}</dd></div>
                       ))}
                     </dl>
-                    <p>Para parcelamentos de 5x a 20x, a atendente informará o percentual e o valor total antes de você autorizar o pagamento. Nenhum pagamento deve ser concluído sem a confirmação prévia do total.</p>
+                    <p>Para parcelamentos de 5x a 12x, a atendente informará o percentual e o valor total antes de você autorizar o pagamento. Nenhum pagamento deve ser concluído sem a confirmação prévia do total.</p>
                   </S.FeeInfo>
                 )}
                 {selectedPaymentInfo && selectedPaymentInfo !== 'Cartão de crédito' && (
@@ -1038,11 +1047,12 @@ const Home = () => {
               <S.Policy id="trocas-devolucoes" tabIndex={-1} role="region" aria-labelledby="exchange-title">
                 <span className="badge">Política oficial</span>
                 <h3 id="exchange-title">Trocas e devoluções</h3>
+                {/* Desistência e defeito seguem o CDC (art. 49 e 26) e o Decreto 7.962/2013; a troca por tamanho é cortesia da loja. */}
                 <ul>
-                  <li>Não trocamos peças promocionais, nem adquiridas em live shop.</li>
-                  <li>O prazo para solicitação de troca é de até 5 dias corridos após o recebimento.</li>
-                  <li>A taxa de entrega/frete da troca é por conta da cliente.</li>
-                  <li>Estas condições comerciais não afastam direitos garantidos pela legislação aplicável.</li>
+                  <li><strong>Desistência em até 7 dias:</strong> comprou pelo site, pelo WhatsApp ou em live? Você pode desistir em até 7 dias corridos depois de receber, sem explicar o motivo, inclusive em peças promocionais. Devolvemos todo o valor pago, com o frete. Se pagou no cartão, pedimos o estorno à operadora.</li>
+                  <li><strong>Como pedir:</strong> pelo mesmo WhatsApp do pedido ou pelo e-mail <a href={`mailto:${storeConfig.contactEmail}`}>{storeConfig.contactEmail}</a>. Confirmamos que recebemos o seu pedido e combinamos a devolução da peça.</li>
+                  <li><strong>Peça com defeito:</strong> fale com a gente. A garantia legal vale para todas as peças, inclusive as promocionais.</li>
+                  <li><strong>Troca por tamanho ou cor:</strong> até 5 dias corridos depois de receber. Não vale para peças promocionais nem compradas em live shop, e o frete da troca é por conta da cliente.</li>
                 </ul>
                 <p className="note">Dúvidas? <a href={generalWhatsApp} target="_blank" rel="noopener noreferrer">Fale com nossa equipe pelo WhatsApp</a>.</p>
               </S.Policy>
@@ -1089,7 +1099,7 @@ const Home = () => {
               {storeConfig.units.map((unit) => <span key={unit.id}>Loja {unit.name}: {unit.address}</span>)}
               <a href={`mailto:${storeConfig.contactEmail}`}>{storeConfig.contactEmail}</a>
               <div className="chips" aria-label="Formas de pagamento aceitas">
-                <span>Pix</span><span>Crédito até 21x</span><span>Débito</span><span>Dinheiro</span><span>Link de pagamento</span>
+                <span>Pix</span><span>Crédito até 12x</span><span>Débito</span><span>Dinheiro</span><span>Link de pagamento</span>
               </div>
               {typeof window !== 'undefined' && window.location.protocol === 'https:' && (
                 <span className="secure">

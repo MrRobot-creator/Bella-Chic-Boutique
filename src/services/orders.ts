@@ -114,6 +114,15 @@ const requireSupabase = () => {
 
 export const orderError = (error: Error) => {
   const message = error.message.toLocaleLowerCase('pt-BR')
+  if (message.includes('too many units of the same item')) {
+    return new Error('Pelo site, até 5 unidades da mesma peça por pedido. Para mais, fale com a loja pelo WhatsApp.')
+  }
+  if (message.includes('too many units in one order')) {
+    return new Error('Pelo site, até 20 peças por pedido. Para mais, fale com a loja pelo WhatsApp.')
+  }
+  if (message.includes('too many open orders from this phone')) {
+    return new Error('Este WhatsApp já tem 3 pedidos aguardando confirmação. Fale com a loja para confirmar ou juntar os pedidos.')
+  }
   if (message.includes('too many orders from this phone')) {
     return new Error('Já recebemos alguns pedidos deste WhatsApp agora há pouco. Aguarde o contato da loja ou tente novamente em 30 minutos.')
   }

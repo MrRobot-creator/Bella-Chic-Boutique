@@ -90,7 +90,7 @@ function TermsContent() {
         ))}
       </dl>
       <p>
-        Para parcelamentos de 5x a 20x, a atendente informará o percentual aplicável e
+        Para parcelamentos de 5x a 12x, a atendente informará o percentual aplicável e
         o total final antes de você autorizar o pagamento. A compra só deve ser paga
         depois de você confirmar o valor total.
       </p>
@@ -110,11 +110,27 @@ function TermsContent() {
 
       <h2>5. Trocas, devoluções e direitos legais</h2>
       <p>
-        Consulte a seção <a href="/#trocas-devolucoes">Trocas e devoluções</a>{' '}
-        na página inicial do site. Essas condições comerciais não afastam direitos assegurados
-        pela legislação aplicável, inclusive os relativos a compras realizadas fora do
-        estabelecimento, quando cabíveis. Em caso de dúvida, fale com a loja pelo e-mail
-        indicado acima.
+        <strong>Desistência (direito de arrependimento).</strong> Nas compras feitas fora da
+        loja física (pelo site, pelo WhatsApp ou em live), você pode desistir em até 7 dias
+        corridos a partir do recebimento, sem precisar informar o motivo, inclusive em peças
+        promocionais (art. 49 do Código de Defesa do Consumidor). A loja devolve todo o valor
+        pago, incluindo o frete, e, se o pagamento foi no cartão, pede o estorno à operadora.
+      </p>
+      <p>
+        <strong>Como pedir a desistência.</strong> Pelo mesmo WhatsApp usado no pedido ou pelo
+        e-mail <a href={`mailto:${storeConfig.contactEmail}`}>{storeConfig.contactEmail}</a>. A
+        loja confirma o recebimento da solicitação e combina com você a devolução da peça.
+      </p>
+      <p>
+        <strong>Peças com defeito.</strong> A garantia legal contra defeitos vale para todas as
+        peças, inclusive as promocionais. Fale com a loja para avaliarmos a troca, o conserto ou
+        a devolução do valor, conforme a lei.
+      </p>
+      <p>
+        <strong>Troca por tamanho ou cor (cortesia da loja).</strong> Pode ser pedida em até 5
+        dias corridos após o recebimento. Não vale para peças promocionais nem compradas em live
+        shop, e o frete da troca é por conta da cliente. Esta cortesia não substitui a
+        desistência nem a garantia acima.
       </p>
 
       <h2>6. Avaliações</h2>
@@ -327,7 +343,7 @@ function LegalPage() {
         <Link className="back-link" to="/">← Voltar à loja</Link>
           <p className="eyebrow">{storeConfig.name}</p>
         <h1>{title}</h1>
-        <p className="updated">Última atualização: 30 de outubro de 2026</p>
+        <p className="updated">Última atualização: 31 de outubro de 2026</p>
         {isPrivacy ? <PrivacyContent /> : <TermsContent />}
       </Content>
     </Page>

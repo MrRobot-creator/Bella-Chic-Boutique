@@ -1,6 +1,6 @@
 import { MouseEvent, TouchEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { Product } from '../../types/store'
-import { getUnitStock, getVariantStock, LOW_STOCK_LIMIT } from '../../utils/inventory'
+import { getUnitStock, getVariantStock, LOW_STOCK_LIMIT, MAX_UNITS_PER_ITEM } from '../../utils/inventory'
 import { storeConfig } from '../../config/store'
 import { getSizeFitLabel } from '../../utils/productSize'
 import { getProductUrl } from '../../utils/productLink'
@@ -71,14 +71,15 @@ const ProductDialog = ({ product, relatedProducts, isFavorite, onToggleFavorite,
   onCloseRef.current = onClose
 
   const stock = getVariantStock(product.variantStock, size, color)
+  const maxQuantity = Math.min(stock, MAX_UNITS_PER_ITEM)
   const discount = getDiscount(product)
   const sizeFit = getSizeFitLabel(product)
   const canRequestRestock = product.enabled !== false
   const current = images[Math.min(imageIndex, images.length - 1)]
 
   useEffect(() => {
-    setQuantity((value) => Math.min(value, Math.max(1, stock)))
-  }, [stock])
+    setQuantity((value) => Math.min(value, Math.max(1, maxQuantity)))
+  }, [maxQuantity])
 
   // Título da aba, evento do Analytics, rolagem travada, Esc e foco preso na janela.
   useEffect(() => {
@@ -368,7 +369,7 @@ const ProductDialog = ({ product, relatedProducts, isFavorite, onToggleFavorite,
               <Quantity>
                 <button type="button" aria-label="Diminuir quantidade" disabled={quantity <= 1} onClick={() => setQuantity((value) => Math.max(1, value - 1))}>−</button>
                 <span aria-live="polite">{quantity}</span>
-                <button type="button" aria-label="Aumentar quantidade" disabled={quantity >= stock} onClick={() => setQuantity((value) => Math.min(stock, value + 1))}>+</button>
+                <button type="button" aria-label="Aumentar quantidade" disabled={quantity >= maxQuantity} onClick={() => setQuantity((value) => Math.min(maxQuantity, value + 1))}>+</button>
               </Quantity>
               <button type="button" className="add" disabled={!size || !color} onClick={add}>Adicionar à sacola</button>
             </AddRow>
