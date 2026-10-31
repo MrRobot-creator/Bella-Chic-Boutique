@@ -208,7 +208,8 @@ const Home = () => {
   const launches = useMemo(() => [...catalogProducts]
     .filter((product) => !isCombo(product))
     .sort((first, second) => Number(second.available !== false) - Number(first.available !== false) || second.id - first.id)
-    .slice(0, 8), [catalogProducts])
+    // 8 ou 4: fileiras completas no computador (4 por linha) e no celular (2 por linha).
+    .filter((_product, index, list) => index < (list.length >= 8 ? 8 : 4)), [catalogProducts])
 
   // Peça do banner: a que tem mais cores à venda (empate: a mais nova).
   const featuredProduct = useMemo(() => catalogProducts
@@ -253,7 +254,8 @@ const Home = () => {
       if (sortBy === 'price-asc') return a.price - b.price
       if (sortBy === 'price-desc') return b.price - a.price
       if (sortBy === 'name') return a.name.localeCompare(b.name, 'pt-BR')
-      return 0
+      // Destaques: peças à venda antes das esgotadas.
+      return Number(b.available !== false) - Number(a.available !== false)
     })
   }, [activeCategory, activeColor, activeSize, catalogProducts, favorites, matchesSearch, maxPrice, search, sortBy])
 

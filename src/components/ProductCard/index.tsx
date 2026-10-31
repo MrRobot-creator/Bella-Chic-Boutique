@@ -65,12 +65,13 @@ const ProductCard = ({ product, isFavorite, onOpen, onToggleFavorite }: ProductC
           </Dots>
         )}
         <span className="category">{product.category}</span>
-        <h3>{product.name}</h3>
-        {sizeFit && <span className="fit">{sizeFit}</span>}
+        <h3 title={product.name}>{product.name}</h3>
+        {/* Linhas sempre presentes (mesmo vazias) para nome, preço e botão ficarem na mesma altura em toda a fileira. */}
+        <span className="fit">{sizeFit}</span>
         <span className="price">
           <strong>{formatPrice(product.price)}</strong> <span>no Pix</span>
         </span>
-        {product.oldPrice && product.oldPrice > product.price && <s>{formatPrice(product.oldPrice)}</s>}
+        <span className="old">{discount > 0 && <s>{formatPrice(product.oldPrice || 0)}</s>}</span>
         <div className="buy">
           <BuyButton
             type="button"

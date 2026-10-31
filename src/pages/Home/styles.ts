@@ -258,8 +258,9 @@ export const ProductGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 24px;
-  @media (max-width: 1100px) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  @media (max-width: 760px) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  /* 4 ou 2 colunas (sem 3): as listas de 4 e 8 peças sempre fecham a fileira. */
+  @media (max-width: 900px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 760px) { gap: 12px; }
 `
 
 /* ---------- Categorias ---------- */

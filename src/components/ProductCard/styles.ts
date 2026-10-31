@@ -77,12 +77,21 @@ export const Info = styled.div`
   padding: 14px 16px 18px;
   text-align: center;
   .category { color: ${colors.soft}; font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase; }
-  h3 { margin: 0; color: ${colors.plum}; font: 600 15px/1.3 ${fonts.sans}; }
-  .fit { color: #8B6B70; font-size: 11px; }
+  h3 {
+    margin: 0;
+    min-height: 2.6em;
+    display: -webkit-box;
+    overflow: hidden;
+    color: ${colors.plum};
+    font: 600 15px/1.3 ${fonts.sans};
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  .fit { min-height: 1.4em; color: #8B6B70; font-size: 11px; line-height: 1.4; }
   .price { margin-top: 4px; color: ${colors.plum}; font-size: 17px; }
   .price strong { font-weight: 700; }
   .price span { color: ${colors.muted}; font-size: 13px; }
-  s { color: ${colors.soft}; font-size: 12px; }
+  .old { min-height: 1.4em; color: ${colors.soft}; font-size: 12px; line-height: 1.4; }
   .buy { width: 100%; margin-top: auto; padding-top: 10px; }
   @media (max-width: 480px) {
     padding: 12px 10px 14px;
