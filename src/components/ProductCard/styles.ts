@@ -21,11 +21,17 @@ export const Media = styled.a`
   overflow: hidden;
   background: ${colors.photoBg};
   img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
-  .back { opacity: 0; transition: opacity .8s cubic-bezier(.45, 0, .25, 1); }
+  .main, .back { transition: opacity .6s cubic-bezier(.45, 0, .25, 1), transform 1.2s cubic-bezier(.2, .7, .2, 1); }
+  .back { opacity: 0; }
   @media (hover: hover) {
     ${Card}:hover & .back { opacity: 1; }
+    /* Aproximação lenta da foto: dentro do overflow, não mexe no layout. */
+    ${Card}:hover & img { transform: scale(1.04); }
   }
-  @media (prefers-reduced-motion: reduce) { .back { transition: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .main, .back { transition: none; }
+    ${Card}:hover & img { transform: none; }
+  }
 `
 
 export const Pill = styled.span<{ $tone: 'light' | 'rose' | 'dark'; $bottom?: boolean }>`
@@ -76,7 +82,7 @@ export const Info = styled.div`
   gap: 4px;
   padding: 14px 16px 18px;
   text-align: center;
-  .category { color: ${colors.soft}; font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase; }
+  .category { color: ${colors.soft}; font-size: 11px; letter-spacing: 1.8px; text-transform: uppercase; }
   h3 {
     margin: 0;
     min-height: 2.6em;
@@ -87,7 +93,7 @@ export const Info = styled.div`
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
   }
-  .fit { min-height: 1.4em; color: #8B6B70; font-size: 11px; line-height: 1.4; }
+  .fit { min-height: 1.4em; color: ${colors.muted}; font-size: 12px; line-height: 1.4; }
   .price { margin-top: 4px; color: ${colors.plum}; font-size: 17px; }
   .price strong { font-weight: 700; }
   .price span { color: ${colors.muted}; font-size: 13px; }
@@ -110,16 +116,21 @@ export const Dots = styled.span`
 export const BuyButton = styled.button<{ $soft?: boolean }>`
   width: 100%;
   min-height: 44px;
-  border: 0;
+  /* "Avise-me" é fio fino em vez de bloco rosa: a vitrine com peças esgotadas fica leve, e "Comprar" se destaca. */
+  border: 1px solid ${({ $soft }) => ($soft ? colors.lineStrong : colors.rose)};
   border-radius: 999px;
-  background: ${({ $soft }) => ($soft ? colors.blush : colors.rose)};
-  color: ${({ $soft }) => ($soft ? colors.roseDark : colors.white)};
-  font: 600 13px ${fonts.sans};
-  letter-spacing: .6px;
+  background: ${({ $soft }) => ($soft ? 'transparent' : colors.rose)};
+  color: ${({ $soft }) => ($soft ? colors.plum : colors.white)};
+  font: 600 12px ${fonts.sans};
+  letter-spacing: 1.6px;
   text-transform: uppercase;
   cursor: pointer;
-  transition: background .2s;
-  &:hover:not(:disabled) { background: ${({ $soft }) => ($soft ? '#FBD5DB' : colors.roseDark)}; }
+  transition: background .2s, border-color .2s, color .2s;
+  &:hover:not(:disabled) {
+    border-color: ${({ $soft }) => ($soft ? colors.rose : colors.roseDark)};
+    background: ${({ $soft }) => ($soft ? 'transparent' : colors.roseDark)};
+    color: ${({ $soft }) => ($soft ? colors.roseDark : colors.white)};
+  }
   &:disabled { cursor: not-allowed; background: #EEE9E8; color: #918787; }
 `
 

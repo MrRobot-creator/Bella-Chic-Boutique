@@ -163,7 +163,7 @@ export const Details = styled.div`
   padding: 40px 36px 32px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  .category { color: ${colors.rose}; font-size: 11px; font-weight: 600; letter-spacing: 2.4px; text-transform: uppercase; }
+  .category { color: ${colors.gold}; font-size: 11px; font-weight: 600; letter-spacing: 2.4px; text-transform: uppercase; }
   h2 { margin-top: -8px; padding-right: 48px; color: ${colors.plum}; font: 400 clamp(26px, 3vw, 32px)/1.15 ${fonts.serif}; }
   .pay-note { margin-top: -8px; color: ${colors.soft}; font-size: 12px; }
   .description { color: ${colors.muted}; font-size: 14px; line-height: 1.65; white-space: pre-line; }

@@ -540,7 +540,7 @@ const CartDrawer = ({ isOpen, items, customer, settings, onOrderPlaced, onKeepSh
               {freeShippingMin !== null && (
                 <FreeShipping $done={freeShipping}>
                   {freeShipping
-                    ? <strong>Você ganhou frete grátis na entrega {'\u{1F389}'}</strong>
+                    ? <strong>Você ganhou frete grátis na entrega</strong>
                     : <span>Faltam <strong>{formatPrice(missingForFreeShipping)}</strong> para o frete grátis</span>}
                   <span className="bar" aria-hidden="true"><span style={{ width: `${Math.min(100, ((total - discount) / freeShippingMin) * 100)}%` }} /></span>
                   {!freeShipping && onKeepShopping && (

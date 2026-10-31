@@ -77,7 +77,7 @@ export const SearchField = styled.div`
   gap: 10px;
   border-radius: 999px;
   background: ${colors.blushSoft};
-  color: #8D7779;
+  color: #7A6567;
   transition: box-shadow .2s, background .2s;
   &:focus-within { background: ${colors.white}; box-shadow: 0 0 0 1.5px ${colors.rose}; }
   input {

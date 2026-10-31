@@ -74,7 +74,7 @@ export const DrawerHeader = styled.div`
   justify-content: space-between;
   padding-bottom: 18px;
   border-bottom: 1px solid ${colors.line};
-  .eyebrow { color: ${colors.rose}; font-size: 11px; font-weight: 600; letter-spacing: 2.4px; }
+  .eyebrow { color: ${colors.gold}; font-size: 11px; font-weight: 600; letter-spacing: 2.4px; }
   h2 { margin-top: 6px; font: 400 28px ${fonts.serif}; }
   h2 span { color: ${colors.soft}; font: 15px ${fonts.sans}; }
 `

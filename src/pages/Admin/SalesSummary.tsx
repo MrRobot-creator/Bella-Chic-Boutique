@@ -170,7 +170,7 @@ const SalesSummary = ({ products, refreshKey, adminUnitId }: SalesSummaryProps) 
         <section>
           <h3>Estoque baixo{unitId ? ` na ${unitNameOf(unitId)}` : ''} ({lowStock.length})</h3>
           {lowStock.length === 0 ? (
-            <p className="empty">Nenhuma variação com 2 unidades ou menos. 🎉</p>
+            <p className="empty">Nenhuma variação com 2 unidades ou menos.</p>
           ) : (
             <ul>
               {lowStock.slice(0, 12).map((variant) => (

@@ -526,7 +526,7 @@ const Home = () => {
     <S.Page>
       {couponText && (
         <S.AnnouncementBar>
-          ✨ Cupom <strong>{COUPON_CODE}</strong>: {couponText}
+          Cupom <strong>{COUPON_CODE}</strong> · {couponText}
         </S.AnnouncementBar>
       )}
 

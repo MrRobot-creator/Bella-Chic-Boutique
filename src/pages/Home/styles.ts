@@ -17,13 +17,13 @@ export const Page = styled.div`
 `
 
 export const AnnouncementBar = styled.p`
-  padding: 9px 16px;
-  background: ${colors.rose};
-  color: ${colors.white};
-  font-size: 13px;
+  padding: 10px 16px;
+  background: ${colors.plum};
+  color: #F3E6E8;
+  font-size: 12px;
   text-align: center;
-  letter-spacing: .2px;
-  strong { letter-spacing: 1px; }
+  letter-spacing: .8px;
+  strong { color: ${colors.goldLight}; font-weight: 700; letter-spacing: 1.6px; }
   @media (max-width: 600px) { font-size: 11px; padding: 8px 12px; }
 `
 
@@ -124,7 +124,7 @@ export const HeroSplit = styled.div`
     ${heroCopy}
     padding: 0 64px 0 ${edgePadding};
     background: ${colors.blush};
-    .eyebrow { color: ${colors.rose}; }
+    .eyebrow { color: ${colors.gold}; }
     h2 em { color: ${colors.rose}; }
     p { color: #6B5659; }
     .action { background: ${colors.rose}; color: ${colors.white}; }
@@ -248,7 +248,8 @@ export const HeadRow = styled.div<{ $light?: boolean }>`
   flex-wrap: wrap;
   gap: 16px 24px;
   margin-bottom: 34px;
-  .eyebrow { display: block; color: ${({ $light }) => ($light ? colors.logoPink : colors.rose)}; font-size: 12px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 12px; color: ${({ $light }) => ($light ? colors.goldLight : colors.gold)}; font-size: 12px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; }
+  .eyebrow::before { content: ''; width: 28px; height: 1px; background: currentColor; opacity: .7; }
   h2 { margin-top: 6px; color: ${({ $light }) => ($light ? colors.white : colors.plum)}; font: italic 400 clamp(30px, 4vw, 42px)/1.15 ${fonts.serif}; }
   p { max-width: 380px; color: ${({ $light }) => ($light ? '#E2C9CE' : colors.muted)}; font-size: 15px; line-height: 1.6; }
   .see-all { padding: 0; border: 0; background: none; color: ${colors.roseDark}; font: 600 15px ${fonts.sans}; cursor: pointer; }
@@ -351,17 +352,19 @@ export const ComboCard = styled.article`
 /* ---------- Promoções ---------- */
 
 export const Ribbon = styled.div`
-  margin: 8px -20px 56px;
-  padding: 14px 0;
+  /* Faixa reta e fina, com filetes dourados: a versão inclinada e chamativa lembrava loja de liquidação. */
+  margin: 8px 0 56px;
+  padding: 13px 0;
   overflow: hidden;
-  background: ${colors.rose};
-  color: ${colors.white};
-  box-shadow: 0 10px 24px rgba(167, 47, 72, .22);
-  transform: rotate(-1.2deg);
-  .track { width: max-content; display: flex; animation: ${marquee} 38s linear infinite; }
-  .group { display: flex; gap: 38px; padding-right: 38px; white-space: nowrap; font-size: 15px; font-weight: 700; letter-spacing: 2px; }
+  border-top: 1px solid ${colors.goldLight};
+  border-bottom: 1px solid ${colors.goldLight};
+  background: ${colors.white};
+  color: ${colors.plum};
+  .track { width: max-content; display: flex; animation: ${marquee} 48s linear infinite; }
+  .group { display: flex; gap: 38px; padding-right: 38px; white-space: nowrap; font: 500 13px ${fonts.sans}; letter-spacing: 3px; }
+  .group > span > span { color: ${colors.gold}; }
   @media (prefers-reduced-motion: reduce) { .track { animation: none; } }
-  @media (max-width: 600px) { margin-bottom: 36px; padding: 11px 0; .group { font-size: 12px; gap: 24px; padding-right: 24px; } }
+  @media (max-width: 600px) { margin-bottom: 36px; padding: 11px 0; .group { font-size: 11px; gap: 24px; padding-right: 24px; } }
 `
 
 export const PromoGrid = styled.div<{ $columns: number }>`
@@ -436,14 +439,16 @@ export const Coupon = styled.div`
   flex-direction: column;
   gap: 12px;
   padding: 26px 26px 24px;
-  border: 2px dashed #E8637C;
+  /* Vale-presente: filete dourado no lugar da borda tracejada. */
+  border: 1px solid ${colors.goldLight};
   border-radius: 22px;
   background: ${colors.blush};
+  box-shadow: inset 0 0 0 6px ${colors.blush}, inset 0 0 0 7px rgba(201, 169, 110, .45);
   &::before, &::after { content: ''; position: absolute; top: 50%; width: 26px; height: 26px; border-radius: 50%; background: ${colors.page}; transform: translateY(-50%); }
-  &::before { left: -14px; border-right: 2px dashed #E8637C; }
-  &::after { right: -14px; border-left: 2px dashed #E8637C; }
+  &::before { left: -14px; border-right: 1px solid ${colors.goldLight}; }
+  &::after { right: -14px; border-left: 1px solid ${colors.goldLight}; }
   &:only-child { flex: 1; justify-content: center; }
-  .label { color: ${colors.roseDark}; font-size: 12px; font-weight: 700; letter-spacing: 2px; }
+  .label { color: ${colors.gold}; font-size: 12px; font-weight: 700; letter-spacing: 2.4px; }
   .value { color: ${colors.plum}; font: 400 44px/1 ${fonts.serif}; }
   .value small { font-size: 22px; }
   .rule { color: #6B5659; font-size: 13px; }
@@ -577,7 +582,7 @@ export const StoresLayout = styled.div`
   gap: 32px;
   align-items: start;
   .about { position: sticky; top: 110px; display: flex; flex-direction: column; gap: 14px; }
-  .about .eyebrow { color: ${colors.rose}; font-size: 12px; font-weight: 600; letter-spacing: 3px; }
+  .about .eyebrow { color: ${colors.gold}; font-size: 12px; font-weight: 600; letter-spacing: 3px; }
   .about h2 { font: 400 clamp(28px, 3.2vw, 38px)/1.15 ${fonts.serif}; }
   .about h2 em { color: ${colors.rose}; }
   .about p { color: ${colors.muted}; font-size: 15px; line-height: 1.7; }
@@ -598,12 +603,12 @@ export const UnitCard = styled.article`
   background: ${colors.white};
   > img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
   .body { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 20px 22px 22px; }
-  .city { color: ${colors.rose}; font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; }
+  .city { color: ${colors.gold}; font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; }
   h3 { font: 400 24px ${fonts.serif}; }
   .address, .hours { display: flex; gap: 8px; color: ${colors.muted}; font-size: 14px; line-height: 1.55; }
   .address svg, .hours svg { flex: none; margin-top: 2px; color: ${colors.rose}; }
   .actions { margin-top: auto; padding-top: 6px; display: flex; flex-wrap: wrap; gap: 8px; }
-  .actions a { min-height: 42px; padding: 0 16px; display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; font-size: 13px; font-weight: 600; transition: background .2s, border-color .2s; }
+  .actions a { min-height: 44px; padding: 0 16px; display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; font-size: 13px; font-weight: 600; transition: background .2s, border-color .2s; }
   .map { border: 1px solid ${colors.lineStrong}; color: ${colors.plum}; }
   .map:hover { border-color: ${colors.rose}; }
   .whats { background: ${colors.rose}; color: ${colors.white}; }
@@ -727,7 +732,7 @@ export const FooterBottom = styled.div`
   flex-wrap: wrap;
   gap: 12px;
   border-top: 1px solid ${colors.line};
-  color: #8D7779;
+  color: #7A6567;
   font-size: 12px;
 `
 

@@ -13,7 +13,7 @@ const Box = styled.main`
   padding: 40px 16px;
   background: ${colors.blushSoft};
   text-align: center;
-  .eyebrow { color: ${colors.rose}; font-size: 12px; font-weight: 600; letter-spacing: 2.4px; text-transform: uppercase; }
+  .eyebrow { color: ${colors.gold}; font-size: 12px; font-weight: 600; letter-spacing: 2.4px; text-transform: uppercase; }
   h1 { color: ${colors.plum}; font: 400 clamp(30px, 5vw, 42px)/1.15 ${fonts.serif}; }
   p { max-width: 420px; color: ${colors.muted}; font-size: 15px; line-height: 1.6; }
   .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 8px; }
