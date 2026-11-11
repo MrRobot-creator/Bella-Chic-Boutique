@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Session } from '@supabase/supabase-js'
 import {
@@ -168,6 +168,9 @@ const Admin = () => {
   const [draft, setDraft] = useState<ProductDraft>(blankDraft)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
+  const messagesRef = useRef<HTMLDivElement>(null)
+  /** Leva a tela até os avisos do topo: quem clica em "Adicionar peça" está no fim do formulário e não veria o resultado. */
+  const revealMessages = () => window.requestAnimationFrame(() => messagesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
   const [uploadingImage, setUploadingImage] = useState(false)
   const [uploadingGalleryImages, setUploadingGalleryImages] = useState(false)
   const [uploadingColorIndex, setUploadingColorIndex] = useState<number | null>(null)
@@ -305,7 +308,7 @@ const Admin = () => {
     try {
       const imageUrl = await uploadProductImage(file)
       setDraft((current) => ({ ...current, image: imageUrl }))
-      setNotice('Imagem enviada ao Supabase Storage.')
+      setNotice('Foto principal enviada. A peça só é salva ao clicar em “Adicionar peça”, no fim do formulário.')
     } catch (uploadError) {
       setError(`Não foi possível enviar a imagem: ${errorMessage(uploadError)}`)
     } finally {
@@ -329,7 +332,7 @@ const Admin = () => {
           colorIndex === index ? { ...color, image: imageUrl } : color
         )
       }))
-      setNotice(`Imagem da cor ${draft.colors[index].name || ''} enviada ao Supabase Storage.`)
+      setNotice(`Foto da cor ${draft.colors[index].name || ''} enviada. A peça só é salva ao clicar em “Adicionar peça”.`)
     } catch (uploadError) {
       setError(`Não foi possível enviar a foto da cor: ${errorMessage(uploadError)}`)
     } finally {
@@ -350,7 +353,7 @@ const Admin = () => {
         const imageUrl = await uploadProductImage(file)
         setDraft((current) => ({ ...current, images: [...current.images, imageUrl] }))
       }
-      setNotice(`${files.length} ${files.length === 1 ? 'foto de outro ângulo enviada' : 'fotos de outros ângulos enviadas'} ao Supabase Storage.`)
+      setNotice(`${files.length} ${files.length === 1 ? 'foto de outro ângulo enviada' : 'fotos de outros ângulos enviadas'}. A peça só é salva ao clicar em “Adicionar peça”.`)
     } catch (uploadError) {
       setError(`Não foi possível enviar todas as fotos dos ângulos: ${errorMessage(uploadError)}`)
     } finally {
@@ -360,8 +363,12 @@ const Admin = () => {
 
   const handleSaveProduct = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    const failSave = (message: string) => {
+      setError(message)
+      revealMessages()
+    }
     if (uploadingImage || uploadingGalleryImages || uploadingColorIndex !== null) {
-      setError('Aguarde o envio das imagens terminar antes de salvar a peça.')
+      failSave('Aguarde o envio das imagens terminar antes de salvar a peça.')
       return
     }
     setError('')
@@ -378,31 +385,31 @@ const Admin = () => {
     const oldPrice = draft.oldPrice ? Number(draft.oldPrice.replace(',', '.')) : undefined
 
     if (!sizes.length) {
-      setError('Informe pelo menos um tamanho, separado por vírgulas.')
+      failSave('Informe pelo menos um tamanho, separado por vírgulas.')
       return
     }
     if (new Set(sizes).size !== sizes.length) {
-      setError('Cada tamanho deve aparecer apenas uma vez.')
+      failSave('Cada tamanho deve aparecer apenas uma vez.')
       return
     }
     if (!colors.length || colors.some((color) => !color.name || !color.hex)) {
-      setError('Informe pelo menos uma cor, com nome e código hexadecimal.')
+      failSave('Informe pelo menos uma cor, com nome e código hexadecimal.')
       return
     }
     if (new Set(colors.map((color) => color.name.toLocaleLowerCase('pt-BR'))).size !== colors.length) {
-      setError('Cada cor deve ter um nome único.')
+      failSave('Cada cor deve ter um nome único.')
       return
     }
     if (!Number.isFinite(price) || price <= 0 || (oldPrice !== undefined && (!Number.isFinite(oldPrice) || oldPrice <= 0))) {
-      setError('Informe preços válidos e maiores que zero.')
+      failSave('Informe preços válidos e maiores que zero.')
       return
     }
     if (colors.some((color) => !/^#[0-9a-fA-F]{6}$/.test(color.hex))) {
-      setError('Cada cor deve usar um código hexadecimal válido, por exemplo #E5A1AD.')
+      failSave('Cada cor deve usar um código hexadecimal válido, por exemplo #E5A1AD.')
       return
     }
     if (colors.some((color) => color.image && !/^https?:\/\//i.test(color.image))) {
-      setError('As imagens individuais das cores devem ser URLs públicas iniciadas por https:// ou http://.')
+      failSave('As imagens individuais das cores devem ser URLs públicas iniciadas por https:// ou http://.')
       return
     }
 
@@ -441,8 +448,9 @@ const Admin = () => {
         changeTab('stock')
       }
       resetDraft()
+      revealMessages()
     } catch (saveError) {
-      setError(`Não foi possível salvar a peça: ${errorMessage(saveError)}`)
+      failSave(`Não foi possível salvar a peça: ${errorMessage(saveError)}`)
     } finally {
       setSaving(false)
     }
@@ -514,8 +522,10 @@ const Admin = () => {
                 </button>
               ))}
             </AdminTabs>
-            {error && <AdminNotice $error role="alert">{error}</AdminNotice>}
-            {notice && <AdminNotice role="status">{notice}</AdminNotice>}
+            <div ref={messagesRef}>
+              {error && <AdminNotice $error role="alert">{error}</AdminNotice>}
+              {notice && <AdminNotice role="status">{notice}</AdminNotice>}
+            </div>
             {currentTab === 'summary' && (
               <>
                 <SalesSummary products={products} refreshKey={summaryRefreshKey} adminUnitId={adminUnitId} />
@@ -558,7 +568,8 @@ const Admin = () => {
                   <input type="number" min="0.01" step="0.01" value={draft.oldPrice} onChange={(event) => setDraft({ ...draft, oldPrice: event.target.value })} />
                 </label>
                 <label className="wide">URL da imagem
-                  <input type="url" value={draft.image} onChange={(event) => setDraft({ ...draft, image: event.target.value })} placeholder="Cole uma URL ou envie uma imagem abaixo" required={!draft.image.trim() && draft.colors.some((color) => !color.image.trim())} />
+                  {/* Texto, não type="url": peças antigas usam caminhos do site (/assets/...), que o navegador recusaria e travaria o salvar. */}
+                  <input inputMode="url" value={draft.image} onChange={(event) => setDraft({ ...draft, image: event.target.value })} placeholder="Cole uma URL ou envie uma imagem abaixo" required={!draft.image.trim() && draft.colors.some((color) => !color.image.trim())} />
                 </label>
                 <label className="wide">Enviar foto do dispositivo (PNG, JPG ou WebP; fotos grandes são reduzidas sozinhas)
                   <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleImageUpload} disabled={uploadingImage || uploadingGalleryImages || uploadingColorIndex !== null} />
@@ -622,7 +633,7 @@ const Admin = () => {
                         </span>
                       </label>
                       <label className="wide">URL da foto desta cor (opcional)
-                        <input type="url" value={color.image} onChange={(event) => setDraft((current) => ({
+                        <input inputMode="url" value={color.image} onChange={(event) => setDraft((current) => ({
                           ...current,
                           colors: current.colors.map((item, itemIndex) => itemIndex === index ? { ...item, image: event.target.value } : item)
                         }))} placeholder="Será preenchida ao enviar a foto" />
