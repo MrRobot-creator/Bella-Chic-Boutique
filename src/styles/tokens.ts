@@ -25,7 +25,9 @@ export const colors = {
 
 export const fonts = {
   sans: "'DM Sans', system-ui, sans-serif",
-  serif: "'Playfair Display', Georgia, serif"
+  serif: "'Playfair Display', Georgia, serif",
+  /* Só para a palavra de destaque do banner. */
+  script: "'Parisienne', 'Brush Script MT', cursive"
 }
 
 export const layout = {

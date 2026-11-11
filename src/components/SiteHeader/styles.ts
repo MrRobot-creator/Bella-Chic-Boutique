@@ -1,4 +1,4 @@
-import styled from 'styled-components'
+import styled, { css } from 'styled-components'
 import { colors, fonts } from '../../styles/tokens'
 
 export const Bar = styled.header`
@@ -26,8 +26,10 @@ export const Row = styled.div`
   }
 `
 
-export const MenuButton = styled.button`
+export const MenuButton = styled.button<{ $collapsed?: boolean }>`
   flex: none;
+  max-width: 140px;
+  overflow: hidden;
   height: 48px;
   padding: 0 18px 0 14px;
   display: flex;
@@ -38,8 +40,19 @@ export const MenuButton = styled.button`
   background: ${colors.white};
   color: ${colors.plum};
   font: 600 14px ${fonts.sans};
-  transition: border-color .2s, background .2s;
+  transition: border-color .2s, background .2s, max-width .3s, margin .3s, opacity .2s;
   &:hover { border-color: ${colors.rose}; background: ${colors.blushSoft}; }
+  /* Computador, topo da página: a barra de seções faz o papel do menu, então o botão recolhe. */
+  ${({ $collapsed }) => $collapsed && css`
+    @media (min-width: 901px) {
+      max-width: 0;
+      margin-right: -22px;
+      padding: 0;
+      border-width: 0;
+      opacity: 0;
+      visibility: hidden;
+    }
+  `}
   @media (max-width: 900px) {
     order: 1;
     width: 44px;
@@ -60,6 +73,44 @@ export const Brand = styled.a`
     margin: 0 auto;
     img { width: 52px; height: 52px; }
   }
+`
+
+/* Barra de seções (só no computador): fica sobre o topo do banner e some ao rolar a página. */
+export const SectionNav = styled.nav<{ $hidden: boolean }>`
+  position: absolute;
+  top: calc(100% + 16px);
+  left: 50%;
+  height: 52px;
+  padding: 0 30px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 999px;
+  background: rgba(255, 252, 251, .86);
+  box-shadow: 0 10px 30px rgba(62, 42, 46, .08);
+  opacity: ${({ $hidden }) => ($hidden ? 0 : 1)};
+  visibility: ${({ $hidden }) => ($hidden ? 'hidden' : 'visible')};
+  transform: translate(-50%, ${({ $hidden }) => ($hidden ? '-12px' : '0')});
+  transition: opacity .25s, transform .25s, visibility .25s;
+  a, button {
+    padding: 6px 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 0;
+    border-bottom: 1.5px solid transparent;
+    background: none;
+    color: ${colors.plum};
+    font: 500 15px ${fonts.sans};
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color .2s;
+  }
+  a:hover, button:hover { color: ${colors.rose}; }
+  [aria-current] { color: ${colors.roseDark}; border-bottom-color: ${colors.rose}; }
+  @media (max-width: 1100px) { gap: 22px; padding: 0 24px; a, button { font-size: 14px; } }
+  @media (max-width: 900px) { display: none; }
 `
 
 export const SearchBox = styled.form`

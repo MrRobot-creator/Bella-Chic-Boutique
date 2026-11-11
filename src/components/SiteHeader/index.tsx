@@ -15,6 +15,7 @@ import {
   Row,
   SearchBox,
   SearchField,
+  SectionNav,
   Actions
 } from './styles'
 
@@ -34,6 +35,18 @@ type SiteHeaderProps = {
 }
 
 const formatPrice = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+
+/** Seções da Home na barra do computador; "Categorias" abre o menu lateral. */
+const sectionLinks = [
+  { href: '#inicio', label: 'Início' },
+  { href: '#lancamentos', label: 'Novidades' },
+  { href: '#catalogo', label: 'Catálogo' },
+  { href: '#promocoes', label: 'Ofertas da semana' },
+  { href: '#lojas', label: 'Nossas lojas' }
+]
+
+/** A partir daqui (px rolados) a barra de seções some e o botão Menu aparece. */
+const NAV_SCROLL_LIMIT = 80
 
 const SearchIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
@@ -55,11 +68,19 @@ const SiteHeader = ({
 }: SiteHeaderProps) => {
   const [searchFocused, setSearchFocused] = useState(false)
   const [activeResult, setActiveResult] = useState(-1)
+  const [scrolled, setScrolled] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
   const term = search.trim()
   const showResults = searchFocused && term.length > 0
 
   useEffect(() => setActiveResult(-1), [term])
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > NAV_SCROLL_LIMIT)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   useEffect(() => {
     if (!searchFocused) return undefined
@@ -103,7 +124,7 @@ const SiteHeader = ({
   return (
     <Bar>
       <Row>
-        <MenuButton type="button" onClick={onMenuClick} aria-label="Abrir menu de categorias">
+        <MenuButton type="button" $collapsed={!scrolled} onClick={onMenuClick} aria-label="Abrir menu de categorias">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h11" /></svg>
           <span className="label">Menu</span>
         </MenuButton>
@@ -176,6 +197,17 @@ const SiteHeader = ({
           </IconButton>
         </Actions>
       </Row>
+
+      <SectionNav $hidden={scrolled} aria-label="Seções da loja">
+        {sectionLinks.slice(0, 2).map((link, index) => (
+          <a key={link.href} href={link.href} aria-current={index === 0 ? 'location' : undefined}>{link.label}</a>
+        ))}
+        <button type="button" onClick={onMenuClick} aria-haspopup="dialog">
+          Categorias
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+        </button>
+        {sectionLinks.slice(2).map((link) => <a key={link.href} href={link.href}>{link.label}</a>)}
+      </SectionNav>
     </Bar>
   )
 }

@@ -1,4 +1,4 @@
-import { FocusEvent as ReactFocusEvent, PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import SiteHeader from '../../components/SiteHeader'
 import SideMenu from '../../components/SideMenu'
@@ -25,7 +25,7 @@ import { getVariantStock, MAX_UNITS_PER_ITEM } from '../../utils/inventory'
 import { getProductIdFromPath, getProductPath } from '../../utils/productLink'
 import * as S from './styles'
 import boutiqueLogo from '../../assets/bella-chic-logo.jpg'
-import banner1Image from '../../assets/banner 1.jpeg'
+import heroImage from '../../assets/thalita-banner.jpeg'
 import lojaGaleriaImage from '../../assets/loja galeria.jpeg'
 import lojaCnImage from '../../assets/loja cn.jpeg'
 
@@ -33,6 +33,8 @@ const PAGE_SIZE = 12
 const COUPON_CODE = 'BELLA10'
 const MAX_UNITS_MESSAGE = `Pelo site, até ${MAX_UNITS_PER_ITEM} unidades da mesma peça. Para mais, fale com a loja pelo WhatsApp.`
 const isCombo = (product: Pick<Product, 'category'>) => /combo/i.test(product.category)
+/** Peça vestida na foto do banner: o card "Na foto" só aparece se ela estiver à venda no catálogo. */
+const HERO_PRODUCT_NAME = /kimono listrado/i
 const unitImages: Record<string, string> = { 'galeria-portuense': lojaGaleriaImage, 'cidade-nova-4': lojaCnImage }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -105,8 +107,6 @@ const Home = () => {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [selectedPaymentInfo, setSelectedPaymentInfo] = useState<string | null>(null)
-  const [heroIndex, setHeroIndex] = useState(0)
-  const [heroPaused, setHeroPaused] = useState(false)
   const [couponCopied, setCouponCopied] = useState(false)
   const [couponInfo, setCouponInfo] = useState<CouponCheck | null>(null)
   const [toast, setToast] = useState('')
@@ -114,8 +114,6 @@ const Home = () => {
   const toastTimer = useRef<number>()
   const cartTriggerRef = useRef<HTMLElement | null>(null)
   const pushedProductRef = useRef(false)
-  const heroPointer = useRef<{ x: number; y: number } | null>(null)
-  const heroSwiped = useRef(false)
 
   const notify = useCallback((message: string) => {
     window.clearTimeout(toastTimer.current)
@@ -218,10 +216,10 @@ const Home = () => {
     // 8 ou 4: fileiras completas no computador (4 por linha) e no celular (2 por linha).
     .filter((_product, index, list) => index < (list.length >= 8 ? 8 : 4)), [catalogProducts])
 
-  // Peça do banner: a que tem mais cores à venda (empate: a mais nova).
-  const featuredProduct = useMemo(() => catalogProducts
-    .filter((product) => product.available !== false && !isCombo(product))
-    .sort((first, second) => second.colors.length - first.colors.length || second.id - first.id)[0], [catalogProducts])
+  const heroProduct = useMemo(
+    () => catalogProducts.find((product) => product.available !== false && HERO_PRODUCT_NAME.test(product.name)),
+    [catalogProducts]
+  )
 
   const featuredOffer = useMemo(() => [...offers]
     .filter((product) => product.available !== false)
@@ -461,53 +459,6 @@ const Home = () => {
     }
   }
 
-  /* ---------- Banner ---------- */
-
-  const heroSlides = useMemo(
-    () => ['banner', ...(featuredProduct ? ['product'] : []), 'stores'] as Array<'banner' | 'product' | 'stores'>,
-    [featuredProduct]
-  )
-  const heroCount = heroSlides.length
-  const currentHero = Math.min(heroIndex, heroCount - 1)
-  const showHero = (index: number) => setHeroIndex((index + heroCount) % heroCount)
-
-  useEffect(() => {
-    if (heroPaused || heroCount < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
-    const rotation = window.setInterval(() => {
-      if (document.visibilityState === 'visible') setHeroIndex((index) => (index + 1) % heroCount)
-    }, 6500)
-    return () => window.clearInterval(rotation)
-  }, [heroCount, heroPaused])
-
-  const handleHeroPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
-    if (!event.isPrimary) return
-    heroPointer.current = { x: event.clientX, y: event.clientY }
-    heroSwiped.current = false
-  }
-  const handleHeroPointerUp = (event: ReactPointerEvent<HTMLElement>) => {
-    const start = heroPointer.current
-    heroPointer.current = null
-    if (!start) return
-    const dx = event.clientX - start.x
-    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(event.clientY - start.y)) {
-      heroSwiped.current = true
-      showHero(currentHero + (dx < 0 ? 1 : -1))
-    }
-  }
-  const blockClickAfterSwipe = (event: { preventDefault: () => void }) => {
-    if (heroSwiped.current) {
-      event.preventDefault()
-      heroSwiped.current = false
-    }
-  }
-
-  const featuredWords = featuredProduct?.name.trim().split(/\s+/) || []
-  const featuredSummary = featuredProduct ? [
-    featuredProduct.colors.length > 1 ? `Em ${featuredProduct.colors.length} cores` : featuredProduct.colors[0] ? `Na cor ${featuredProduct.colors[0].name}` : '',
-    featuredProduct.sizes.length > 1 ? `do ${featuredProduct.sizes[0]} ao ${featuredProduct.sizes[featuredProduct.sizes.length - 1]}` : featuredProduct.sizes[0] ? `tamanho ${featuredProduct.sizes[0]}` : '',
-    `por ${formatPrice(featuredProduct.price)}`
-  ].filter(Boolean).join(', ') : ''
-
   /* ---------- Textos ---------- */
 
   const catalogTitle = activeCategory === 'Todos' ? 'Nosso catálogo'
@@ -557,95 +508,46 @@ const Home = () => {
       <main>
         <h1 className="sr-only">Bella Chic Boutique: moda feminina em Belém e Ananindeua</h1>
 
-        <S.Hero
-          id="inicio"
-          aria-roledescription="carrossel"
-          aria-label="Destaques da Bella Chic"
-          onMouseEnter={() => setHeroPaused(true)}
-          onMouseLeave={() => setHeroPaused(false)}
-          onFocus={() => setHeroPaused(true)}
-          onBlur={(event: ReactFocusEvent<HTMLElement>) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setHeroPaused(false) }}
-          onPointerDown={handleHeroPointerDown}
-          onPointerUp={handleHeroPointerUp}
-          onPointerCancel={() => { heroPointer.current = null }}
-          onClickCapture={blockClickAfterSwipe}
-        >
-          {heroSlides.map((slide, index) => {
-            const active = index === currentHero
-            const tab = active ? 0 : -1
-            return (
-              <S.HeroSlide key={slide} $active={active} aria-hidden={!active} aria-roledescription="slide" aria-label={`${index + 1} de ${heroCount}`}>
-                {slide === 'banner' && (
-                  <a href="#lancamentos" tabIndex={tab} aria-label="Bella Chic Boutique: conheça a coleção" onDragStart={(event) => event.preventDefault()}>
-                    <img src={banner1Image} alt="" draggable={false} />
-                    <span className="cta">Conheça a coleção <ArrowIcon /></span>
-                  </a>
-                )}
-                {slide === 'product' && featuredProduct && (
-                  <S.HeroSplit>
-                    <div className="copy">
-                      <span className="eyebrow">Peça essencial</span>
-                      <h2>{featuredWords.slice(0, -1).join(' ')} <em>{featuredWords[featuredWords.length - 1]}</em></h2>
-                      <p>{featuredSummary}.</p>
-                      <button type="button" className="action" tabIndex={tab} onClick={() => openProduct(featuredProduct)}>
-                        {featuredProduct.colors.length > 1 ? 'Escolher minha cor' : 'Ver a peça'}
-                      </button>
-                    </div>
-                    <img className="photo" src={featuredProduct.image} alt={featuredProduct.name} loading="lazy" draggable={false} />
-                  </S.HeroSplit>
-                )}
-                {slide === 'stores' && (
-                  <S.HeroStores>
-                    <img className="photo" src={lojaGaleriaImage} alt="Interior da loja Bella Chic na Galeria Portuense" loading="lazy" draggable={false} />
-                    <div className="copy">
-                      <span className="eyebrow">Nossas lojas</span>
-                      <h2>Vem provar com a gente</h2>
-                      <p>{storeConfig.units.map((unit) => unit.name).join(' e ')}, em {Array.from(new Set(storeConfig.units.map((unit) => unit.city))).join(' e ')}.</p>
-                      <a className="action" href="#lojas" tabIndex={tab}>Ver endereços</a>
-                    </div>
-                  </S.HeroStores>
-                )}
-              </S.HeroSlide>
-            )
-          })}
-          {heroCount > 1 && (
-            <>
-              <S.HeroArrow type="button" $side="left" aria-label="Banner anterior" onClick={() => showHero(currentHero - 1)}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
-              </S.HeroArrow>
-              <S.HeroArrow type="button" $side="right" aria-label="Próximo banner" onClick={() => showHero(currentHero + 1)}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
-              </S.HeroArrow>
-              <S.HeroDots>
-                {heroSlides.map((slide, index) => (
-                  <button key={slide} type="button" aria-label={`Ir para o banner ${index + 1}`} aria-current={index === currentHero} onClick={() => showHero(index)} />
-                ))}
-              </S.HeroDots>
-            </>
+        <S.Hero id="inicio" aria-labelledby="hero-title">
+          <S.HeroPhoto src={heroImage} alt="Modelo vestindo o conjunto kimono listrado" width={1086} height={1448} draggable={false} />
+          <S.HeroCopy>
+            <span className="eyebrow">Moda feminina com estilo</span>
+            <h2 id="hero-title">
+              <span>Elegância em</span>
+              <span className="last">cada <em>detalhe</em></span>
+            </h2>
+            <p>Looks versáteis, modernos e cheios de personalidade.</p>
+            <div className="actions">
+              <a className="primary" href="#lancamentos">Explorar novidades <ArrowIcon /></a>
+              <a className="secondary" href="#promocoes">Ofertas da semana</a>
+            </div>
+          </S.HeroCopy>
+          {heroProduct && (
+            <S.HeroProduct type="button" onClick={() => openProduct(heroProduct)}>
+              <span className="label">Na foto</span>
+              <span className="name">{heroProduct.name}</span>
+              <span className="link">Ver a peça <ArrowIcon /></span>
+            </S.HeroProduct>
           )}
         </S.Hero>
 
         <S.Benefits aria-label="Vantagens">
-          <Wrap>
-            <ul>
-              <li>
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={'#C2405B'} strokeWidth="1.5" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7" /><circle cx="7" cy="17.5" r="1.8" /><circle cx="17" cy="17.5" r="1.8" /></svg>
-                <strong>Entrega rápida</strong><span>Belém e região, a partir de R$ 12</span>
-              </li>
-              <li>
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={'#C2405B'} strokeWidth="1.5" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2" /><path d="M3 10h18M7 15h4" /></svg>
-                <strong>Pix ou cartão</strong><span>Crédito em até 12x</span>
-              </li>
-              <li>
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={'#C2405B'} strokeWidth="1.5" aria-hidden="true"><path d="M4 10l8-6 8 6v10H4z" /><path d="M10 20v-6h4v6" /></svg>
-                <strong>Retire na loja</strong><span>Batista Campos ou Cidade Nova</span>
-              </li>
-              <li>
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={'#C2405B'} strokeWidth="1.5" aria-hidden="true"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12z" /></svg>
-                <strong>Atendimento humanizado ♡</strong><span>Fale com a gente no WhatsApp</span>
-              </li>
-            </ul>
-          </Wrap>
+          <li>
+            <span className="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" /><path d="M15 18H9" /><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" /><circle cx="17" cy="18" r="2" /><circle cx="7" cy="18" r="2" /></svg></span>
+            <div><strong>Entrega rápida</strong><small>Belém e região, a partir de R$ 12</small></div>
+          </li>
+          <li>
+            <span className="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="2" /><path d="M2 10h20" /></svg></span>
+            <div><strong>Pix ou cartão</strong><small>Crédito em até 12x</small></div>
+          </li>
+          <li>
+            <span className="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></svg></span>
+            <div><strong>Retire na loja</strong><small>Batista Campos ou Cidade Nova</small></div>
+          </li>
+          <li>
+            <span className="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" /></svg></span>
+            <div><strong>Atendimento humanizado</strong><small>Fale com a gente no WhatsApp</small></div>
+          </li>
         </S.Benefits>
 
         {categories.length > 0 && (

@@ -1,4 +1,4 @@
-import styled, { css, keyframes } from 'styled-components'
+import styled, { keyframes } from 'styled-components'
 import { colors, fonts } from '../../styles/tokens'
 
 const marquee = keyframes`from { transform: translateX(0) } to { transform: translateX(-50%) }`
@@ -38,199 +38,185 @@ export const Alert = styled.p<{ $tone?: 'error' | 'info' }>`
   text-align: center;
 `
 
-/* ---------- Banner principal ---------- */
+/* ---------- Banner principal (hero 2b: rosé claro com barra de vantagens sobreposta) ---------- */
+
+const photoMask = 'linear-gradient(90deg, transparent 0%, #000 32%), linear-gradient(180deg, transparent 0, #000 72px)'
+const photoMaskMobile = 'linear-gradient(90deg, transparent 0%, #000 38%)'
 
 export const Hero = styled.section`
   position: relative;
-  height: 620px;
+  min-height: 700px;
+  display: flex;
+  align-items: center;
+  /* Em cima: espaço para a barra de seções do cabeçalho, que fica sobre o banner. */
+  padding: 84px 0 40px;
   overflow: hidden;
-  background: ${colors.blush};
-  touch-action: pan-y;
-  @media (max-width: 1100px) { height: 520px; }
-  @media (max-width: 900px) { height: 440px; }
+  background: linear-gradient(105deg, #F7D9DE 0%, #FBEAEC 55%, ${colors.blushSoft} 100%);
+  @media (max-width: 1100px) { min-height: 600px; }
+  /* Celular: banner baixo como o do site atual, mantendo o 2b (título à esquerda, foto à direita). */
+  @media (max-width: 900px) { min-height: 0; height: 440px; padding: 0; }
   @media (max-width: 600px) { height: 340px; }
 `
 
-export const HeroSlide = styled.div<{ $active: boolean }>`
+export const HeroPhoto = styled.img`
   position: absolute;
-  inset: 0;
-  opacity: ${({ $active }) => ($active ? 1 : 0)};
-  visibility: ${({ $active }) => ($active ? 'visible' : 'hidden')};
-  z-index: ${({ $active }) => ($active ? 1 : 0)};
-  transition: opacity .9s cubic-bezier(.45, 0, .25, 1), visibility .9s;
-  > img, > a > img, .photo { width: 100%; height: 100%; object-fit: cover; }
-  .cta {
-    position: absolute;
-    left: 50%;
-    bottom: 70px;
-    height: 54px;
-    padding: 0 36px;
+  top: 0;
+  right: 0;
+  width: 57%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 45% 0%;
+  -webkit-mask-image: ${photoMask};
+  -webkit-mask-composite: source-in;
+  mask-image: ${photoMask};
+  mask-composite: intersect;
+  @media (max-width: 900px) {
+    width: 60%;
+    object-position: 45% 8%;
+    -webkit-mask-image: ${photoMaskMobile};
+    mask-image: ${photoMaskMobile};
+  }
+`
+
+export const HeroCopy = styled.div`
+  position: relative;
+  z-index: 1;
+  width: min(680px, 50vw);
+  margin-left: ${edgePadding};
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    color: ${colors.gold};
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .38em;
+    text-transform: uppercase;
+  }
+  .eyebrow::after { content: ''; width: 72px; height: 1px; background: ${colors.goldLight}; }
+  h2 {
+    margin-top: 28px;
+    color: ${colors.plum};
+    font: 400 clamp(56px, 7.2vw, 104px)/1 ${fonts.serif};
+    letter-spacing: -.02em;
+  }
+  /* O reset global põe DM Sans em todo elemento; as linhas do título herdam a Playfair do h2. */
+  h2 > span { display: block; font-family: inherit; }
+  h2 .last { display: flex; align-items: baseline; gap: .17em; }
+  h2 em { color: ${colors.rose}; font: 400 1.27em/.8 ${fonts.script}; letter-spacing: 0; }
+  p { margin-top: 28px; max-width: 440px; color: #6B5659; font-size: 19px; line-height: 1.6; }
+  .actions { margin-top: 40px; display: flex; flex-wrap: wrap; gap: 14px; }
+  .actions a {
+    height: 58px;
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    justify-content: center;
+    gap: 12px;
     border-radius: 999px;
-    background: ${colors.rose};
-    color: ${colors.white};
-    font-size: 15px;
-    font-weight: 600;
-    letter-spacing: .4px;
+    font-size: 16px;
     white-space: nowrap;
-    box-shadow: 0 12px 30px rgba(167, 47, 72, .3);
-    transform: translateX(-50%);
     transition: background .2s;
   }
-  a:hover .cta { background: ${colors.roseDark}; }
-  > a { position: absolute; inset: 0; display: block; }
-  @media (max-width: 600px) {
-    .cta { bottom: 40px; height: 46px; padding: 0 26px; font-size: 14px; }
-    > a > img { object-position: 45% center; }
+  .primary { padding: 0 30px 0 34px; background: ${colors.plum}; color: ${colors.white}; font-weight: 600; box-shadow: 0 14px 30px rgba(62, 42, 46, .22); }
+  .primary:hover { background: #2A1C1F; }
+  .secondary { padding: 0 28px; border: 1px solid ${colors.lineStrong}; background: rgba(255, 255, 255, .6); color: ${colors.plum}; font-weight: 500; }
+  .secondary:hover { background: ${colors.white}; }
+  @media (max-width: 900px) {
+    width: 54%;
+    margin-left: 24px;
+    .eyebrow, p, .actions .secondary { display: none; }
+    h2 { margin-top: 0; font-size: clamp(30px, 8.4vw, 56px); }
+    .actions { margin-top: 20px; }
+    .actions a { height: 46px; gap: 8px; font-size: 14px; }
+    .primary { padding: 0 18px 0 22px; box-shadow: 0 10px 22px rgba(62, 42, 46, .2); }
+    .primary svg { width: 16px; height: 16px; }
   }
+  @media (max-width: 600px) { margin-left: 16px; }
 `
 
-const heroCopy = css`
+export const HeroProduct = styled.button`
+  position: absolute;
+  right: 32px;
+  bottom: 72px;
+  z-index: 1;
+  width: 220px;
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 20px;
-  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; }
-  h2 { max-width: 560px; font: 400 clamp(34px, 4.6vw, 62px)/1.04 ${fonts.serif}; }
-  p { max-width: 430px; font-size: 17px; line-height: 1.6; }
-  .action {
-    align-self: flex-start;
-    height: 52px;
-    padding: 0 34px;
-    display: inline-flex;
-    align-items: center;
-    border: 0;
-    border-radius: 999px;
-    font: 600 15px ${fonts.sans};
-    cursor: pointer;
-    transition: background .2s, color .2s;
-  }
-  @media (max-width: 600px) {
-    gap: 10px;
-    h2 { font-size: 30px; }
-    p { font-size: 14px; }
-    .action { height: 44px; padding: 0 24px; font-size: 14px; }
-  }
-`
-
-export const HeroSplit = styled.div`
-  position: absolute;
-  inset: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  .copy {
-    ${heroCopy}
-    padding: 0 64px 0 ${edgePadding};
-    background: ${colors.blush};
-    .eyebrow { color: ${colors.gold}; }
-    h2 em { color: ${colors.rose}; }
-    p { color: #6B5659; }
-    .action { background: ${colors.rose}; color: ${colors.white}; }
-    .action:hover { background: ${colors.roseDark}; }
-  }
-  .photo { object-position: center 30%; }
-  @media (max-width: 900px) {
-    display: block;
-    .photo { position: absolute; inset: 0; }
-    .copy {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      justify-content: flex-end;
-      padding: 24px 24px 56px;
-      background: linear-gradient(0deg, rgba(46, 30, 34, .82) 0%, rgba(46, 30, 34, .25) 55%, rgba(46, 30, 34, 0) 75%);
-      .eyebrow { color: ${colors.logoPink}; }
-      h2, h2 em { color: ${colors.white}; }
-      p { color: #F3DDE1; }
-    }
-  }
-`
-
-export const HeroStores = styled.div`
-  position: absolute;
-  inset: 0;
-  .photo { position: absolute; inset: 0; object-position: center 40%; }
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, rgba(46, 30, 34, .78) 0%, rgba(46, 30, 34, .35) 45%, rgba(46, 30, 34, 0) 70%);
-  }
-  .copy {
-    ${heroCopy}
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    padding: 0 ${edgePadding};
-    color: ${colors.white};
-    .eyebrow { color: ${colors.logoPink}; }
-    p { color: #F3DDE1; }
-    .action { background: ${colors.white}; color: ${colors.plum}; }
-    .action:hover { background: ${colors.blush}; }
-  }
-  @media (max-width: 900px) {
-    &::after { background: linear-gradient(0deg, rgba(46, 30, 34, .82) 0%, rgba(46, 30, 34, .3) 60%, rgba(46, 30, 34, .1) 100%); }
-    .copy { justify-content: flex-end; padding: 24px 24px 56px; }
-  }
-`
-
-export const HeroArrow = styled.button<{ $side: 'left' | 'right' }>`
-  position: absolute;
-  top: 50%;
-  ${({ $side }) => ($side === 'left' ? 'left: 24px;' : 'right: 24px;')}
-  z-index: 3;
-  width: 48px;
-  height: 48px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, .92);
+  align-items: flex-start;
+  gap: 6px;
+  border: 1px solid rgba(255, 255, 255, .9);
+  border-radius: 18px;
+  background: rgba(255, 252, 251, .78);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 16px 36px rgba(62, 42, 46, .12);
   color: ${colors.plum};
-  box-shadow: 0 6px 18px rgba(62, 42, 46, .15);
-  transform: translateY(-50%);
+  text-align: left;
   cursor: pointer;
   transition: background .2s;
   &:hover { background: ${colors.white}; }
-  @media (max-width: 600px) { display: none; }
+  .label { color: ${colors.gold}; font-size: 11px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; }
+  .name { font: 400 22px/1.2 ${fonts.serif}; }
+  .link { margin-top: 6px; display: flex; align-items: center; gap: 8px; color: ${colors.roseDark}; font-size: 14px; font-weight: 600; }
+  .link svg { width: 16px; height: 16px; }
+  @media (max-width: 900px) { display: none; }
 `
 
-export const HeroDots = styled.div`
-  position: absolute;
-  left: 50%;
-  bottom: 22px;
-  z-index: 3;
-  display: flex;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, .75);
-  transform: translateX(-50%);
-  button { position: relative; width: 8px; height: 8px; padding: 0; border: 0; border-radius: 999px; background: #D29AA5; cursor: pointer; transition: width .3s, background .3s; }
-  /* Área de toque maior que a bolinha (8 px é difícil de acertar no celular). */
-  button::after { content: ''; position: absolute; inset: -14px -4px; }
-  button[aria-current='true'] { width: 26px; background: ${colors.rose}; }
-  @media (max-width: 600px) { bottom: 12px; padding: 6px 10px; }
-`
+/* ---------- Vantagens (bloco próprio, logo abaixo do banner) ---------- */
 
-/* ---------- Vantagens ---------- */
-
-export const Benefits = styled.section`
+export const Benefits = styled.ul`
+  position: relative;
+  z-index: 2;
+  width: min(1248px, calc(100% - 80px));
+  min-height: 116px;
+  margin: 32px auto 0;
+  padding: 0 16px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: center;
+  border: 1px solid ${colors.line};
+  border-radius: 22px;
   background: ${colors.white};
-  border-bottom: 1px solid ${colors.line};
-  ul { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; padding: 26px 0; text-align: center; }
-  li { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-  strong { font-size: 14px; }
-  span { color: ${colors.muted}; font-size: 13px; }
-  @media (max-width: 900px) {
-    ul { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 12px; padding: 20px 0; }
-    svg { display: none; }
-    strong { font-size: 13px; }
-    span { font-size: 12px; }
+  /* Sombra leve: o card não flutua mais sobre a foto. */
+  box-shadow: 0 10px 30px rgba(62, 42, 46, .06);
+  list-style: none;
+  li { display: flex; align-items: center; gap: 14px; padding: 0 20px; }
+  li + li { border-left: 1px solid ${colors.line}; }
+  .icon { width: 48px; height: 48px; flex: none; display: grid; place-items: center; border-radius: 50%; background: ${colors.blushSoft}; color: ${colors.rose}; }
+  div { display: flex; flex-direction: column; gap: 2px; }
+  strong { font-size: 15px; font-weight: 600; }
+  small { color: ${colors.muted}; font-size: 13px; }
+  @media (max-width: 1100px) {
+    li { gap: 10px; padding: 0 12px; }
+    .icon { width: 40px; height: 40px; }
+    strong { font-size: 14px; }
   }
-  @media (max-width: 600px) { li:nth-child(n+3) { display: none; } }
+  @media (max-width: 900px) {
+    width: calc(100% - 32px);
+    margin-top: 16px;
+    padding: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    li { padding: 18px 14px; }
+    li + li { border-left: 0; }
+    li:nth-child(even) { border-left: 1px solid ${colors.line}; }
+    li:nth-child(n+3) { border-top: 1px solid ${colors.line}; }
+  }
+  /* Celular: faixa simples com as 2 vantagens principais, como no site atual. */
+  @media (max-width: 600px) {
+    width: 100%;
+    min-height: 0;
+    margin-top: 0;
+    border-width: 0 0 1px;
+    border-radius: 0;
+    box-shadow: none;
+    li { padding: 18px 12px; justify-content: center; text-align: center; }
+    li:nth-child(n+3), .icon { display: none; }
+    li:nth-child(even) { border-left: 0; }
+    div { align-items: center; gap: 4px; }
+    strong { font-size: 14px; }
+    small { font-size: 12px; }
+  }
 `
 
 /* ---------- Seções ---------- */
