@@ -14,6 +14,7 @@ import {
   updateCustomerPassword
 } from '../../hooks/useCustomer'
 import boutiqueLogo from '../../assets/bella-chic-logo.jpg'
+import { PASSWORD_HINT, PASSWORD_MIN_LENGTH, passwordProblem } from '../../utils/password'
 
 type Mode = 'signin' | 'signup' | 'forgot' | 'newPassword'
 
@@ -41,6 +42,7 @@ const Body = styled.form`
   input:focus-visible { outline: 2px solid ${colors.rose}; outline-offset: 0; }
   .link { align-self: center; border: 0; background: none; color: #6B5659; font: 14px ${fonts.sans}; cursor: pointer; }
   .link strong { color: ${colors.roseDark}; }
+  .hint { margin-top: -6px; color: ${colors.muted}; font-size: 12px; line-height: 1.5; }
   .small-link { align-self: flex-end; margin-top: -6px; border: 0; background: none; color: ${colors.roseDark}; font: 13px ${fonts.sans}; cursor: pointer; }
   .error { padding: 10px 12px; border-radius: 10px; background: #FFF1F2; color: #A12C3B; font-size: 13px; }
   .ok { padding: 10px 12px; border-radius: 10px; background: #EEF7F0; color: ${colors.success}; font-size: 13px; }
@@ -141,6 +143,8 @@ const AccountModal = ({ isOpen, customer, recoveringPassword, onClose, onNotify,
         onClose()
       } else if (mode === 'signup') {
         if (name.trim().length < 2) throw new Error('Informe seu nome.')
+        const problem = passwordProblem(password)
+        if (problem) throw new Error(problem)
         const needsConfirmation = await signUpCustomer(name, email, password)
         if (needsConfirmation) {
           setSuccess(`Quase lá! Enviamos um link de confirmação para ${email.trim()}. Abra seu e-mail para ativar a conta.`)
@@ -152,7 +156,8 @@ const AccountModal = ({ isOpen, customer, recoveringPassword, onClose, onNotify,
         await sendPasswordReset(email)
         setSuccess('Se este e-mail tiver cadastro, você vai receber um link para criar uma nova senha.')
       } else if (mode === 'newPassword') {
-        if (password.length < 6) throw new Error('A senha precisa ter pelo menos 6 caracteres.')
+        const problem = passwordProblem(password)
+        if (problem) throw new Error(problem)
         await updateCustomerPassword(password)
         onPasswordUpdated()
         onNotify('Senha atualizada ♡')
@@ -272,11 +277,13 @@ const AccountModal = ({ isOpen, customer, recoveringPassword, onClose, onNotify,
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                  minLength={6}
+                  minLength={mode === 'signin' ? undefined : PASSWORD_MIN_LENGTH}
+                  aria-describedby={mode === 'signin' ? undefined : 'password-hint'}
                   required
                 />
               </label>
             )}
+            {(mode === 'signup' || mode === 'newPassword') && <p id="password-hint" className="hint">{PASSWORD_HINT}</p>}
             {mode === 'signin' && <button type="button" className="small-link" onClick={() => switchMode('forgot')}>Esqueci minha senha</button>}
             {error && <p className="error" role="alert">{error}</p>}
             {success && <p className="ok" role="status">{success}</p>}

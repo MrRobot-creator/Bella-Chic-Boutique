@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Session } from '@supabase/supabase-js'
 import { supabase } from '../services/catalog'
+import { PASSWORD_HINT } from '../utils/password'
 
 export type Customer = {
   id: string
@@ -45,7 +46,7 @@ const authError = (error: Error) => {
   if (message.includes('invalid login credentials')) return new Error('E-mail ou senha incorretos.')
   if (message.includes('email not confirmed')) return new Error('Confirme seu e-mail pelo link que enviamos antes de entrar.')
   if (message.includes('already registered') || message.includes('already been registered')) return new Error('Este e-mail já tem cadastro. Entre com sua senha.')
-  if (message.includes('password') && message.includes('characters')) return new Error('A senha precisa ter pelo menos 6 caracteres.')
+  if (message.includes('password') && (message.includes('characters') || message.includes('contain'))) return new Error(PASSWORD_HINT)
   if (message.includes('rate limit')) return new Error('Muitas tentativas. Aguarde alguns minutos e tente de novo.')
   return error
 }
