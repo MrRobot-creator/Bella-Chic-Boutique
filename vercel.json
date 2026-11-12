@@ -5,6 +5,10 @@
   "outputDirectory": "build",
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
       "source": "/produto/:slug",
       "destination": "/api/produto?slug=:slug"
     },
