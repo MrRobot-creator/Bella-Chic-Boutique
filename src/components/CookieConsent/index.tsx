@@ -38,12 +38,20 @@ const Banner = styled.div`
   .decline { border: 1px solid #ead8d9; background: #fff; color: #684b50; }
   .decline:hover { background: #fde9eb; }
   button:focus-visible { outline: 2px solid #c2405b; outline-offset: 2px; }
+  /* No celular vira uma barra fina colada no rodapé, para não cobrir o banner. */
   @media (max-width: 600px) {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    gap: 10px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    border-width: 1px 0 0;
+    border-radius: 14px 14px 0 0;
     font-size: 12px;
-    .actions button { flex: 1; }
+    line-height: 1.4;
+    .details { display: none; }
+    .actions { gap: 6px; }
+    button { padding: 8px 12px; }
   }
 `
 
@@ -75,8 +83,9 @@ const CookieConsent = () => {
   return (
     <Banner role="region" aria-label="Aviso de cookies">
       <p>
-        Usamos cookies do Google Analytics para entender como o site é usado e melhorar sua experiência.
-        Você pode aceitar ou recusar. <Link to="/privacidade">Saiba mais</Link>.
+        Usamos cookies do Google Analytics
+        <span className="details"> para entender como o site é usado e melhorar sua experiência.
+        Você pode aceitar ou recusar</span>. <Link to="/privacidade">Saiba mais</Link>.
       </p>
       <div className="actions">
         <button type="button" className="decline" onClick={() => setConsent('denied')}>Recusar</button>
