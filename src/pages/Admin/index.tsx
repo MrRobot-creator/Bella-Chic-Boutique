@@ -92,6 +92,8 @@ type ColorDraft = {
   suggestions?: DetectedColor[]
   /** Cor fora da paleta: mostra o campo de nome e o seletor de tom (só no formulário). */
   custom?: boolean
+  /** Paleta aberta ou fechada. Sem valor: abre só enquanto a cor não foi escolhida. */
+  pickerOpen?: boolean
 }
 
 const DEFAULT_COLOR_HEX = '#e5a1ad'
@@ -111,6 +113,8 @@ const withDetectedColor = (color: ColorDraft, detected: DetectedColor[]): ColorD
     suggestions: detected
   }
 }
+
+const isPickerOpen = (color: ColorDraft) => color.pickerOpen ?? !color.name.trim()
 
 const detectedNote = (before: ColorDraft, after: ColorDraft) =>
   before.name !== after.name || before.hex !== after.hex
@@ -657,22 +661,28 @@ const Admin = () => {
                   {draft.colors.map((color, index) => (
                     <div className="color-item" key={`color-${index}`}>
                       <div className="wide color-picker">
-                        <span className="label">Cor {index + 1}{color.name.trim() ? `: ${color.name.trim()}` : ''}</span>
-                        <div className="swatches" role="radiogroup" aria-label={`Cor ${index + 1}`}>
-                          {STORE_COLORS.map((option) => {
-                            const chosen = !color.custom && findStoreColor(color.name)?.name === option.name
-                            return (
-                              <button key={option.name} type="button" role="radio" aria-checked={chosen} className={chosen ? 'active' : ''} onClick={() => updateColor(index, { name: option.name, hex: option.hex, custom: false })}>
-                                <i style={{ background: option.hex }} aria-hidden="true" />
-                                <span>{option.name}</span>
-                              </button>
-                            )
-                          })}
-                          <button type="button" role="radio" aria-checked={Boolean(color.custom)} className={`other ${color.custom ? 'active' : ''}`} onClick={() => updateColor(index, { custom: true, name: findStoreColor(color.name) ? '' : color.name })}>
-                            <i aria-hidden="true">+</i>
-                            <span>Outra cor</span>
-                          </button>
-                        </div>
+                        <button type="button" className="color-summary" aria-expanded={isPickerOpen(color)} aria-controls={`swatches-${index}`} onClick={() => updateColor(index, { pickerOpen: !isPickerOpen(color) })}>
+                          <i className={color.name.trim() ? '' : 'empty'} style={color.name.trim() ? { background: color.hex } : undefined} aria-hidden="true" />
+                          <span>Cor {index + 1}: <strong>{color.name.trim() || 'escolha a cor'}</strong></span>
+                          <em>{isPickerOpen(color) ? 'Fechar' : 'Trocar'}</em>
+                        </button>
+                        {isPickerOpen(color) && (
+                          <div className="swatches" id={`swatches-${index}`} role="radiogroup" aria-label={`Cor ${index + 1}`}>
+                            {STORE_COLORS.map((option) => {
+                              const chosen = !color.custom && findStoreColor(color.name)?.name === option.name
+                              return (
+                                <button key={option.name} type="button" role="radio" aria-checked={chosen} className={chosen ? 'active' : ''} onClick={() => updateColor(index, { name: option.name, hex: option.hex, custom: false, pickerOpen: false })}>
+                                  <i style={{ background: option.hex }} aria-hidden="true" />
+                                  <span>{option.name}</span>
+                                </button>
+                              )
+                            })}
+                            <button type="button" role="radio" aria-checked={Boolean(color.custom)} className={`other ${color.custom ? 'active' : ''}`} onClick={() => updateColor(index, { custom: true, pickerOpen: false, name: findStoreColor(color.name) ? '' : color.name })}>
+                              <i aria-hidden="true">+</i>
+                              <span>Outra cor</span>
+                            </button>
+                          </div>
+                        )}
                         {color.custom && (
                           <div className="custom-color">
                             <label>Nome da cor

@@ -68,7 +68,11 @@ export const AdminForm = styled.form`
   .color-item { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 14px; border: 1px solid #f0e7e6; }
   .color-item .color-image-preview { width: 92px; height: 110px; object-fit: cover; border: 1px solid #e8dedd; background: #fbf6f5; }
   .color-item .color-picker { display: grid; gap: 10px; }
-  .color-item .color-picker .label { color: #5d4649; font-weight: 600; }
+  .color-item .color-summary { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 8px 12px; border: 1px solid #f0e7e6; border-radius: 12px; background: #fff; color: #5d4649; font: inherit; text-align: left; cursor: pointer; }
+  .color-item .color-summary i { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, .15); }
+  .color-item .color-summary i.empty { border: 1px dashed #b9a5a8; }
+  .color-item .color-summary span { flex: 1; }
+  .color-item .color-summary em { color: #9a6871; font-style: normal; font-weight: 600; font-size: 13px; }
   .color-item .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 8px; }
   .color-item .swatches button { display: grid; justify-items: center; align-content: center; gap: 5px; min-height: 68px; padding: 8px 4px; border: 1px solid #f0e7e6; border-radius: 12px; background: #fff; color: #5d4649; font: 12px/1.2 inherit; text-align: center; cursor: pointer; }
   .color-item .swatches button i { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, .15); font-style: normal; }
