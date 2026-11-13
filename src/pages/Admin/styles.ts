@@ -71,6 +71,10 @@ export const AdminForm = styled.form`
   .color-item .color-hex input[type="color"] { width: 42px; height: 38px; padding: 3px; }
   .color-item .color-image-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
   .color-item .color-image-actions input[type="file"] { min-width: 0; flex: 1; }
+  .color-item .color-suggestions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; }
+  .color-item .color-suggestions button { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 6px 12px; border: 1px solid #e8dedd; border-radius: 999px; background: #fff; font: inherit; cursor: pointer; }
+  .color-item .color-suggestions button.active { border-color: currentColor; font-weight: 600; }
+  .color-item .color-suggestions i { width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, .15); }
   @media (max-width: 560px) { .color-item { grid-template-columns: 1fr; } }
   .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   @media (max-width: 640px) { grid-template-columns: 1fr; .wide { grid-column: auto; } }

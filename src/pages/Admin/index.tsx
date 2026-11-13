@@ -25,6 +25,7 @@ import { defaultSettings, fetchStoreSettings, StoreSettings } from '../../servic
 import { CatalogProductInput } from '../../services/catalog'
 import { Product } from '../../types/store'
 import { getUnitTotal } from '../../utils/inventory'
+import { detectColors, DetectedColor } from '../../utils/colorDetect'
 import { storeConfig } from '../../config/store'
 import { unitNameOf } from '../../utils/units'
 import SalesSummary from './SalesSummary'
@@ -87,7 +88,31 @@ type ColorDraft = {
   name: string
   hex: string
   image: string
+  /** Cores encontradas na última foto enviada para esta cor (só no formulário, não vai para o banco). */
+  suggestions?: DetectedColor[]
 }
+
+const DEFAULT_COLOR_HEX = '#e5a1ad'
+
+/**
+ * Cores tiradas da foto: a primeira preenche só o que a dona ainda não escolheu (nome vazio, código no padrão);
+ * todas ficam como botões para ela trocar com um toque.
+ */
+const withDetectedColor = (color: ColorDraft, detected: DetectedColor[]): ColorDraft => {
+  const [first] = detected
+  if (!first) return color
+  return {
+    ...color,
+    name: color.name.trim() ? color.name : first.name,
+    hex: color.hex.trim().toLowerCase() === DEFAULT_COLOR_HEX ? first.hex : color.hex,
+    suggestions: detected
+  }
+}
+
+const detectedNote = (before: ColorDraft, after: ColorDraft) =>
+  before.name !== after.name || before.hex !== after.hex
+    ? ` Cor sugerida pela foto: ${after.name}. Confira antes de salvar (as outras cores da foto ficam logo abaixo).`
+    : ''
 
 const blankDraft: ProductDraft = {
   name: '',
@@ -99,7 +124,7 @@ const blankDraft: ProductDraft = {
   images: [],
   sizes: '',
   sizeFit: '',
-  colors: [{ name: '', hex: '#e5a1ad', image: '' }],
+  colors: [{ name: '', hex: DEFAULT_COLOR_HEX, image: '' }],
   tag: '',
   available: true
 }
@@ -306,9 +331,16 @@ const Admin = () => {
     setNotice('')
     setUploadingImage(true)
     try {
-      const imageUrl = await uploadProductImage(file)
-      setDraft((current) => ({ ...current, image: imageUrl }))
-      setNotice('Foto principal enviada. A peça só é salva ao clicar em “Adicionar peça”, no fim do formulário.')
+      const [imageUrl, detected] = await Promise.all([uploadProductImage(file), detectColors(file)])
+      // Peça de uma cor só: a foto principal também sugere essa cor.
+      const single = draft.colors.length === 1 ? draft.colors[0] : null
+      const suggested = single ? withDetectedColor(single, detected) : null
+      setDraft((current) => ({
+        ...current,
+        image: imageUrl,
+        colors: current.colors.length === 1 ? [withDetectedColor(current.colors[0], detected)] : current.colors
+      }))
+      setNotice(`Foto principal enviada. A peça só é salva ao clicar em “Adicionar peça”, no fim do formulário.${single && suggested ? detectedNote(single, suggested) : ''}`)
     } catch (uploadError) {
       setError(`Não foi possível enviar a imagem: ${errorMessage(uploadError)}`)
     } finally {
@@ -325,14 +357,15 @@ const Admin = () => {
     setNotice('')
     setUploadingColorIndex(index)
     try {
-      const imageUrl = await uploadProductImage(file)
+      const [imageUrl, detected] = await Promise.all([uploadProductImage(file), detectColors(file)])
+      const suggested = withDetectedColor(draft.colors[index], detected)
       setDraft((current) => ({
         ...current,
         colors: current.colors.map((color, colorIndex) =>
-          colorIndex === index ? { ...color, image: imageUrl } : color
+          colorIndex === index ? { ...withDetectedColor(color, detected), image: imageUrl } : color
         )
       }))
-      setNotice(`Foto da cor ${draft.colors[index].name || ''} enviada. A peça só é salva ao clicar em “Adicionar peça”.`)
+      setNotice(`Foto da cor ${suggested.name} enviada. A peça só é salva ao clicar em “Adicionar peça”.${detectedNote(draft.colors[index], suggested)}`)
     } catch (uploadError) {
       setError(`Não foi possível enviar a foto da cor: ${errorMessage(uploadError)}`)
     } finally {
@@ -622,7 +655,7 @@ const Admin = () => {
                       </label>
                       <label>Código da cor
                         <span className="color-hex">
-                          <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(color.hex) ? color.hex : '#e5a1ad'} onChange={(event) => setDraft((current) => ({
+                          <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(color.hex) ? color.hex : DEFAULT_COLOR_HEX} onChange={(event) => setDraft((current) => ({
                             ...current,
                             colors: current.colors.map((item, itemIndex) => itemIndex === index ? { ...item, hex: event.target.value } : item)
                           }))} aria-label={`Selecionar cor ${index + 1}`} />
@@ -650,12 +683,28 @@ const Admin = () => {
                           }))}>Remover cor</AdminButton>
                         )}
                       </div>
+                      {color.suggestions && color.suggestions.length > 0 && (
+                        <div className="wide color-suggestions" role="group" aria-label={`Cores encontradas na foto da cor ${index + 1}`}>
+                          <span>Cores da foto:</span>
+                          {color.suggestions.map((suggestion) => {
+                            const chosen = suggestion.hex === color.hex.trim().toLowerCase()
+                            return (
+                              <button key={suggestion.hex} type="button" aria-pressed={chosen} className={chosen ? 'active' : ''} onClick={() => setDraft((current) => ({
+                                ...current,
+                                colors: current.colors.map((item, itemIndex) => itemIndex === index ? { ...item, name: suggestion.name, hex: suggestion.hex } : item)
+                              }))}>
+                                <i style={{ background: suggestion.hex }} aria-hidden="true" />{suggestion.name}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
                   ))}
                   <div className="actions">
                     <AdminButton type="button" className="secondary" disabled={uploadingColorIndex !== null} onClick={() => setDraft((current) => ({
                       ...current,
-                      colors: [...current.colors, { name: '', hex: '#e5a1ad', image: '' }]
+                      colors: [...current.colors, { name: '', hex: DEFAULT_COLOR_HEX, image: '' }]
                     }))}>Adicionar cor</AdminButton>
                     {uploadingColorIndex !== null && <span role="status">Enviando foto da cor...</span>}
                   </div>
