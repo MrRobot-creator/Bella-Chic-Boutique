@@ -73,7 +73,7 @@ export const AdminForm = styled.form`
   .color-item .color-summary i.empty { border: 1px dashed #b9a5a8; }
   .color-item .color-summary span { flex: 1; }
   .color-item .color-summary em { color: #9a6871; font-style: normal; font-weight: 600; font-size: 13px; }
-  .color-item .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 8px; }
+  .color-item .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); gap: 6px; }
   .color-item .swatches button { display: grid; justify-items: center; align-content: center; gap: 5px; min-height: 68px; padding: 8px 4px; border: 1px solid #f0e7e6; border-radius: 12px; background: #fff; color: #5d4649; font: 12px/1.2 inherit; text-align: center; cursor: pointer; }
   .color-item .swatches button i { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, .15); font-style: normal; }
   .color-item .swatches button.active { border-color: #9a6871; box-shadow: inset 0 0 0 1px #9a6871; background: #fbf1f2; font-weight: 600; }

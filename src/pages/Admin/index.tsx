@@ -694,17 +694,16 @@ const Admin = () => {
                           </div>
                         )}
                       </div>
-                      <label className="wide">URL da foto desta cor (opcional)
-                        <input inputMode="url" value={color.image} onChange={(event) => setDraft((current) => ({
-                          ...current,
-                          colors: current.colors.map((item, itemIndex) => itemIndex === index ? { ...item, image: event.target.value } : item)
-                        }))} placeholder="Será preenchida ao enviar a foto" />
-                      </label>
                       <div className="wide color-image-actions">
                         <label>Enviar foto para esta cor (opcional)
                                   <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => handleColorImageUpload(index, event)} disabled={uploadingImage || uploadingGalleryImages || uploadingColorIndex !== null} />
                         </label>
-                        {color.image && <img className="color-image-preview" src={color.image} alt={`Pré-visualização da cor ${color.name || index + 1}`} />}
+                        {color.image && (
+                          <>
+                            <img className="color-image-preview" src={color.image} alt={`Pré-visualização da cor ${color.name || index + 1}`} />
+                            <AdminButton type="button" className="secondary" disabled={uploadingColorIndex !== null} onClick={() => updateColor(index, { image: '' })}>Tirar foto</AdminButton>
+                          </>
+                        )}
                         {draft.colors.length > 1 && (
                           <AdminButton type="button" className="secondary" disabled={uploadingColorIndex !== null} onClick={() => setDraft((current) => ({
                             ...current,

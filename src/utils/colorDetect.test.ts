@@ -1,4 +1,4 @@
-import { findStoreColor, nearestColorName, rankColors, STORE_COLORS } from './colorDetect'
+import { COLOR_NAMES, findStoreColor, nearestColorName, rankColors, STORE_COLORS } from './colorDetect'
 
 type Rgb = [number, number, number]
 const SIZE = 20
@@ -75,10 +75,15 @@ describe('Cores automáticas da foto', () => {
     expect(names).toContain('Azul-marinho')
   })
 
+  it('toda cor sugerida pela foto existe na paleta (para marcar a bolinha)', () => {
+    COLOR_NAMES.forEach((color) => expect(findStoreColor(color.name)?.name).toBe(color.name))
+  })
+
   it('acha a cor da paleta mesmo escrita de outro jeito', () => {
     expect(findStoreColor('azul marinho')?.name).toBe('Azul-marinho')
     expect(findStoreColor('LILAS')?.name).toBe('Lilás')
-    expect(findStoreColor('Azul Bebê')).toBeUndefined()
+    expect(findStoreColor('Azul Bebê')?.name).toBe('Azul-bebê')
+    expect(findStoreColor('Azul turquesa')).toBeUndefined()
     expect(findStoreColor('  ')).toBeUndefined()
   })
 })

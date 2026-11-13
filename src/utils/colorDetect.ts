@@ -46,9 +46,61 @@ export const COLOR_NAMES: DetectedColor[] = [
   { name: 'Laranja', hex: '#ef7d32' }
 ]
 
-/** Paleta do painel: um tom por nome, na ordem da lista. */
-export const STORE_COLORS: DetectedColor[] = COLOR_NAMES.filter((color, index, all) =>
-  all.findIndex((other) => other.name === color.name) === index)
+/**
+ * Paleta do painel, por família. É mais ampla que COLOR_NAMES: a foto só sugere cores bem distintas
+ * (Azul e Jeans, por exemplo, se confundem na foto), mas a atendente pode escolher qualquer uma.
+ */
+export const STORE_COLORS: DetectedColor[] = [
+  // Neutros
+  { name: 'Preto', hex: '#1c1c1c' },
+  { name: 'Grafite', hex: '#3d3f44' },
+  { name: 'Cinza', hex: '#8e8e8e' },
+  { name: 'Cinza-claro', hex: '#c9c9c9' },
+  { name: 'Branco', hex: '#f7f7f5' },
+  { name: 'Off-white', hex: '#ede6d6' },
+  { name: 'Creme', hex: '#f3e5c0' },
+  { name: 'Bege', hex: '#d8c3a5' },
+  { name: 'Nude', hex: '#e3bfa3' },
+  // Marrons
+  { name: 'Caramelo', hex: '#b5763b' },
+  { name: 'Marrom', hex: '#6b4226' },
+  { name: 'Chocolate', hex: '#3e2418' },
+  { name: 'Terracota', hex: '#b5543c' },
+  // Vermelhos e rosas
+  { name: 'Vinho', hex: '#6d1f2f' },
+  { name: 'Marsala', hex: '#964f4c' },
+  { name: 'Vermelho', hex: '#c62828' },
+  { name: 'Coral', hex: '#f2735b' },
+  { name: 'Salmão', hex: '#f4a28c' },
+  { name: 'Pêssego', hex: '#f8c9a8' },
+  { name: 'Rosa-bebê', hex: '#f7d4dc' },
+  { name: 'Rosa', hex: '#f1a7b8' },
+  { name: 'Pink', hex: '#e0457b' },
+  // Roxos
+  { name: 'Lavanda', hex: '#b9b4e0' },
+  { name: 'Lilás', hex: '#c3a6d8' },
+  { name: 'Roxo', hex: '#6a3d9a' },
+  // Azuis
+  { name: 'Azul-marinho', hex: '#1f2a44' },
+  { name: 'Azul-royal', hex: '#2340b8' },
+  { name: 'Azul', hex: '#2f6fd6' },
+  { name: 'Jeans', hex: '#5b7fa6' },
+  { name: 'Azul-petróleo', hex: '#1f5f6b' },
+  { name: 'Azul-claro', hex: '#9cc7ec' },
+  { name: 'Azul-bebê', hex: '#cfe6f7' },
+  // Verdes
+  { name: 'Verde-militar', hex: '#556b2f' },
+  { name: 'Verde-escuro', hex: '#1f5135' },
+  { name: 'Verde', hex: '#2e8b57' },
+  { name: 'Verde-limão', hex: '#b5d334' },
+  { name: 'Verde-água', hex: '#8fd3c1' },
+  { name: 'Verde-menta', hex: '#bfe8cf' },
+  // Amarelos e laranjas
+  { name: 'Amarelo', hex: '#f2c84b' },
+  { name: 'Mostarda', hex: '#c9a227' },
+  { name: 'Dourado', hex: '#d4af37' },
+  { name: 'Laranja', hex: '#ef7d32' }
+]
 
 const normalizeName = (name: string) =>
   name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[-\s]+/g, ' ').trim()
