@@ -94,12 +94,15 @@ const renderProductHtml = (html, product, origin) => {
 const fetchProduct = async (id) => {
   if (!SUPABASE_URL || !SUPABASE_KEY) return null
   const columns = 'id,name,description,category,price,image,colors,variant_stock,is_available'
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/catalog_products?id=eq.${id}&select=${columns}`, {
-    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
-  })
-  if (!response.ok) return null
-  const rows = await response.json()
-  return Array.isArray(rows) && rows[0] ? rows[0] : null
+  const headers = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+  // Depois da v7 o estoque só sai pela get_catalog(); antes dela, pela tabela.
+  for (const source of ['rpc/get_catalog', 'catalog_products']) {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/${source}?id=eq.${id}&select=${columns}`, { headers })
+    if (!response.ok) continue
+    const rows = await response.json()
+    return Array.isArray(rows) && rows[0] ? rows[0] : null
+  }
+  return null
 }
 
 const handler = async (req, res) => {

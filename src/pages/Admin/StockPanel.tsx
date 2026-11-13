@@ -18,7 +18,7 @@ type TransferLine = { key: number; productId: string; size: string; color: strin
 
 const cellKey = (unit: string, size: string, color: string) => `${unit}|${size}|${color}`
 
-/** Atalho "tem / não tem": quanto cada cor de um tamanho marcado recebe na grade. */
+/** Atalho "tem / não tem": quanto cada cor de um tamanho marcado recebe na grade (a dona pode mudar). */
 const QUICK_STOCK = MAX_UNITS_PER_ITEM
 const hasSizeInGrid = (grid: Grid, unit: string, size: string, product: Product) =>
   product.colors.some((color) => Number(grid[cellKey(unit, size, color.name)]) > 0)
@@ -42,6 +42,7 @@ const StockPanel = ({ products, unitId, focusProductId, onChanged }: StockPanelP
   const [grid, setGrid] = useState<Grid>({})
   const [reason, setReason] = useState<'entrada' | 'ajuste'>('entrada')
   const [note, setNote] = useState('')
+  const [quickStock, setQuickStock] = useState(String(QUICK_STOCK))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -70,6 +71,8 @@ const StockPanel = ({ products, unitId, focusProductId, onChanged }: StockPanelP
   }
 
   /** Marca o tamanho em todas as cores da loja: "tem" preenche só as cores zeradas; "não tem" zera. Salva no botão de sempre. */
+  const quickAmount = /^[1-9]\d{0,3}$/.test(quickStock.trim()) ? quickStock.trim() : String(QUICK_STOCK)
+
   const toggleSize = (unit: string, size: string, has: boolean) => {
     if (!editing) return
     setGrid((current) => {
@@ -77,7 +80,7 @@ const StockPanel = ({ products, unitId, focusProductId, onChanged }: StockPanelP
       editing.colors.forEach(({ name }) => {
         const key = cellKey(unit, size, name)
         if (!has) next[key] = '0'
-        else if (!(Number(next[key]) > 0)) next[key] = String(QUICK_STOCK)
+        else if (!(Number(next[key]) > 0)) next[key] = quickAmount
       })
       return next
     })
@@ -107,7 +110,13 @@ const StockPanel = ({ products, unitId, focusProductId, onChanged }: StockPanelP
     }
     setSaving(true)
     try {
-      for (const { unit, changes } of byUnit) await setUnitStock(editing.id, unit.id, changes, reason, note)
+      // Peça que sai da grade é correção de contagem, mesmo com "Chegou mercadoria" escolhido.
+      for (const { unit, changes } of byUnit) {
+        const added = changes.filter((change) => change.to > change.from)
+        const removed = changes.filter((change) => change.to < change.from)
+        if (added.length) await setUnitStock(editing.id, unit.id, added, reason, note)
+        if (removed.length) await setUnitStock(editing.id, unit.id, removed, 'ajuste', note)
+      }
       const total = byUnit.reduce((sum, { changes }) => sum + changes.reduce((acc, change) => acc + change.to - change.from, 0), 0)
       setNotice(`${editing.name}: estoque salvo (${total >= 0 ? '+' : ''}${total} ${Math.abs(total) === 1 ? 'peça' : 'peças'}).`)
       setNote('')
@@ -237,13 +246,16 @@ const StockPanel = ({ products, unitId, focusProductId, onChanged }: StockPanelP
                   <option value="ajuste">Correção de contagem</option>
                 </select>
               </label>
+              <label>Quantidade ao marcar "tem"
+                <input id="stock-quick" type="number" min="1" max="9999" step="1" value={quickStock} onChange={(event) => setQuickStock(event.target.value)} />
+              </label>
               <label className="wide" style={{ gridColumn: 'span 2' }}>Observação (opcional)
                 <input id="stock-note" value={note} onChange={(event) => setNote(event.target.value)} maxLength={300} placeholder="Ex.: nota do fornecedor 1234, peça com defeito" />
               </label>
             </FormGrid>
             {editableUnits.map((unit) => (
               <div key={unit.id} style={{ marginTop: 16 }}>
-                <p style={{ margin: '0 0 8px' }}><strong>{unit.name}</strong>: toque no tamanho para marcar se tem. Quem tem recebe {QUICK_STOCK} em cada cor zerada.</p>
+                <p style={{ margin: '0 0 8px' }}><strong>{unit.name}</strong>: toque no tamanho para marcar se tem. Quem tem recebe {quickAmount} em cada cor zerada.</p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {editing.sizes.map((size) => {
                     const has = hasSizeInGrid(grid, unit.id, size, editing)

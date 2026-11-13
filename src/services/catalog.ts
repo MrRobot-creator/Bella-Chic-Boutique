@@ -86,16 +86,34 @@ const requireSupabase = () => {
   return supabase
 }
 
-/** Lê o catálogo; antes do v5-unidades.sql o banco ainda não tem o estoque por loja. */
-const loadCatalog = async (): Promise<Product[]> => {
+/** Antes da v7: lê a tabela direto; antes da v5, sem o estoque por loja. */
+const loadFromTable = async (id?: number): Promise<CatalogRow[]> => {
   const client = requireSupabase()
-  const first = await client.from('catalog_products').select(catalogColumns).order('id', { ascending: true })
-  if (!first.error) return (first.data as unknown as CatalogRow[]).map(toProduct)
+  const run = (columns: string) => {
+    const query = client.from('catalog_products').select(columns).order('id', { ascending: true })
+    return id ? query.eq('id', id) : query
+  }
+  const first = await run(catalogColumns)
+  if (!first.error) return first.data as unknown as CatalogRow[]
   if (!first.error.message.includes('unit_stock')) throw catalogError(first.error)
-  const fallback = await client.from('catalog_products').select(baseColumns).order('id', { ascending: true })
+  const fallback = await run(baseColumns)
   if (fallback.error) throw catalogError(fallback.error)
-  return (fallback.data as unknown as CatalogRow[]).map(toProduct)
+  return fallback.data as unknown as CatalogRow[]
 }
+
+/**
+ * Lê o catálogo pela get_catalog() (supabase/v7-estoque-privado.sql): a equipe recebe o estoque real
+ * e a cliente, cada quantidade limitada a 5. Enquanto a v7 não roda, cai na leitura da tabela.
+ */
+const loadRows = async (id?: number): Promise<CatalogRow[]> => {
+  const query = requireSupabase().rpc('get_catalog').select(catalogColumns).order('id', { ascending: true })
+  const { data, error } = await (id ? query.eq('id', id) : query)
+  if (!error) return data as unknown as CatalogRow[]
+  if (!/get_catalog|schema cache/i.test(error.message)) throw catalogError(error)
+  return loadFromTable(id)
+}
+
+const loadCatalog = async (): Promise<Product[]> => (await loadRows()).map(toProduct)
 
 export const fetchCatalogProducts = loadCatalog
 
@@ -122,10 +140,12 @@ export const saveCatalogProduct = async (product: CatalogProductInput, id?: numb
   const query = id
     ? client.from('catalog_products').update(toRow(product)).eq('id', id)
     : client.from('catalog_products').insert(toRow(product))
-  const { data, error } = await query.select('*').single()
-
+  // Depois da v7 a tabela não devolve o estoque: pede só o id e relê a peça pelo catálogo.
+  const { data, error } = await query.select('id').single()
   if (error) throw catalogError(error)
-  return toProduct(data as CatalogRow)
+  const [saved] = await loadRows((data as { id: number }).id)
+  if (!saved) throw new Error('A peça foi salva, mas não voltou do catálogo. Recarregue a página.')
+  return toProduct(saved)
 }
 
 export const deleteCatalogProduct = async (id: number): Promise<void> => {

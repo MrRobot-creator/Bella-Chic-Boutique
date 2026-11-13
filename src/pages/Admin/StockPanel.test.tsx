@@ -81,9 +81,23 @@ describe('Estoque por loja no painel', () => {
     await typeInto(byLabel('Galeria Portuense, M Rosa') as HTMLInputElement, '0')
     await act(async () => { button('Salvar estoque').click() })
     expect(setUnitStock).toHaveBeenCalledTimes(2)
-    expect(setUnitStock).toHaveBeenCalledWith(1, 'galeria-portuense', [{ size: 'M', color: 'Rosa', from: 2, to: 0 }], 'entrada', '')
+    // O que saiu vai como correção de contagem, mesmo com "Chegou mercadoria" escolhido.
+    expect(setUnitStock).toHaveBeenCalledWith(1, 'galeria-portuense', [{ size: 'M', color: 'Rosa', from: 2, to: 0 }], 'ajuste', '')
     expect(setUnitStock).toHaveBeenCalledWith(1, 'cidade-nova-4', [{ size: 'P', color: 'Rosa', from: 1, to: 3 }], 'entrada', '')
     expect(container.textContent).toContain('estoque salvo (+0 peças)')
+  })
+
+  it('atalho tem / não tem preenche a grade com a quantidade escolhida', async () => {
+    await render('cidade-nova-4')
+    await typeInto(container.querySelector('#stock-quick') as HTMLInputElement, '2')
+    await act(async () => { button('M · não tem').click() })
+    expect(byLabel('Cidade Nova 4, M Rosa')?.value).toBe('2')
+    expect(button('M · tem')).toBeDefined()
+    await act(async () => { button('P · tem').click() })
+    expect(byLabel('Cidade Nova 4, P Rosa')?.value).toBe('0')
+    await act(async () => { button('Salvar estoque').click() })
+    expect(setUnitStock).toHaveBeenCalledWith(1, 'cidade-nova-4', [{ size: 'M', color: 'Rosa', from: 0, to: 2 }], 'entrada', '')
+    expect(setUnitStock).toHaveBeenCalledWith(1, 'cidade-nova-4', [{ size: 'P', color: 'Rosa', from: 1, to: 0 }], 'ajuste', '')
   })
 
   it('atendente vê as duas lojas mas só lança na dela', async () => {
