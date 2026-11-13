@@ -46,6 +46,17 @@ export const COLOR_NAMES: DetectedColor[] = [
   { name: 'Laranja', hex: '#ef7d32' }
 ]
 
+/** Paleta do painel: um tom por nome, na ordem da lista. */
+export const STORE_COLORS: DetectedColor[] = COLOR_NAMES.filter((color, index, all) =>
+  all.findIndex((other) => other.name === color.name) === index)
+
+const normalizeName = (name: string) =>
+  name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[-\s]+/g, ' ').trim()
+
+/** Cor da paleta com esse nome ("Azul Marinho" e "azul-marinho" contam como a mesma). */
+export const findStoreColor = (name: string): DetectedColor | undefined =>
+  name.trim() ? STORE_COLORS.find((color) => normalizeName(color.name) === normalizeName(name)) : undefined
+
 type Rgb = [number, number, number]
 type Group = { count: number; r: number; g: number; b: number }
 

@@ -67,8 +67,15 @@ export const AdminForm = styled.form`
   .stock-grid input { width: 100%; }
   .color-item { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 14px; border: 1px solid #f0e7e6; }
   .color-item .color-image-preview { width: 92px; height: 110px; object-fit: cover; border: 1px solid #e8dedd; background: #fbf6f5; }
-  .color-item .color-hex { display: flex; align-items: center; gap: 8px; }
-  .color-item .color-hex input[type="color"] { width: 42px; height: 38px; padding: 3px; }
+  .color-item .color-picker { display: grid; gap: 10px; }
+  .color-item .color-picker .label { color: #5d4649; font-weight: 600; }
+  .color-item .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 8px; }
+  .color-item .swatches button { display: grid; justify-items: center; align-content: center; gap: 5px; min-height: 68px; padding: 8px 4px; border: 1px solid #f0e7e6; border-radius: 12px; background: #fff; color: #5d4649; font: 12px/1.2 inherit; text-align: center; cursor: pointer; }
+  .color-item .swatches button i { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, .15); font-style: normal; }
+  .color-item .swatches button.active { border-color: #9a6871; box-shadow: inset 0 0 0 1px #9a6871; background: #fbf1f2; font-weight: 600; }
+  .color-item .swatches button.other i { background: conic-gradient(#e53935, #fdd835, #43a047, #1e88e5, #8e24aa, #e53935); color: #fff; font-weight: 700; text-shadow: 0 0 2px rgba(0, 0, 0, .5); }
+  .color-item .custom-color { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; }
+  .color-item .custom-color input[type="color"] { width: 56px; height: 42px; padding: 3px; }
   .color-item .color-image-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
   .color-item .color-image-actions input[type="file"] { min-width: 0; flex: 1; }
   .color-item .color-suggestions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; }

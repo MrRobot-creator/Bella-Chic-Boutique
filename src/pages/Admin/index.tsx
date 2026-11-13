@@ -25,7 +25,7 @@ import { defaultSettings, fetchStoreSettings, StoreSettings } from '../../servic
 import { CatalogProductInput } from '../../services/catalog'
 import { Product } from '../../types/store'
 import { getUnitTotal } from '../../utils/inventory'
-import { detectColors, DetectedColor } from '../../utils/colorDetect'
+import { detectColors, DetectedColor, findStoreColor, STORE_COLORS } from '../../utils/colorDetect'
 import { storeConfig } from '../../config/store'
 import { unitNameOf } from '../../utils/units'
 import SalesSummary from './SalesSummary'
@@ -90,6 +90,8 @@ type ColorDraft = {
   image: string
   /** Cores encontradas na última foto enviada para esta cor (só no formulário, não vai para o banco). */
   suggestions?: DetectedColor[]
+  /** Cor fora da paleta: mostra o campo de nome e o seletor de tom (só no formulário). */
+  custom?: boolean
 }
 
 const DEFAULT_COLOR_HEX = '#e5a1ad'
@@ -105,6 +107,7 @@ const withDetectedColor = (color: ColorDraft, detected: DetectedColor[]): ColorD
     ...color,
     name: color.name.trim() ? color.name : first.name,
     hex: color.hex.trim().toLowerCase() === DEFAULT_COLOR_HEX ? first.hex : color.hex,
+    custom: color.name.trim() ? color.custom : false,
     suggestions: detected
   }
 }
@@ -142,7 +145,8 @@ const draftFromProduct = (product: Product): ProductDraft => ({
   colors: product.colors.map((color) => ({
     name: color.name,
     hex: color.hex,
-    image: color.image || ''
+    image: color.image || '',
+    custom: !findStoreColor(color.name)
   })),
   tag: product.tag || '',
   available: product.enabled !== false
@@ -317,6 +321,11 @@ const Admin = () => {
     if (logoutError) setError(`Não foi possível sair: ${logoutError.message}`)
   }
 
+  const updateColor = (index: number, change: Partial<ColorDraft>) => setDraft((current) => ({
+    ...current,
+    colors: current.colors.map((item, itemIndex) => itemIndex === index ? { ...item, ...change } : item)
+  }))
+
   const resetDraft = () => {
     setDraft(blankDraft)
     setEditingId(null)
@@ -426,7 +435,7 @@ const Admin = () => {
       return
     }
     if (!colors.length || colors.some((color) => !color.name || !color.hex)) {
-      failSave('Informe pelo menos uma cor, com nome e código hexadecimal.')
+      failSave('Escolha pelo menos uma cor: toque numa bolinha da paleta ou em “Outra cor” e dê um nome.')
       return
     }
     if (new Set(colors.map((color) => color.name.toLocaleLowerCase('pt-BR'))).size !== colors.length) {
@@ -438,7 +447,7 @@ const Admin = () => {
       return
     }
     if (colors.some((color) => !/^#[0-9a-fA-F]{6}$/.test(color.hex))) {
-      failSave('Cada cor deve usar um código hexadecimal válido, por exemplo #E5A1AD.')
+      failSave('Escolha o tom de cada cor de novo: toque na bolinha da paleta ou no seletor de tom.')
       return
     }
     if (colors.some((color) => color.image && !/^https?:\/\//i.test(color.image))) {
@@ -647,24 +656,34 @@ const Admin = () => {
                   <p>Envie uma foto para cada cor. Se deixar a foto vazia, será usada a imagem principal do produto.</p>
                   {draft.colors.map((color, index) => (
                     <div className="color-item" key={`color-${index}`}>
-                      <label>Nome da cor
-                        <input value={color.name} onChange={(event) => setDraft((current) => ({
-                          ...current,
-                          colors: current.colors.map((item, itemIndex) => itemIndex === index ? { ...item, name: event.target.value } : item)
-                        }))} placeholder="Rosa" required />
-                      </label>
-                      <label>Código da cor
-                        <span className="color-hex">
-                          <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(color.hex) ? color.hex : DEFAULT_COLOR_HEX} onChange={(event) => setDraft((current) => ({
-                            ...current,
-                            colors: current.colors.map((item, itemIndex) => itemIndex === index ? { ...item, hex: event.target.value } : item)
-                          }))} aria-label={`Selecionar cor ${index + 1}`} />
-                          <input value={color.hex} onChange={(event) => setDraft((current) => ({
-                            ...current,
-                            colors: current.colors.map((item, itemIndex) => itemIndex === index ? { ...item, hex: event.target.value } : item)
-                          }))} placeholder="#E5A1AD" required />
-                        </span>
-                      </label>
+                      <div className="wide color-picker">
+                        <span className="label">Cor {index + 1}{color.name.trim() ? `: ${color.name.trim()}` : ''}</span>
+                        <div className="swatches" role="radiogroup" aria-label={`Cor ${index + 1}`}>
+                          {STORE_COLORS.map((option) => {
+                            const chosen = !color.custom && findStoreColor(color.name)?.name === option.name
+                            return (
+                              <button key={option.name} type="button" role="radio" aria-checked={chosen} className={chosen ? 'active' : ''} onClick={() => updateColor(index, { name: option.name, hex: option.hex, custom: false })}>
+                                <i style={{ background: option.hex }} aria-hidden="true" />
+                                <span>{option.name}</span>
+                              </button>
+                            )
+                          })}
+                          <button type="button" role="radio" aria-checked={Boolean(color.custom)} className={`other ${color.custom ? 'active' : ''}`} onClick={() => updateColor(index, { custom: true, name: findStoreColor(color.name) ? '' : color.name })}>
+                            <i aria-hidden="true">+</i>
+                            <span>Outra cor</span>
+                          </button>
+                        </div>
+                        {color.custom && (
+                          <div className="custom-color">
+                            <label>Nome da cor
+                              <input value={color.name} onChange={(event) => updateColor(index, { name: event.target.value })} placeholder="Ex.: Azul bebê" maxLength={40} />
+                            </label>
+                            <label>Tom
+                              <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(color.hex) ? color.hex : DEFAULT_COLOR_HEX} onChange={(event) => updateColor(index, { hex: event.target.value })} aria-label={`Tom da cor ${index + 1}`} />
+                            </label>
+                          </div>
+                        )}
+                      </div>
                       <label className="wide">URL da foto desta cor (opcional)
                         <input inputMode="url" value={color.image} onChange={(event) => setDraft((current) => ({
                           ...current,
@@ -689,10 +708,7 @@ const Admin = () => {
                           {color.suggestions.map((suggestion) => {
                             const chosen = suggestion.hex === color.hex.trim().toLowerCase()
                             return (
-                              <button key={suggestion.hex} type="button" aria-pressed={chosen} className={chosen ? 'active' : ''} onClick={() => setDraft((current) => ({
-                                ...current,
-                                colors: current.colors.map((item, itemIndex) => itemIndex === index ? { ...item, name: suggestion.name, hex: suggestion.hex } : item)
-                              }))}>
+                              <button key={suggestion.hex} type="button" aria-pressed={chosen} className={chosen ? 'active' : ''} onClick={() => updateColor(index, { name: suggestion.name, hex: suggestion.hex, custom: false })}>
                                 <i style={{ background: suggestion.hex }} aria-hidden="true" />{suggestion.name}
                               </button>
                             )
