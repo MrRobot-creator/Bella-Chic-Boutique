@@ -505,14 +505,9 @@ const CartDrawer = ({ isOpen, items, customer, settings, onOrderPlaced, onKeepSh
                         <button type="button" aria-label={`Aumentar quantidade de ${product.name}`} disabled={quantity >= Math.min(MAX_UNITS_PER_ITEM, product.unitStock ? inUnit : getVariantStock(product.variantStock, size, color))} onClick={() => onChangeQuantity(product.id, size, color, quantity + 1)}>+</button>
                         <RemoveButton type="button" onClick={() => onRemove(product.id, size, color)}>Remover</RemoveButton>
                       </div>
-                      {product.unitStock ? (
-                        <small>{inUnit} na {selectedUnit.name}{otherUnit ? ` · ${inOther} na ${otherUnit.name}` : ''}</small>
-                      ) : (
-                        <small>{getVariantStock(product.variantStock, size, color)} unidades em estoque</small>
-                      )}
                       {inUnit < quantity && (
                         <small className="warn" role="status">
-                          {inUnit === 0 ? `Esta peça não tem na ${selectedUnit.name}.` : `A ${selectedUnit.name} tem só ${inUnit}.`}
+                          {inUnit === 0 ? `Esta peça não tem na ${selectedUnit.name}.` : `A ${selectedUnit.name} não tem essa quantidade.`}
                           {otherUnit && inOther >= quantity ? ` A ${otherUnit.name} tem: troque a loja abaixo.` : ' Diminua a quantidade ou troque a loja.'}
                         </small>
                       )}

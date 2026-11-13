@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { Product } from '../../types/store'
 import { storeConfig } from '../../config/store'
 import { setUnitStock, StockChange, transferStock } from '../../services/stock'
-import { getUnitStock, getUnitTotal, getVariantStock } from '../../utils/inventory'
+import { getUnitStock, getUnitTotal, getVariantStock, MAX_UNITS_PER_ITEM } from '../../utils/inventory'
 import { AdminButton, AdminNotice, AdminPanel, DataTable, FormGrid, PanelHeading } from './styles'
 
 type StockPanelProps = {
@@ -17,6 +17,11 @@ type Grid = Record<string, string>
 type TransferLine = { key: number; productId: string; size: string; color: string; quantity: string }
 
 const cellKey = (unit: string, size: string, color: string) => `${unit}|${size}|${color}`
+
+/** Atalho "tem / não tem": quanto cada cor de um tamanho marcado recebe na grade. */
+const QUICK_STOCK = MAX_UNITS_PER_ITEM
+const hasSizeInGrid = (grid: Grid, unit: string, size: string, product: Product) =>
+  product.colors.some((color) => Number(grid[cellKey(unit, size, color.name)]) > 0)
 const variationsOf = (product: Product) => product.sizes.flatMap((size) => product.colors.map((color) => ({ size, color: color.name })))
 
 let lineKey = 0
@@ -62,6 +67,20 @@ const StockPanel = ({ products, unitId, focusProductId, onChanged }: StockPanelP
     setNote('')
     setError('')
     setNotice('')
+  }
+
+  /** Marca o tamanho em todas as cores da loja: "tem" preenche só as cores zeradas; "não tem" zera. Salva no botão de sempre. */
+  const toggleSize = (unit: string, size: string, has: boolean) => {
+    if (!editing) return
+    setGrid((current) => {
+      const next = { ...current }
+      editing.colors.forEach(({ name }) => {
+        const key = cellKey(unit, size, name)
+        if (!has) next[key] = '0'
+        else if (!(Number(next[key]) > 0)) next[key] = String(QUICK_STOCK)
+      })
+      return next
+    })
   }
 
   const saveGrid = async (event: FormEvent<HTMLFormElement>) => {
@@ -222,6 +241,21 @@ const StockPanel = ({ products, unitId, focusProductId, onChanged }: StockPanelP
                 <input id="stock-note" value={note} onChange={(event) => setNote(event.target.value)} maxLength={300} placeholder="Ex.: nota do fornecedor 1234, peça com defeito" />
               </label>
             </FormGrid>
+            {editableUnits.map((unit) => (
+              <div key={unit.id} style={{ marginTop: 16 }}>
+                <p style={{ margin: '0 0 8px' }}><strong>{unit.name}</strong>: toque no tamanho para marcar se tem. Quem tem recebe {QUICK_STOCK} em cada cor zerada.</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {editing.sizes.map((size) => {
+                    const has = hasSizeInGrid(grid, unit.id, size, editing)
+                    return (
+                      <AdminButton key={size} type="button" className={has ? '' : 'secondary'} aria-pressed={has} onClick={() => toggleSize(unit.id, size, !has)}>
+                        {size} · {has ? 'tem' : 'não tem'}
+                      </AdminButton>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
             <DataTable style={{ margin: '16px 0' }}>
               <table>
                 <thead>

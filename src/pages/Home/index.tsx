@@ -347,7 +347,7 @@ const Home = () => {
       return false
     }
     if (existingQuantity + quantity > availableStock) {
-      notify(`Há somente ${Math.max(0, availableStock - existingQuantity)} unidade(s) disponível(is) de ${product.name} (${size}, ${color}).`)
+      notify(`Não temos mais unidades de ${product.name} (${size}, ${color}) além das que já estão na sacola.`)
       return false
     }
     setCartItems((currentItems) => {
@@ -386,7 +386,7 @@ const Home = () => {
       return
     }
     if (quantity > availableStock) {
-      notify(`Há somente ${availableStock} unidade(s) disponível(is) desta variação.`)
+      notify('Não temos essa quantidade desta variação.')
       return
     }
     setCartItems((currentItems) => currentItems.map((item) =>

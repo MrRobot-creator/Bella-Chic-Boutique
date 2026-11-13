@@ -1,7 +1,6 @@
 import { MouseEvent, TouchEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { Product } from '../../types/store'
-import { getUnitStock, getVariantStock, LOW_STOCK_LIMIT, MAX_UNITS_PER_ITEM } from '../../utils/inventory'
-import { storeConfig } from '../../config/store'
+import { getVariantStock, LOW_STOCK_LIMIT, MAX_UNITS_PER_ITEM } from '../../utils/inventory'
 import { getSizeFitLabel } from '../../utils/productSize'
 import { getProductUrl } from '../../utils/productLink'
 import { trackEvent } from '../../services/analytics'
@@ -29,8 +28,7 @@ import {
   StockNote,
   Swatches,
   Thumbs,
-  VariantGroup,
-  UnitAvailability
+  VariantGroup
 } from './styles'
 
 type ProductDialogProps = {
@@ -346,22 +344,9 @@ const ProductDialog = ({ product, relatedProducts, isFavorite, onToggleFavorite,
           {stock < 1 ? (
             <StockNote $tone="out" role="status">Esta combinação de tamanho e cor está esgotada.</StockNote>
           ) : stock <= LOW_STOCK_LIMIT ? (
-            <StockNote $tone="low" role="status">Últimas unidades: {stock === 1 ? 'só resta 1 nesta variação!' : `só restam ${stock} nesta variação!`}</StockNote>
+            <StockNote $tone="low" role="status">Últimas unidades nesta cor e tamanho.</StockNote>
           ) : (
-            <StockNote $tone="ok" role="status">{stock} unidades disponíveis nesta variação.</StockNote>
-          )}
-          {stock > 0 && product.unitStock && (
-            <UnitAvailability aria-label="Onde tem esta variação">
-              {storeConfig.units.map((unit) => {
-                const inUnit = getUnitStock(product.unitStock, unit.id, size, color)
-                return (
-                  <li key={unit.id} className={inUnit > 0 ? 'has' : 'none'}>
-                    <span>{unit.name}</span>
-                    <strong>{inUnit > 0 ? `${inUnit} ${inUnit === 1 ? 'peça' : 'peças'}` : 'não tem'}</strong>
-                  </li>
-                )
-              })}
-            </UnitAvailability>
+            <StockNote $tone="ok" role="status">Disponível nesta cor e tamanho.</StockNote>
           )}
 
           {stock > 0 && product.available !== false && (
