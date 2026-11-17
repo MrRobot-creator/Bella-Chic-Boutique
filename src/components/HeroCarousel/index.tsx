@@ -1,4 +1,4 @@
-import { ReactNode, TouchEvent, useEffect, useRef, useState } from 'react'
+import { MouseEvent, PointerEvent, ReactNode, useEffect, useRef, useState } from 'react'
 import { Controls, Layer, MainSlide } from './styles'
 
 /** Destaque que se reveza com o primeiro: qualquer conteúdo (texto, fotos, botões). */
@@ -27,38 +27,46 @@ const SWIPE_PX = 50
 const inert = (hidden: boolean) => (hidden ? ({ inert: '' } as object) : {})
 
 /**
- * Banner do início que troca sozinho. Para ao passar o mouse, ao focar com o teclado, no botão de pausa
- * e para quem pediu menos animação no celular ou no computador. No celular, também troca com o dedo.
+ * Banner do início que troca sozinho e também arrastando para o lado (dedo no celular, mouse no computador).
+ * Depois de uma troca feita à mão, o tempo recomeça. Só para no botão de pausa.
  */
 const HeroCarousel = ({ id, className, label, children, slides, intervalMs = 7000 }: HeroCarouselProps) => {
   const total = slides.length + 1
   const [active, setActive] = useState(0)
-  const [hovering, setHovering] = useState(false)
-  const [paused, setPaused] = useState(() =>
-    typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-  const touchStart = useRef<{ x: number; y: number } | null>(null)
+  const [paused, setPaused] = useState(false)
+  const dragStart = useRef<{ x: number; y: number } | null>(null)
+  /** Arrastou de verdade: o clique que vem junto ao soltar não abre link nem aperta botão. */
+  const dragged = useRef(false)
 
+  // Um tempo por destaque: trocar à mão (bolinha ou arrasto) recomeça a contagem.
   useEffect(() => {
-    if (paused || hovering || total < 2) return undefined
-    const timer = window.setInterval(() => setActive((current) => (current + 1) % total), intervalMs)
-    return () => window.clearInterval(timer)
-  }, [hovering, intervalMs, paused, total])
+    if (paused || total < 2) return undefined
+    const timer = window.setTimeout(() => setActive((current) => (current + 1) % total), intervalMs)
+    return () => window.clearTimeout(timer)
+  }, [active, intervalMs, paused, total])
 
   const show = (index: number) => setActive((index + total) % total)
 
-  const onTouchStart = (event: TouchEvent<HTMLElement>) => {
-    const touch = event.touches[0]
-    touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null
+  const onPointerDown = (event: PointerEvent<HTMLElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    dragStart.current = { x: event.clientX, y: event.clientY }
+    dragged.current = false
   }
   // Só troca no arrasto de lado; rolar a página para baixo não mexe no banner.
-  const onTouchEnd = (event: TouchEvent<HTMLElement>) => {
-    const start = touchStart.current
-    const end = event.changedTouches[0]
-    touchStart.current = null
-    if (!start || !end) return
-    const dx = end.clientX - start.x
-    if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) < Math.abs(end.clientY - start.y)) return
+  const onPointerUp = (event: PointerEvent<HTMLElement>) => {
+    const start = dragStart.current
+    dragStart.current = null
+    if (!start) return
+    const dx = event.clientX - start.x
+    if (Math.abs(dx) < SWIPE_PX || Math.abs(dx) < Math.abs(event.clientY - start.y)) return
+    dragged.current = true
     show(active + (dx < 0 ? 1 : -1))
+  }
+  const onClickCapture = (event: MouseEvent<HTMLElement>) => {
+    if (!dragged.current) return
+    dragged.current = false
+    event.preventDefault()
+    event.stopPropagation()
   }
 
   return (
@@ -67,12 +75,13 @@ const HeroCarousel = ({ id, className, label, children, slides, intervalMs = 700
       className={className}
       aria-roledescription="carrossel"
       aria-label={label}
-      onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => setHovering(false)}
-      onFocus={() => setHovering(true)}
-      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setHovering(false) }}
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
+      onPointerDown={onPointerDown}
+      onPointerUp={onPointerUp}
+      onPointerCancel={() => { dragStart.current = null }}
+      onClickCapture={onClickCapture}
+      // Sem o "fantasma" de arrastar link ou foto, e sem selecionar o texto ao arrastar com o mouse.
+      onDragStart={(event) => event.preventDefault()}
+      style={{ touchAction: 'pan-y', userSelect: 'none', WebkitUserSelect: 'none' }}
     >
       <MainSlide role="group" aria-roledescription="destaque" aria-label={`1 de ${total}`} {...inert(active !== 0)}>
         {children}

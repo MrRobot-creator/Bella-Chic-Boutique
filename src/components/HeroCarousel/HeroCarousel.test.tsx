@@ -54,3 +54,43 @@ it('o botão de pausa para a troca e a bolinha leva direto ao destaque', async (
   expect(current()).toBe(1)
   expect(banner().querySelector('a')?.getAttribute('href')).toBe('#lojas')
 })
+
+const drag = (fromX: number, toX: number, y = 100) => {
+  const section = container.querySelector('section') as HTMLElement
+  act(() => {
+    section.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: fromX, clientY: y, button: 0 }))
+    section.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, clientX: toX, clientY: y, button: 0 }))
+  })
+}
+
+it('arrastar para o lado troca o destaque; arrasto curto não', async () => {
+  await mount()
+  drag(300, 280)
+  expect(current()).toBe(0)
+  drag(300, 150)
+  expect(current()).toBe(1)
+  drag(150, 300)
+  expect(current()).toBe(0)
+})
+
+it('depois de arrastar, o clique que vem junto não abre o link', async () => {
+  await mount()
+  drag(300, 150)
+  const link = banner().querySelector('a') as HTMLAnchorElement
+  const click = new MouseEvent('click', { bubbles: true, cancelable: true })
+  act(() => { link.dispatchEvent(click) })
+  expect(click.defaultPrevented).toBe(true)
+})
+
+it('troca sozinho mesmo com o mouse em cima, e a troca à mão recomeça o tempo', async () => {
+  await mount()
+  const section = container.querySelector('section') as HTMLElement
+  act(() => { section.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })) })
+  act(() => { jest.advanceTimersByTime(700) })
+  act(() => { dots()[1].click() })
+  act(() => { jest.advanceTimersByTime(700) })
+  expect(current()).toBe(1)
+  act(() => { jest.advanceTimersByTime(300) })
+  expect(current()).toBe(0)
+})
+
