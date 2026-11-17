@@ -4,7 +4,7 @@ import HeroCarousel from '.'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
-const banners = [{ src: '/banner.jpg', alt: 'Banner da loja', href: '#lancamentos', cta: 'Ver as novidades' }]
+const slides = [{ key: 'lojas', label: 'Nossas lojas', content: <a href="#lojas">Conheça as lojas</a> }]
 
 let container: HTMLDivElement
 let root: Root
@@ -13,12 +13,12 @@ const mount = async () => {
   // Sem Testing Library no projeto: o act do React é o que espera a tela atualizar.
   // eslint-disable-next-line testing-library/no-unnecessary-act
   await act(async () => {
-    root.render(<HeroCarousel label="Destaques" banners={banners} intervalMs={1000}><h2>Elegância</h2></HeroCarousel>)
+    root.render(<HeroCarousel label="Destaques" slides={slides} intervalMs={1000}><h2>Elegância</h2></HeroCarousel>)
   })
 }
 const dots = () => Array.from(container.querySelectorAll<HTMLButtonElement>('.dot'))
 const current = () => dots().findIndex((dot) => dot.getAttribute('aria-current') === 'true')
-const banner = () => container.querySelector('a') as HTMLAnchorElement
+const banner = () => container.querySelectorAll('[role="group"]')[1]
 
 beforeEach(() => {
   jest.useFakeTimers()
@@ -52,5 +52,5 @@ it('o botão de pausa para a troca e a bolinha leva direto ao destaque', async (
   expect(current()).toBe(0)
   act(() => { dots()[1].click() })
   expect(current()).toBe(1)
-  expect(banner().getAttribute('href')).toBe('#lancamentos')
+  expect(banner().querySelector('a')?.getAttribute('href')).toBe('#lojas')
 })

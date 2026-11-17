@@ -1,4 +1,4 @@
-import styled, { keyframes } from 'styled-components'
+import styled, { css, keyframes } from 'styled-components'
 import { colors, fonts } from '../../styles/tokens'
 import HeroCarousel from '../../components/HeroCarousel'
 
@@ -44,10 +44,8 @@ export const Alert = styled.p<{ $tone?: 'error' | 'info' }>`
 const photoMask = 'linear-gradient(90deg, transparent 0%, #000 32%), linear-gradient(180deg, transparent 0, #000 72px)'
 const photoMaskMobile = 'linear-gradient(90deg, transparent 0%, #000 38%)'
 
-export const Hero = styled(HeroCarousel)`
-  position: relative;
-  /* As imagens do carrossel começam abaixo da barra de seções do cabeçalho. */
-  --hero-banner-top: 84px;
+/** Moldura comum aos destaques do banner: o segundo tem o mesmo tamanho, fundo e alinhamento do primeiro. */
+const heroFrame = css`
   min-height: 700px;
   display: flex;
   align-items: center;
@@ -57,8 +55,20 @@ export const Hero = styled(HeroCarousel)`
   background: linear-gradient(105deg, #F7D9DE 0%, #FBEAEC 55%, ${colors.blushSoft} 100%);
   @media (max-width: 1100px) { min-height: 600px; }
   /* Celular: banner baixo como o do site atual, mantendo o 2b (título à esquerda, foto à direita). */
-  @media (max-width: 900px) { min-height: 0; height: 440px; padding: 0; --hero-banner-top: 0px; }
+  @media (max-width: 900px) { min-height: 0; height: 440px; padding: 0; }
   @media (max-width: 600px) { height: 340px; }
+`
+
+export const Hero = styled(HeroCarousel)`
+  position: relative;
+  ${heroFrame}
+`
+
+/** Destaque seguinte do carrossel: cobre o banner inteiro com a mesma moldura do primeiro. */
+export const HeroSlideFrame = styled.div`
+  position: relative;
+  height: 100%;
+  ${heroFrame}
 `
 
 export const HeroPhoto = styled.img`

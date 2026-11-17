@@ -1,11 +1,12 @@
 import { ReactNode, TouchEvent, useEffect, useRef, useState } from 'react'
-import { Banner, Controls, MainSlide } from './styles'
+import { Controls, Layer, MainSlide } from './styles'
 
-export type HeroBanner = {
-  src: string
-  alt: string
-  href: string
-  cta: string
+/** Destaque que se reveza com o primeiro: qualquer conteúdo (texto, fotos, botões). */
+export type HeroSlide = {
+  key: string
+  /** Nome do destaque para leitor de tela. */
+  label: string
+  content: ReactNode
 }
 
 type HeroCarouselProps = {
@@ -15,8 +16,8 @@ type HeroCarouselProps = {
   label: string
   /** Primeiro destaque (texto e foto do banner principal), no fluxo da página: dá a altura do carrossel. */
   children: ReactNode
-  /** Imagens que se revezam com o primeiro destaque. */
-  banners: HeroBanner[]
+  /** Destaques que se revezam com o primeiro. */
+  slides: HeroSlide[]
   intervalMs?: number
 }
 
@@ -29,8 +30,8 @@ const inert = (hidden: boolean) => (hidden ? ({ inert: '' } as object) : {})
  * Banner do início que troca sozinho. Para ao passar o mouse, ao focar com o teclado, no botão de pausa
  * e para quem pediu menos animação no celular ou no computador. No celular, também troca com o dedo.
  */
-const HeroCarousel = ({ id, className, label, children, banners, intervalMs = 7000 }: HeroCarouselProps) => {
-  const total = banners.length + 1
+const HeroCarousel = ({ id, className, label, children, slides, intervalMs = 7000 }: HeroCarouselProps) => {
+  const total = slides.length + 1
   const [active, setActive] = useState(0)
   const [hovering, setHovering] = useState(false)
   const [paused, setPaused] = useState(() =>
@@ -76,19 +77,17 @@ const HeroCarousel = ({ id, className, label, children, banners, intervalMs = 70
       <MainSlide role="group" aria-roledescription="destaque" aria-label={`1 de ${total}`} {...inert(active !== 0)}>
         {children}
       </MainSlide>
-      {banners.map((banner, index) => (
-        <Banner
-          key={banner.src}
-          href={banner.href}
+      {slides.map((slide, index) => (
+        <Layer
+          key={slide.key}
           $active={active === index + 1}
           role="group"
           aria-roledescription="destaque"
-          aria-label={`${index + 2} de ${total}: ${banner.alt}`}
+          aria-label={`${index + 2} de ${total}: ${slide.label}`}
           {...inert(active !== index + 1)}
         >
-          <img src={banner.src} alt={banner.alt} decoding="async" draggable={false} />
-          <span className="cta">{banner.cta}</span>
-        </Banner>
+          {slide.content}
+        </Layer>
       ))}
       {total > 1 && (
         <Controls>

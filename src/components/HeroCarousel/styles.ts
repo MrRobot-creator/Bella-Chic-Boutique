@@ -6,36 +6,14 @@ export const MainSlide = styled.div`
   display: contents;
 `
 
-/** Imagem que cobre o banner inteiro quando está na vez dela, com troca suave. */
-export const Banner = styled.a<{ $active: boolean }>`
+/** Destaque que cobre o banner inteiro quando está na vez dele, com troca suave. */
+export const Layer = styled.div<{ $active: boolean }>`
   position: absolute;
-  inset: var(--hero-banner-top, 0px) 0 0;
+  inset: 0;
   z-index: 3;
-  display: block;
-  background: ${colors.blushSoft};
   opacity: ${({ $active }) => ($active ? 1 : 0)};
   visibility: ${({ $active }) => ($active ? 'visible' : 'hidden')};
   transition: opacity .8s ease, visibility .8s;
-  img { width: 100%; height: 100%; object-fit: cover; object-position: center; }
-  .cta {
-    position: absolute;
-    left: 50%;
-    bottom: 64px;
-    padding: 14px 28px;
-    border-radius: 999px;
-    background: ${colors.plum};
-    color: ${colors.white};
-    font-size: 15px;
-    font-weight: 600;
-    white-space: nowrap;
-    box-shadow: 0 14px 30px rgba(62, 42, 46, .22);
-    transform: translateX(-50%);
-    transition: background .2s;
-  }
-  &:hover .cta { background: ${colors.roseDark}; }
-  @media (max-width: 600px) {
-    .cta { bottom: 40px; padding: 11px 22px; font-size: 13px; }
-  }
   @media (prefers-reduced-motion: reduce) { transition: none; }
 `
 

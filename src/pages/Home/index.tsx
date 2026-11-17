@@ -11,7 +11,10 @@ import VipSignup from '../../components/VipSignup'
 import { SkeletonCard } from '../../components/ProductCard/styles'
 import { Wrap } from '../../components/ui'
 import CategoryIcon, { categoryKind } from '../../components/CategoryIcon'
-import type { HeroBanner } from '../../components/HeroCarousel'
+import type { HeroSlide } from '../../components/HeroCarousel'
+import ArrowIcon from './ArrowIcon'
+import WelcomeSlide from './WelcomeSlide'
+import { unitImages } from './unitImages'
 import { useFavorites } from '../../hooks/useFavorites'
 import { useCustomer } from '../../hooks/useCustomer'
 import { trackEvent } from '../../services/analytics'
@@ -28,9 +31,6 @@ import { getProductIdFromPath, getProductPath } from '../../utils/productLink'
 import * as S from './styles'
 import boutiqueLogo from '../../assets/bella-chic-logo.jpg'
 import heroImage from '../../assets/thalita-banner.jpeg'
-import boutiqueBanner from '../../assets/banner 2.jpeg'
-import lojaGaleriaImage from '../../assets/loja galeria.jpeg'
-import lojaCnImage from '../../assets/loja cn.jpeg'
 
 const PAGE_SIZE = 12
 const COUPON_CODE = 'BELLA10'
@@ -38,11 +38,10 @@ const MAX_UNITS_MESSAGE = `Pelo site, até ${MAX_UNITS_PER_ITEM} unidades da mes
 const isCombo = (product: Pick<Product, 'category'>) => /combo/i.test(product.category)
 /** Peça vestida na foto do banner: o card "Na foto" só aparece se ela estiver à venda no catálogo. */
 const HERO_PRODUCT_NAME = /kimono listrado/i
-/** Imagens que se revezam com o banner principal. Para pôr outra, é só acrescentar aqui. */
-const heroBanners: HeroBanner[] = [
-  { src: boutiqueBanner, alt: 'Bella Chic Boutique: blazer, vestido floral e acessórios em tons claros', href: '#lancamentos', cta: 'Ver as novidades' }
+/** Destaques que se revezam com o banner principal. Para pôr outro, é só acrescentar aqui. */
+const heroSlides: HeroSlide[] = [
+  { key: 'boas-vindas', label: 'Bem-vinda à Bella Chic Boutique', content: <WelcomeSlide /> }
 ]
-const unitImages: Record<string, string> = { 'galeria-portuense': lojaGaleriaImage, 'cidade-nova-4': lojaCnImage }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null
@@ -85,10 +84,6 @@ const formatPromotionEnd = (value: string) => {
 const scrollToSection = (id: string) => {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
-
-const ArrowIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-)
 
 const Home = () => {
   const location = useLocation()
@@ -515,7 +510,7 @@ const Home = () => {
       <main>
         <h1 className="sr-only">Bella Chic Boutique: moda feminina em Belém e Ananindeua</h1>
 
-        <S.Hero id="inicio" label="Destaques da loja" banners={heroBanners}>
+        <S.Hero id="inicio" label="Destaques da loja" slides={heroSlides}>
           <S.HeroPhoto src={heroImage} alt="Modelo vestindo o conjunto kimono listrado" width={1086} height={1448} draggable={false} />
           <S.HeroCopy>
             <span className="eyebrow">Moda feminina com estilo</span>
