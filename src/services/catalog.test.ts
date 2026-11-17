@@ -1,5 +1,6 @@
 import { describe, expect, it } from '@jest/globals'
-import { fitInside, videoTypeOf } from './catalog'
+import { webcrypto } from 'crypto'
+import { contentFileName, fitInside, videoTypeOf } from './catalog'
 
 describe('Redução das fotos no envio', () => {
   it('cabe em 1600 px no lado maior mantendo a proporção', () => {
@@ -28,5 +29,24 @@ describe('videoTypeOf', () => {
     expect(videoTypeOf({ name: 'foto.jpg', type: 'image/jpeg' })).toBeUndefined()
     expect(videoTypeOf({ name: 'video.avi', type: 'video/x-msvideo' })).toBeUndefined()
     expect(videoTypeOf({ name: 'video.mp4', type: 'image/png' })).toBeUndefined()
+  })
+})
+
+describe('contentFileName', () => {
+  const bytes = (text: string) => Uint8Array.from(text, (char) => char.charCodeAt(0)).buffer
+  const subtle = webcrypto.subtle as unknown as SubtleCrypto
+
+  it('dá o mesmo nome para o mesmo arquivo', async () => {
+    expect(await contentFileName(bytes('abc'), 'jpg', subtle))
+      .toBe('ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad.jpg')
+    expect(await contentFileName(bytes('abc'), 'jpg', subtle)).toBe(await contentFileName(bytes('abc'), 'jpg', subtle))
+  })
+
+  it('dá nomes diferentes para arquivos diferentes', async () => {
+    expect(await contentFileName(bytes('abc'), 'mp4', subtle)).not.toBe(await contentFileName(bytes('abd'), 'mp4', subtle))
+  })
+
+  it('sem criptografia no navegador, usa um nome aleatório', async () => {
+    expect(await contentFileName(bytes('abc'), 'mov', null)).toMatch(/^\d+-[a-z0-9]+\.mov$/)
   })
 })

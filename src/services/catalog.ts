@@ -161,6 +161,19 @@ export const deleteCatalogProduct = async (id: number): Promise<void> => {
   if (error) throw error
 }
 
+/**
+ * Nome do arquivo pelo conteúdo (SHA-256): o mesmo arquivo enviado de novo ganha o mesmo nome
+ * e reaproveita o que já está no Supabase. Sem criptografia no navegador, cai num nome aleatório.
+ */
+export const contentFileName = async (bytes: ArrayBuffer, extension: string, subtle: SubtleCrypto | null = globalThis.crypto?.subtle ?? null) => {
+  if (!subtle) return `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`
+  const digest = new Uint8Array(await subtle.digest('SHA-256', bytes))
+  return `${Array.from(digest, (byte) => byte.toString(16).padStart(2, '0')).join('')}.${extension}`
+}
+
+/** O arquivo já estava lá (mesmo conteúdo, mesmo nome): não é erro, é só reaproveitar. */
+const isAlreadyStored = (error: { message: string }) => /already exists|duplicate/i.test(error.message)
+
 const MAX_PHOTO_SIDE = 1600
 
 /** Tamanho final para caber em `max` px no lado maior, sem aumentar fotos pequenas. */
@@ -217,12 +230,13 @@ export const uploadProductImage = async (original: File): Promise<string> => {
     throw new Error('A imagem deve ter no máximo 5 MB.')
   }
 
-  const filePath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${imageType.extension}`
-  const { data, error } = await client.storage
+  // Nome pela foto original: a redução pode variar de um celular para outro, a original não.
+  const filePath = await contentFileName(await original.arrayBuffer(), imageType.extension)
+  const { error } = await client.storage
     .from(productImagesBucket)
     .upload(filePath, file, { contentType: imageType.contentType, upsert: false })
 
-  if (error) {
+  if (error && !isAlreadyStored(error)) {
     const message = error.message.toLowerCase()
     if (message.includes('bucket not found')) {
       throw new Error('O armazenamento de imagens ainda não foi configurado. Execute supabase/storage.sql no SQL Editor.')
@@ -236,7 +250,7 @@ export const uploadProductImage = async (original: File): Promise<string> => {
     throw error
   }
 
-  const { data: publicUrl } = client.storage.from(productImagesBucket).getPublicUrl(data.path)
+  const { data: publicUrl } = client.storage.from(productImagesBucket).getPublicUrl(filePath)
   return publicUrl.publicUrl
 }
 
@@ -257,7 +271,7 @@ export const videoTypeOf = (file: Pick<File, 'name' | 'type'>) => {
   return videoTypes[file.name.split('.').pop()?.toLowerCase() || '']
 }
 
-/** Vídeo de demonstração da peça: vai como veio do celular (até 30 MB) para a pasta bella-chic-videos. */
+/** Vídeo de demonstração da peça: vai como veio do celular (até 30 MB) para a pasta bella-chic-videos; se já estiver lá, reaproveita. */
 export const uploadProductVideo = async (file: File): Promise<string> => {
   const client = requireSupabase()
   const videoType = videoTypeOf(file)
@@ -268,12 +282,12 @@ export const uploadProductVideo = async (file: File): Promise<string> => {
     throw new Error(`O vídeo deve ter no máximo ${MAX_VIDEO_MB} MB (uns 15 segundos). Grave um vídeo mais curto.`)
   }
 
-  const filePath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${videoType.extension}`
-  const { data, error } = await client.storage
+  const filePath = await contentFileName(await file.arrayBuffer(), videoType.extension)
+  const { error } = await client.storage
     .from(productVideosBucket)
     .upload(filePath, file, { contentType: videoType.contentType, upsert: false })
 
-  if (error) {
+  if (error && !isAlreadyStored(error)) {
     const message = error.message.toLowerCase()
     if (message.includes('bucket not found')) {
       throw new Error('A pasta dos vídeos ainda não foi configurada. Execute supabase/v8-video.sql no SQL Editor.')
@@ -287,5 +301,5 @@ export const uploadProductVideo = async (file: File): Promise<string> => {
     throw error
   }
 
-  return client.storage.from(productVideosBucket).getPublicUrl(data.path).data.publicUrl
+  return client.storage.from(productVideosBucket).getPublicUrl(filePath).data.publicUrl
 }
