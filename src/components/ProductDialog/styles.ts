@@ -80,6 +80,15 @@ export const Thumbs = styled.div`
   }
   button:hover, button.active { opacity: 1; border-color: ${colors.rose}; }
   img { width: 100%; height: 100%; object-fit: cover; }
+  button.video { position: relative; }
+  button.video span {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(62, 42, 46, .38);
+    color: ${colors.white};
+  }
   @media (max-width: 900px) {
     width: 100%;
     max-height: none;
@@ -377,4 +386,40 @@ export const Reviews = styled.section`
   p { color: ${colors.plum}; font-size: 14px; line-height: 1.55; }
   .photos { display: flex; gap: 8px; }
   .photos img { width: 64px; height: 80px; border-radius: 10px; object-fit: cover; }
+`
+
+/** Mesmo tamanho da foto principal, para a janela não pular ao trocar foto por vídeo. */
+export const VideoFrame = styled.div`
+  height: ${photoHeight};
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border-radius: 16px;
+  background: ${colors.plum};
+  video { width: 100%; height: 100%; object-fit: contain; display: block; }
+  @media (max-width: 900px) {
+    width: 100%;
+    height: auto;
+    border-radius: 0;
+  }
+`
+
+export const VideoButton = styled.button`
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px 8px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .94);
+  color: ${colors.plum};
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(62, 42, 46, .14);
+  cursor: pointer;
+  transition: background .2s;
+  &:hover { background: ${colors.white}; }
 `

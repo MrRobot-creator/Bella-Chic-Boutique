@@ -28,7 +28,9 @@ import {
   StockNote,
   Swatches,
   Thumbs,
-  VariantGroup
+  VariantGroup,
+  VideoButton,
+  VideoFrame
 } from './styles'
 
 type ProductDialogProps = {
@@ -48,6 +50,7 @@ const clamp = (value: number) => Math.max(0, Math.min(100, value))
 const ProductDialog = ({ product, relatedProducts, isFavorite, onToggleFavorite, onAdd, onClose, onOpenProduct }: ProductDialogProps) => {
   const images = useMemo(() => getProductImages(product), [product])
   const [imageIndex, setImageIndex] = useState(0)
+  const [showVideo, setShowVideo] = useState(false)
   const [size, setSize] = useState(product.sizes[0] || '')
   const [color, setColor] = useState(product.colors[0]?.name || '')
   const [quantity, setQuantity] = useState(1)
@@ -122,7 +125,14 @@ const ProductDialog = ({ product, relatedProducts, isFavorite, onToggleFavorite,
 
   const showImage = (index: number) => {
     setImageIndex((index + images.length) % images.length)
+    setShowVideo(false)
     setZoom(false)
+  }
+
+  const openVideo = () => {
+    setShowVideo(true)
+    setZoom(false)
+    trackEvent('view_item_video', { item_id: String(product.id) })
   }
 
   const selectColor = (name: string) => {
@@ -199,7 +209,7 @@ const ProductDialog = ({ product, relatedProducts, isFavorite, onToggleFavorite,
       <Dialog ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={`product-title-${product.id}`}>
         <Close ref={closeRef} type="button" onClick={onClose} aria-label={`Fechar ${product.name}`}>×</Close>
         <Gallery>
-          {images.length > 1 && (
+          {(images.length > 1 || product.video) && (
             <Thumbs aria-label="Fotos da peça">
               {images.map((src, index) => (
                 <button
@@ -208,43 +218,71 @@ const ProductDialog = ({ product, relatedProducts, isFavorite, onToggleFavorite,
                   onClick={() => showImage(index)}
                   onMouseEnter={() => showImage(index)}
                   aria-label={`Ver foto ${index + 1} de ${product.name}`}
-                  aria-current={index === imageIndex}
-                  className={index === imageIndex ? 'active' : ''}
+                  aria-current={!showVideo && index === imageIndex}
+                  className={!showVideo && index === imageIndex ? 'active' : ''}
                 >
                   <img src={src} alt="" />
                 </button>
               ))}
+              {product.video && (
+                <button
+                  type="button"
+                  onClick={openVideo}
+                  aria-label={`Ver vídeo de ${product.name}`}
+                  aria-current={showVideo}
+                  className={showVideo ? 'video active' : 'video'}
+                >
+                  <img src={images[0]} alt="" />
+                  <span><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" /></svg></span>
+                </button>
+              )}
             </Thumbs>
           )}
-          <MainImage
-            $zoom={zoom}
-            onMouseEnter={handleMouseEnter}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-            onClick={handleClick}
-            onTouchStart={handleTouch}
-            onTouchMove={handleTouch}
-            onTouchEnd={endTouch}
-            onTouchCancel={endTouch}
-          >
-            <img
-              src={current}
-              alt={`${product.name}, foto ${imageIndex + 1} de ${images.length}`}
-              style={{ transform: zoom ? `scale(${ZOOM})` : 'scale(1)', transformOrigin: `${origin.x}% ${origin.y}%` }}
-              draggable={false}
-            />
-            {(discount > 0 || product.tag) && <span className="tag">{discount > 0 ? `-${discount}%` : product.tag}</span>}
-            {images.length > 1 && (
-              <>
-                <Arrow type="button" $side="left" aria-label="Foto anterior" onClick={(event: MouseEvent<HTMLButtonElement>) => { event.stopPropagation(); showImage(imageIndex - 1) }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
-                </Arrow>
-                <Arrow type="button" $side="right" aria-label="Próxima foto" onClick={(event: MouseEvent<HTMLButtonElement>) => { event.stopPropagation(); showImage(imageIndex + 1) }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
-                </Arrow>
-              </>
-            )}
-          </MainImage>
+          {showVideo && product.video ? (
+            <VideoFrame>
+              {/* Mudo e em repetição para começar sozinho em qualquer celular; a cliente liga o som nos controles. */}
+              <video src={product.video} poster={images[0]} controls autoPlay muted loop playsInline aria-label={`Vídeo de ${product.name}`} />
+            </VideoFrame>
+          ) : (
+            <MainImage
+              $zoom={zoom}
+              onMouseEnter={handleMouseEnter}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+              onClick={handleClick}
+              onTouchStart={handleTouch}
+              onTouchMove={handleTouch}
+              onTouchEnd={endTouch}
+              onTouchCancel={endTouch}
+            >
+              <img
+                src={current}
+                alt={`${product.name}, foto ${imageIndex + 1} de ${images.length}`}
+                style={{ transform: zoom ? `scale(${ZOOM})` : 'scale(1)', transformOrigin: `${origin.x}% ${origin.y}%` }}
+                draggable={false}
+              />
+              {(discount > 0 || product.tag) && <span className="tag">{discount > 0 ? `-${discount}%` : product.tag}</span>}
+              {images.length > 1 && (
+                <>
+                  <Arrow type="button" $side="left" aria-label="Foto anterior" onClick={(event: MouseEvent<HTMLButtonElement>) => { event.stopPropagation(); showImage(imageIndex - 1) }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg>
+                  </Arrow>
+                  <Arrow type="button" $side="right" aria-label="Próxima foto" onClick={(event: MouseEvent<HTMLButtonElement>) => { event.stopPropagation(); showImage(imageIndex + 1) }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+                  </Arrow>
+                </>
+              )}
+              {product.video && (
+                <VideoButton
+                  type="button"
+                  onTouchStart={(event: TouchEvent<HTMLButtonElement>) => event.stopPropagation()}
+                  onClick={(event: MouseEvent<HTMLButtonElement>) => { event.stopPropagation(); openVideo() }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" /></svg> Ver vídeo
+                </VideoButton>
+              )}
+            </MainImage>
+          )}
         </Gallery>
 
         <Details>

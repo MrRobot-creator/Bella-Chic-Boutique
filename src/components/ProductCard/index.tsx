@@ -3,7 +3,7 @@ import { Product } from '../../types/store'
 import { isLowStock } from '../../utils/inventory'
 import { getSizeFitLabel } from '../../utils/productSize'
 import { getProductPath } from '../../utils/productLink'
-import { BuyButton, Card, Dots, FavoriteButton, Info, Media, Pill } from './styles'
+import { BuyButton, Card, Dots, FavoriteButton, Info, Media, Pill, VideoMark } from './styles'
 
 type ProductCardProps = {
   product: Product
@@ -45,6 +45,7 @@ const ProductCard = ({ product, isFavorite, onOpen, onToggleFavorite }: ProductC
         {backImage && <img className="back" src={backImage} alt="" aria-hidden="true" loading="lazy" />}
         {tag && <Pill $tone={soldOut ? 'dark' : discount ? 'rose' : 'light'}>{tag}</Pill>}
         {!soldOut && isLowStock(product) && <Pill $tone="light" $bottom>Últimas unidades</Pill>}
+        {product.video && <VideoMark title="Tem vídeo"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" /></svg><span>Tem vídeo</span></VideoMark>}
       </Media>
       <FavoriteButton
         type="button"

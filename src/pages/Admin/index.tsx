@@ -19,7 +19,8 @@ import {
   fetchAdminProducts,
   saveCatalogProduct,
   supabase,
-  uploadProductImage
+  uploadProductImage,
+  uploadProductVideo
 } from '../../services/catalog'
 import { defaultSettings, fetchStoreSettings, StoreSettings } from '../../services/settings'
 import { CatalogProductInput } from '../../services/catalog'
@@ -77,6 +78,7 @@ type ProductDraft = {
   oldPrice: string
   image: string
   images: string[]
+  video: string
   sizes: string
   sizeFit: string
   colors: ColorDraft[]
@@ -129,6 +131,7 @@ const blankDraft: ProductDraft = {
   oldPrice: '',
   image: '',
   images: [],
+  video: '',
   sizes: '',
   sizeFit: '',
   colors: [{ name: '', hex: DEFAULT_COLOR_HEX, image: '' }],
@@ -144,6 +147,7 @@ const draftFromProduct = (product: Product): ProductDraft => ({
   oldPrice: product.oldPrice === undefined ? '' : String(product.oldPrice),
   image: product.image,
   images: (product.images || []).filter((image) => image !== product.image),
+  video: product.video || '',
   sizes: product.sizes.join(', '),
   sizeFit: product.sizeFit || '',
   colors: product.colors.map((color) => ({
@@ -207,6 +211,8 @@ const Admin = () => {
   const [uploadingImage, setUploadingImage] = useState(false)
   const [uploadingGalleryImages, setUploadingGalleryImages] = useState(false)
   const [uploadingColorIndex, setUploadingColorIndex] = useState<number | null>(null)
+  const [uploadingVideo, setUploadingVideo] = useState(false)
+  const uploading = uploadingImage || uploadingGalleryImages || uploadingColorIndex !== null || uploadingVideo
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [summaryRefreshKey, setSummaryRefreshKey] = useState(0)
@@ -407,14 +413,33 @@ const Admin = () => {
     }
   }
 
+  const handleVideoUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    setError('')
+    setNotice('')
+    setUploadingVideo(true)
+    try {
+      const videoUrl = await uploadProductVideo(file)
+      setDraft((current) => ({ ...current, video: videoUrl }))
+      setNotice('Vídeo enviado. A peça só é salva ao clicar em “Adicionar peça” ou “Salvar alterações”.')
+    } catch (uploadError) {
+      setError(`Não foi possível enviar o vídeo: ${errorMessage(uploadError)}`)
+    } finally {
+      setUploadingVideo(false)
+    }
+  }
+
   const handleSaveProduct = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const failSave = (message: string) => {
       setError(message)
       revealMessages()
     }
-    if (uploadingImage || uploadingGalleryImages || uploadingColorIndex !== null) {
-      failSave('Aguarde o envio das imagens terminar antes de salvar a peça.')
+    if (uploading) {
+      failSave('Aguarde o envio das fotos e do vídeo terminar antes de salvar a peça.')
       return
     }
     setError('')
@@ -471,6 +496,7 @@ const Admin = () => {
         mainImage,
         ...draft.images.filter((image) => image.trim() && image.trim() !== mainImage)
       ].filter(Boolean),
+      video: draft.video.trim() || undefined,
       sizes,
       sizeFit: draft.sizeFit.trim() || undefined,
       colors,
@@ -618,12 +644,12 @@ const Admin = () => {
                   <input inputMode="url" value={draft.image} onChange={(event) => setDraft({ ...draft, image: event.target.value })} placeholder="Cole uma URL ou envie uma imagem abaixo" required={!draft.image.trim() && draft.colors.some((color) => !color.image.trim())} />
                 </label>
                 <label className="wide">Enviar foto do dispositivo (PNG, JPG ou WebP; fotos grandes são reduzidas sozinhas)
-                  <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleImageUpload} disabled={uploadingImage || uploadingGalleryImages || uploadingColorIndex !== null} />
+                  <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleImageUpload} disabled={uploading} />
                   {uploadingImage && <span role="status">Enviando imagem para o Supabase...</span>}
                   {draft.image && <img className="image-preview" src={draft.image} alt="Pré-visualização da imagem do produto" />}
                 </label>
                 <label className="wide">Enviar fotos de outros ângulos (opcional; PNG, JPG ou WebP; fotos grandes são reduzidas sozinhas)
-                  <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={handleGalleryImagesUpload} disabled={uploadingImage || uploadingGalleryImages || uploadingColorIndex !== null} />
+                  <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={handleGalleryImagesUpload} disabled={uploading} />
                   {uploadingGalleryImages && <span role="status">Enviando fotos dos ângulos para o Supabase...</span>}
                   {!!draft.images.length && (
                     <span className="gallery-image-previews">
@@ -636,6 +662,16 @@ const Admin = () => {
                           }))}>Remover ângulo {index + 1}</AdminButton>
                         </span>
                       ))}
+                    </span>
+                  )}
+                </label>
+                <label className="wide">Vídeo de demonstração (opcional; até 30 MB, uns 15 segundos)
+                  <input type="file" accept="video/mp4,video/quicktime,video/webm" onChange={handleVideoUpload} disabled={uploading} />
+                  {uploadingVideo && <span role="status">Enviando vídeo para o Supabase... no 4G pode levar um minuto.</span>}
+                  {draft.video && (
+                    <span className="gallery-image-item">
+                      <video className="video-preview" src={draft.video} controls playsInline preload="metadata" />
+                      <AdminButton type="button" className="secondary" disabled={uploading} onClick={() => setDraft((current) => ({ ...current, video: '' }))}>Remover vídeo</AdminButton>
                     </span>
                   )}
                 </label>
@@ -696,7 +732,7 @@ const Admin = () => {
                       </div>
                       <div className="wide color-image-actions">
                         <label>Enviar foto para esta cor (opcional)
-                                  <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => handleColorImageUpload(index, event)} disabled={uploadingImage || uploadingGalleryImages || uploadingColorIndex !== null} />
+                                  <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => handleColorImageUpload(index, event)} disabled={uploading} />
                         </label>
                         {color.image && (
                           <>
@@ -743,7 +779,7 @@ const Admin = () => {
                   Produto ativo no catálogo (o estoque zero sempre bloqueia a compra)
                 </label>
                 <div className="wide actions">
-                  <AdminButton type="submit" disabled={saving || uploadingImage || uploadingGalleryImages || uploadingColorIndex !== null}>{uploadingImage || uploadingGalleryImages || uploadingColorIndex !== null ? 'Enviando imagem...' : saving ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Adicionar peça'}</AdminButton>
+                  <AdminButton type="submit" disabled={saving || uploading}>{uploading ? 'Enviando...' : saving ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Adicionar peça'}</AdminButton>
                   {editingId !== null && <AdminButton type="button" className="secondary" onClick={resetDraft}>Cancelar edição</AdminButton>}
                 </div>
               </AdminForm>

@@ -176,3 +176,22 @@ export const SkeletonCard = styled.div`
   @keyframes skeleton-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
   @media (prefers-reduced-motion: reduce) { .block, .line { animation: none; } }
 `
+
+/** Aviso discreto de que a peça tem vídeo (canto de baixo, à direita do "Últimas unidades"). */
+export const VideoMark = styled.span`
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .94);
+  color: ${colors.plum};
+  box-shadow: 0 4px 12px rgba(62, 42, 46, .14);
+  pointer-events: none;
+  svg { margin-left: 2px; }
+  span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+`

@@ -4,6 +4,7 @@ import { Product, UnitStock, VariantStock } from '../types/store'
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL
 const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY
 const productImagesBucket = 'bella-chic-products'
+const productVideosBucket = 'bella-chic-videos'
 const baseColumns = 'id,name,category,description,price,old_price,image,images,sizes,size_fit,colors,variant_stock,tag,is_available'
 const catalogColumns = `${baseColumns},unit_stock`
 
@@ -20,6 +21,7 @@ type CatalogRow = {
   old_price: number | null
   image: string
   images: string[] | null
+  video?: string | null
   sizes: string[]
   size_fit: string | null
   colors: Product['colors']
@@ -46,6 +48,7 @@ const toProduct = (row: CatalogRow): Product => {
     oldPrice: row.old_price === null ? undefined : Number(row.old_price),
     image: row.image,
     images: row.images?.length ? row.images : undefined,
+    video: row.video || undefined,
     sizes: row.sizes,
     sizeFit: row.size_fit || undefined,
     colors: row.colors,
@@ -65,6 +68,7 @@ const toRow = (product: CatalogProductInput) => ({
   old_price: product.oldPrice ?? null,
   image: product.image,
   images: product.images ?? [],
+  video: product.video || null,
   sizes: product.sizes,
   size_fit: product.sizeFit?.trim() || null,
   colors: product.colors,
@@ -73,6 +77,9 @@ const toRow = (product: CatalogProductInput) => ({
 })
 
 const catalogError = (error: Error) => {
+  if (error.message.includes('video')) {
+    return new Error('O vídeo das peças ainda não foi configurado. Execute supabase/v8-video.sql no SQL Editor.')
+  }
   if (error.message.includes('variant_stock')) {
     return new Error('O controle de estoque ainda não foi configurado. Execute supabase/order-management.sql no SQL Editor.')
   }
@@ -104,9 +111,10 @@ const loadFromTable = async (id?: number): Promise<CatalogRow[]> => {
 /**
  * Lê o catálogo pela get_catalog() (supabase/v7-estoque-privado.sql): a equipe recebe o estoque real
  * e a cliente, cada quantidade limitada a 5. Enquanto a v7 não roda, cai na leitura da tabela.
+ * Sem lista de colunas: o vídeo (v8) vem quando a função já o devolve, e nada quebra antes disso.
  */
 const loadRows = async (id?: number): Promise<CatalogRow[]> => {
-  const query = requireSupabase().rpc('get_catalog').select(catalogColumns).order('id', { ascending: true })
+  const query = requireSupabase().rpc('get_catalog').order('id', { ascending: true })
   const { data, error } = await (id ? query.eq('id', id) : query)
   if (!error) return data as unknown as CatalogRow[]
   if (!/get_catalog|schema cache/i.test(error.message)) throw catalogError(error)
@@ -230,4 +238,54 @@ export const uploadProductImage = async (original: File): Promise<string> => {
 
   const { data: publicUrl } = client.storage.from(productImagesBucket).getPublicUrl(data.path)
   return publicUrl.publicUrl
+}
+
+export const MAX_VIDEO_MB = 30
+
+const videoTypes: Record<string, { extension: string; contentType: string }> = {
+  mp4: { extension: 'mp4', contentType: 'video/mp4' },
+  m4v: { extension: 'mp4', contentType: 'video/mp4' },
+  mov: { extension: 'mov', contentType: 'video/quicktime' },
+  webm: { extension: 'webm', contentType: 'video/webm' }
+}
+
+/** Tipo do vídeo pelo tipo do arquivo ou, se o celular não informar, pela extensão. */
+export const videoTypeOf = (file: Pick<File, 'name' | 'type'>) => {
+  const byType = Object.values(videoTypes).find((option) => option.contentType === file.type)
+  if (byType) return byType
+  if (file.type && file.type !== 'application/octet-stream') return undefined
+  return videoTypes[file.name.split('.').pop()?.toLowerCase() || '']
+}
+
+/** Vídeo de demonstração da peça: vai como veio do celular (até 30 MB) para a pasta bella-chic-videos. */
+export const uploadProductVideo = async (file: File): Promise<string> => {
+  const client = requireSupabase()
+  const videoType = videoTypeOf(file)
+  if (!videoType) {
+    throw new Error('Formato não permitido. Envie um vídeo MP4, MOV ou WebM.')
+  }
+  if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
+    throw new Error(`O vídeo deve ter no máximo ${MAX_VIDEO_MB} MB (uns 15 segundos). Grave um vídeo mais curto.`)
+  }
+
+  const filePath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${videoType.extension}`
+  const { data, error } = await client.storage
+    .from(productVideosBucket)
+    .upload(filePath, file, { contentType: videoType.contentType, upsert: false })
+
+  if (error) {
+    const message = error.message.toLowerCase()
+    if (message.includes('bucket not found')) {
+      throw new Error('A pasta dos vídeos ainda não foi configurada. Execute supabase/v8-video.sql no SQL Editor.')
+    }
+    if (message.includes('row-level security') || message.includes('permission denied')) {
+      throw new Error('O Supabase bloqueou o envio. Confirme que seu usuário está em store_admins e execute supabase/v8-video.sql.')
+    }
+    if (message.includes('payload too large') || message.includes('file size') || message.includes('exceeded')) {
+      throw new Error(`O vídeo passa de ${MAX_VIDEO_MB} MB. Grave um vídeo mais curto.`)
+    }
+    throw error
+  }
+
+  return client.storage.from(productVideosBucket).getPublicUrl(data.path).data.publicUrl
 }

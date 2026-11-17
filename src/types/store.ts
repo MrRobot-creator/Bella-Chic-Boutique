@@ -7,6 +7,8 @@ export type Product = {
   oldPrice?: number
   image: string
   images?: string[]
+  /** Vídeo de demonstração (link público). Depois do supabase/v8-video.sql. */
+  video?: string
   sizes: string[]
   sizeFit?: string
   colors: { name: string; hex: string; image?: string }[]

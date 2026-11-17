@@ -59,6 +59,7 @@ export const AdminForm = styled.form`
   .image-preview { width: 120px; height: 150px; object-fit: cover; border: 1px solid #e8dedd; background: #fbf6f5; }
   .gallery-image-previews { display: flex; flex-wrap: wrap; gap: 10px; }
   .gallery-image-item { display: grid; gap: 6px; justify-items: start; }
+  .video-preview { width: 160px; max-height: 240px; border: 1px solid #e8dedd; background: #2e1e22; }
   .gallery-image-item img { width: 84px; height: 108px; object-fit: cover; border: 1px solid #e8dedd; background: #fbf6f5; }
   .color-list { display: grid; gap: 12px; }
   .stock-list { display: grid; gap: 10px; }
