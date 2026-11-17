@@ -10,6 +10,8 @@ import Toast from '../../components/Toast'
 import VipSignup from '../../components/VipSignup'
 import { SkeletonCard } from '../../components/ProductCard/styles'
 import { Wrap } from '../../components/ui'
+import CategoryIcon, { categoryKind } from '../../components/CategoryIcon'
+import type { HeroBanner } from '../../components/HeroCarousel'
 import { useFavorites } from '../../hooks/useFavorites'
 import { useCustomer } from '../../hooks/useCustomer'
 import { trackEvent } from '../../services/analytics'
@@ -26,6 +28,7 @@ import { getProductIdFromPath, getProductPath } from '../../utils/productLink'
 import * as S from './styles'
 import boutiqueLogo from '../../assets/bella-chic-logo.jpg'
 import heroImage from '../../assets/thalita-banner.jpeg'
+import boutiqueBanner from '../../assets/banner 2.jpeg'
 import lojaGaleriaImage from '../../assets/loja galeria.jpeg'
 import lojaCnImage from '../../assets/loja cn.jpeg'
 
@@ -35,6 +38,10 @@ const MAX_UNITS_MESSAGE = `Pelo site, até ${MAX_UNITS_PER_ITEM} unidades da mes
 const isCombo = (product: Pick<Product, 'category'>) => /combo/i.test(product.category)
 /** Peça vestida na foto do banner: o card "Na foto" só aparece se ela estiver à venda no catálogo. */
 const HERO_PRODUCT_NAME = /kimono listrado/i
+/** Imagens que se revezam com o banner principal. Para pôr outra, é só acrescentar aqui. */
+const heroBanners: HeroBanner[] = [
+  { src: boutiqueBanner, alt: 'Bella Chic Boutique: blazer, vestido floral e acessórios em tons claros', href: '#lancamentos', cta: 'Ver as novidades' }
+]
 const unitImages: Record<string, string> = { 'galeria-portuense': lojaGaleriaImage, 'cidade-nova-4': lojaCnImage }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -206,7 +213,7 @@ const Home = () => {
     return names.map((name) => {
       const items = catalogProducts.filter((product) => product.category === name)
       const cover = items.find((product) => product.available !== false) || items[0]
-      return { name, count: items.length, image: cover?.image || '' }
+      return { name, count: items.length, image: cover?.image || '', kind: categoryKind(name) }
     })
   }, [catalogProducts])
 
@@ -508,7 +515,7 @@ const Home = () => {
       <main>
         <h1 className="sr-only">Bella Chic Boutique: moda feminina em Belém e Ananindeua</h1>
 
-        <S.Hero id="inicio" aria-labelledby="hero-title">
+        <S.Hero id="inicio" label="Destaques da loja" banners={heroBanners}>
           <S.HeroPhoto src={heroImage} alt="Modelo vestindo o conjunto kimono listrado" width={1086} height={1448} draggable={false} />
           <S.HeroCopy>
             <span className="eyebrow">Moda feminina com estilo</span>
@@ -557,7 +564,9 @@ const Home = () => {
                 {categories.map((category) => (
                   <li key={category.name}>
                     <button type="button" onClick={() => pickCategory(category.name)}>
-                      <span className="photo">{category.image && <img src={category.image} alt="" loading="lazy" />}</span>
+                      {category.kind
+                        ? <span className="photo drawing"><CategoryIcon kind={category.kind} /></span>
+                        : <span className="photo">{category.image && <img src={category.image} alt="" loading="lazy" />}</span>}
                       {category.name}
                       <small>{category.count} {category.count === 1 ? 'peça' : 'peças'}</small>
                     </button>

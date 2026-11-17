@@ -1,5 +1,6 @@
 import styled, { keyframes } from 'styled-components'
 import { colors, fonts } from '../../styles/tokens'
+import HeroCarousel from '../../components/HeroCarousel'
 
 const marquee = keyframes`from { transform: translateX(0) } to { transform: translateX(-50%) }`
 
@@ -43,8 +44,10 @@ export const Alert = styled.p<{ $tone?: 'error' | 'info' }>`
 const photoMask = 'linear-gradient(90deg, transparent 0%, #000 32%), linear-gradient(180deg, transparent 0, #000 72px)'
 const photoMaskMobile = 'linear-gradient(90deg, transparent 0%, #000 38%)'
 
-export const Hero = styled.section`
+export const Hero = styled(HeroCarousel)`
   position: relative;
+  /* As imagens do carrossel começam abaixo da barra de seções do cabeçalho. */
+  --hero-banner-top: 84px;
   min-height: 700px;
   display: flex;
   align-items: center;
@@ -54,7 +57,7 @@ export const Hero = styled.section`
   background: linear-gradient(105deg, #F7D9DE 0%, #FBEAEC 55%, ${colors.blushSoft} 100%);
   @media (max-width: 1100px) { min-height: 600px; }
   /* Celular: banner baixo como o do site atual, mantendo o 2b (título à esquerda, foto à direita). */
-  @media (max-width: 900px) { min-height: 0; height: 440px; padding: 0; }
+  @media (max-width: 900px) { min-height: 0; height: 440px; padding: 0; --hero-banner-top: 0px; }
   @media (max-width: 600px) { height: 340px; }
 `
 
@@ -283,8 +286,11 @@ export const Categories = styled.ul`
     transition: box-shadow .3s;
   }
   .photo img { width: 100%; height: 100%; object-fit: cover; object-position: top; transition: transform .6s cubic-bezier(.45, 0, .25, 1); }
+  /* Desenho em traço fino sobre rosa queimado, como os destaques do Instagram. */
+  .photo.drawing { display: grid; place-items: center; background: #F4DAD8; color: #2B2123; }
+  .photo svg { width: 66%; height: 66%; transition: transform .6s cubic-bezier(.45, 0, .25, 1); }
   button:hover .photo { box-shadow: 0 0 0 6px ${colors.white}, 0 0 0 8px ${colors.rose}; }
-  button:hover .photo img { transform: scale(1.05); }
+  button:hover .photo img, button:hover .photo svg { transform: scale(1.05); }
   small { display: block; margin-top: -10px; color: ${colors.soft}; font-size: 12px; }
   @media (max-width: 760px) {
     justify-content: flex-start;
@@ -297,6 +303,8 @@ export const Categories = styled.ul`
     &::-webkit-scrollbar { display: none; }
     button { width: 78px; gap: 10px; font-size: 12px; }
     .photo { width: 74px; height: 74px; box-shadow: 0 0 0 3px ${colors.white}, 0 0 0 4px #F4D7DC; }
+    /* Bolinha pequena: traço um pouco mais grosso para não sumir. */
+    .photo svg { stroke-width: 1.7; }
     small { display: none; }
   }
 `
