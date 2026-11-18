@@ -459,25 +459,6 @@ export const Coupon = styled.div`
   .code button { height: 46px; padding: 0 18px; border: 0; border-radius: 12px; background: ${colors.plum}; color: ${colors.white}; font: 600 13px ${fonts.sans}; cursor: pointer; }
 `
 
-export const ComboShortcut = styled.a`
-  flex: 1;
-  min-height: 150px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
-  overflow: hidden;
-  border-radius: 22px;
-  background: ${colors.cream};
-  color: ${colors.plum};
-  img { width: 104px; height: 120px; flex: none; border-radius: 14px; object-fit: cover; object-position: top; }
-  > span { display: flex; flex-direction: column; gap: 6px; }
-  .tag { align-self: flex-start; padding: 4px 10px; border-radius: 999px; background: ${colors.plum}; color: ${colors.white}; font-size: 11px; font-weight: 700; letter-spacing: 1px; }
-  strong { font: 400 22px/1.2 ${fonts.serif}; }
-  .more { color: ${colors.roseDark}; font-size: 14px; font-weight: 600; }
-  &:hover .more { text-decoration: underline; }
-`
-
 /* ---------- Catálogo ---------- */
 
 export const Tabs = styled.div`

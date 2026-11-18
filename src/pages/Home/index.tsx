@@ -481,7 +481,7 @@ const Home = () => {
   ]
   const generalWhatsApp = createWhatsAppUrl('Olá! Gostaria de falar com a Bella Chic Boutique.', storeConfig.whatsappContacts[0].number)
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
-  const hasPromoSide = Boolean(couponText) || combos.length > 0
+  const hasPromoSide = Boolean(couponText)
   const promoColumns = 1 + (featuredOffer ? 1 : 0) + (hasPromoSide ? 1 : 0)
 
   return (
@@ -713,16 +713,6 @@ const Home = () => {
                       <button type="button" onClick={copyCoupon}>{couponCopied ? 'Copiado!' : 'Copiar'}</button>
                     </div>
                   </S.Coupon>
-                )}
-                {combos.length > 0 && (
-                  <S.ComboShortcut href="#combos">
-                    <img src={combos[0].image} alt="" loading="lazy" />
-                    <span>
-                      <span className="tag">COMBO</span>
-                      <strong>{combos[0].name}</strong>
-                      <span className="more">Ver combos →</span>
-                    </span>
-                  </S.ComboShortcut>
                 )}
               </S.PromoSide>}
             </S.PromoGrid>
