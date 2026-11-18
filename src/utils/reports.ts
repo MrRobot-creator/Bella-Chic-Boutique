@@ -10,6 +10,7 @@ export type UnitSales = {
   count: number
   storeRevenue: number
   storeCount: number
+  siteRevenue: number
   siteCount: number
 }
 
@@ -20,6 +21,8 @@ export type SalesSummary = {
   revenue: number
   storeRevenue: number
   storeCount: number
+  siteRevenue: number
+  siteCount: number
   averageTicket: number
   itemsSold: number
   topProducts: { productId: number; name: string; quantity: number; revenue: number }[]
@@ -35,6 +38,89 @@ export const orderNetValue = (order: Pick<StoreOrder, 'subtotal' | 'discount'>) 
   Math.max(0, Number(order.subtotal) - Number(order.discount))
 
 export const startOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1)
+
+/** Segunda-feira da semana da data, à meia-noite (hora local). */
+export const startOfWeek = (date: Date) => {
+  const daysSinceMonday = (date.getDay() + 6) % 7
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() - daysSinceMonday)
+}
+
+export const startOfYear = (date: Date) => new Date(date.getFullYear(), 0, 1)
+
+export type SalesPeriod = 'week' | 'month' | 'last-month' | '30d' | '90d' | 'year' | 'custom' | 'all'
+
+/** Intervalo [since, until): since null = desde o início; until null = até agora. */
+export type DateRange = { since: Date | null; until: Date | null }
+
+/** Datas escolhidas no painel, no formato do campo de data (AAAA-MM-DD); as duas entram no período. */
+export type CustomDates = { from: string; to: string }
+
+const DAY = 86400000
+
+/** Meia-noite (hora local) de uma data AAAA-MM-DD; null se não for uma data válida. */
+export const parseDateInput = (value: string) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return null
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])]
+  const date = new Date(year, month - 1, day)
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day ? date : null
+}
+
+/** Data local no formato do campo de data (AAAA-MM-DD). */
+export const toDateInput = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+
+const shift = (date: Date, months: number, days = 0) =>
+  new Date(date.getFullYear(), date.getMonth() + months, date.getDate() + days, date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds())
+
+const earlier = (first: Date, second: Date) => (first < second ? first : second)
+
+/** Intervalo do período; null quando as datas escolhidas estão incompletas ou invertidas. */
+export const periodRange = (period: SalesPeriod, now = new Date(), custom?: CustomDates): DateRange | null => {
+  switch (period) {
+    case 'week': return { since: startOfWeek(now), until: null }
+    case 'month': return { since: startOfMonth(now), until: null }
+    case 'last-month': return { since: shift(startOfMonth(now), -1), until: startOfMonth(now) }
+    case '30d': return { since: new Date(now.getTime() - 30 * DAY), until: null }
+    case '90d': return { since: new Date(now.getTime() - 90 * DAY), until: null }
+    case 'year': return { since: startOfYear(now), until: null }
+    case 'custom': {
+      const from = custom ? parseDateInput(custom.from) : null
+      const to = custom ? parseDateInput(custom.to) : null
+      if (!from || !to || from > to) return null
+      return { since: from, until: shift(to, 0, 1) }
+    }
+    default: return { since: null, until: null }
+  }
+}
+
+/**
+ * Trecho equivalente antes do período, para comparar. Período em andamento compara até o mesmo ponto:
+ * 1 a 18 de novembro contra 1 a 18 de outubro; esta semana até hoje contra a semana passada até o mesmo dia e hora.
+ */
+export const previousRange = (period: SalesPeriod, range: DateRange, now = new Date()): DateRange | null => {
+  const { since } = range
+  if (!since) return null
+  const end = range.until || now
+  switch (period) {
+    case 'week': return { since: shift(since, 0, -7), until: shift(end, 0, -7) }
+    case 'month':
+    case 'last-month': return { since: shift(since, -1), until: earlier(shift(end, -1), since) }
+    case 'year': return { since: shift(since, -12), until: earlier(shift(end, -12), since) }
+    default: return { since: new Date(since.getTime() - (end.getTime() - since.getTime())), until: since }
+  }
+}
+
+/** Pedidos criados dentro do intervalo. */
+export const ordersInRange = <T extends Pick<StoreOrder, 'created_at'>>(orders: T[], { since, until }: DateRange) =>
+  orders.filter((order) => {
+    const time = new Date(order.created_at).getTime()
+    return (!since || time >= since.getTime()) && (!until || time < until.getTime())
+  })
+
+/** Variação em % (inteira) em relação ao anterior; null quando o anterior é zero. */
+export const changePercent = (current: number, previous: number) =>
+  previous > 0 ? Math.round(((current - previous) / previous) * 100) : null
 
 export const buildSalesSummary = (orders: StoreOrder[], since: Date): SalesSummary => {
   const inPeriod = orders.filter((order) => new Date(order.created_at) >= since)
@@ -57,13 +143,16 @@ export const buildSalesSummary = (orders: StoreOrder[], since: Date): SalesSumma
     const sales = confirmed.filter((order) => orderUnitId(order) === unit.id)
     const store = sales.filter((order) => order.channel === 'balcao')
     const round = (value: number) => Math.round(value * 100) / 100
+    const unitRevenue = sales.reduce((total, order) => total + orderNetValue(order), 0)
+    const unitStoreRevenue = store.reduce((total, order) => total + orderNetValue(order), 0)
     return {
       unitId: unit.id,
       name: unit.name,
-      revenue: round(sales.reduce((total, order) => total + orderNetValue(order), 0)),
+      revenue: round(unitRevenue),
       count: sales.length,
-      storeRevenue: round(store.reduce((total, order) => total + orderNetValue(order), 0)),
+      storeRevenue: round(unitStoreRevenue),
       storeCount: store.length,
+      siteRevenue: round(unitRevenue - unitStoreRevenue),
       siteCount: sales.length - store.length
     }
   })
@@ -79,6 +168,8 @@ export const buildSalesSummary = (orders: StoreOrder[], since: Date): SalesSumma
     revenue: Math.round(revenue * 100) / 100,
     storeRevenue: Math.round(storeRevenue * 100) / 100,
     storeCount: storeSales.length,
+    siteRevenue: Math.round((revenue - storeRevenue) * 100) / 100,
+    siteCount: confirmed.length - storeSales.length,
     averageTicket: confirmed.length ? Math.round((revenue / confirmed.length) * 100) / 100 : 0,
     itemsSold: Array.from(byProduct.values()).reduce((total, product) => total + product.quantity, 0),
     topProducts,

@@ -171,13 +171,16 @@ export const ProductRow = styled.article`
 
 export const StatGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 18px;
   .stat { padding: 14px 16px; border: 1px solid #f6dde2; border-radius: 12px; background: #fff8f9; }
   .stat span { display: block; color: #8b6b70; font-size: 11px; }
   .stat strong { display: block; margin-top: 4px; color: #a72f48; font: 600 24px 'Playfair Display', Georgia, serif; }
   .stat small { color: #9b8b8c; font-size: 11px; }
+  .stat .delta { margin-top: 6px; font-weight: 600; }
+  .stat .delta.up { color: #2f7a46; }
+  .stat .delta.down { color: #a72f48; }
   @media (max-width: 760px) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 `
 
@@ -202,7 +205,14 @@ export const PanelHeading = styled.div`
   margin-bottom: 14px;
   h2 { margin-bottom: 0 !important; }
   .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-  select { padding: 9px 10px; border: 1px solid #e8dedd; background: #fff; color: #503f41; font: inherit; font-size: 12px; }
+  select, input[type='date'] { padding: 9px 10px; border: 1px solid #e8dedd; background: #fff; color: #503f41; font: inherit; font-size: 12px; }
+  .controls label:not(.sr-only) { color: #8b6b70; font-size: 12px; }
+`
+
+export const CompareNote = styled.p`
+  margin: -4px 0 12px;
+  color: #8b6b70;
+  font-size: 12px;
 `
 
 export const RestockList = styled.div`
