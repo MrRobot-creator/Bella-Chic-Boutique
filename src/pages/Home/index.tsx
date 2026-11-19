@@ -14,6 +14,7 @@ import CategoryIcon, { categoryKind } from '../../components/CategoryIcon'
 import type { HeroSlide } from '../../components/HeroCarousel'
 import ArrowIcon from './ArrowIcon'
 import WelcomeSlide from './WelcomeSlide'
+import BlackFridaySlide from './BlackFridaySlide'
 import { unitImages } from './unitImages'
 import { useFavorites } from '../../hooks/useFavorites'
 import { useCustomer } from '../../hooks/useCustomer'
@@ -33,13 +34,14 @@ import boutiqueLogo from '../../assets/bella-chic-logo.jpg'
 import heroImage from '../../assets/thalita-banner.jpeg'
 
 const PAGE_SIZE = 12
-const COUPON_CODE = 'BELLA10'
+const COUPON_CODE = 'BLACK10'
 const MAX_UNITS_MESSAGE = `Pelo site, até ${MAX_UNITS_PER_ITEM} unidades da mesma peça. Para mais, fale com a loja pelo WhatsApp.`
 const isCombo = (product: Pick<Product, 'category'>) => /combo/i.test(product.category)
 /** Peça vestida na foto do banner: o card "Na foto" só aparece se ela estiver à venda no catálogo. */
 const HERO_PRODUCT_NAME = /kimono listrado/i
 /** Destaques que se revezam com o banner principal. Para pôr outro, é só acrescentar aqui. */
 const heroSlides: HeroSlide[] = [
+  { key: 'black-friday', label: 'Black Friday: relógio de brinde nas compras acima de R$ 250', content: <BlackFridaySlide /> },
   { key: 'boas-vindas', label: 'Bem-vinda à Bella Chic Boutique', content: <WelcomeSlide /> }
 ]
 
