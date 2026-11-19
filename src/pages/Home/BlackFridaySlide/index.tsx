@@ -1,8 +1,9 @@
 import flyer from '../../../assets/black-friday-brinde.jpg'
+import { giftPromo } from '../../../config/promo'
 import { Copy, Flyer, Frame, Inner, Perks } from './styles'
 
-/** Valores da ação de Black Friday (brinde, frete e cupom). Mudou a regra? Ajuste aqui e no painel. */
-const GIFT_MIN = 'R$ 250,00'
+/** Valores da ação de Black Friday. O brinde vem de config/promo; frete e cupom: ajuste aqui e no painel. */
+const GIFT_MIN = (giftPromo?.minSubtotal ?? 250).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const FREE_SHIPPING_MIN = 'R$ 300'
 const COUPON = 'BLACK10'
 

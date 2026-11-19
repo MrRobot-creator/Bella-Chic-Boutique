@@ -29,6 +29,8 @@ type OrderDetails = {
   pixAvailable?: boolean
   /** Até quando as peças ficam separadas. */
   reservedUntil?: string | null
+  /** Brinde da ação em vigor que a compra ganhou (ex.: "relógio rosé"). */
+  gift?: string
 }
 
 export type OrderMessageItem = {
@@ -90,6 +92,7 @@ export const createOrderMessage = (items: OrderMessageItem[], order: OrderDetail
     (order.discount ?? 0) > 0 ? `Desconto (Cupom ${order.couponCode}): -${formatPrice(order.discount!)}` : '',
     `Taxa de entrega: ${deliveryFee === null ? 'a confirmar com a atendente' : formatPrice(deliveryFee)}`,
     `TOTAL: ${deliveryFee === null ? 'a confirmar após calcular o frete' : formatPrice(order.subtotal - (order.discount ?? 0) + deliveryFee)}`,
+    order.gift ? `\u{1F381} *Brinde Black Friday: ${order.gift}*` : '',
     '',
     separator,
     '\u{1F4B3} *FORMA DE PAGAMENTO*',

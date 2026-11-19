@@ -10,6 +10,7 @@ import PixPayment from '../PixPayment'
 import { createStoreOrder } from '../../services/orders'
 import { Customer } from '../../hooks/useCustomer'
 import { trackEvent } from '../../services/analytics'
+import { earnsGift, giftPromo } from '../../config/promo'
 import {
   calculateDeliveryFee,
   DeliveryCity,
@@ -98,6 +99,8 @@ const CartDrawer = ({ isOpen, items, customer, settings, onOrderPlaced, onKeepSh
   const freeShippingMin = settings.freeShippingMin
   const freeShipping = freeShippingMin !== null && total - discount >= freeShippingMin
   const missingForFreeShipping = freeShippingMin !== null ? Math.max(0, freeShippingMin - (total - discount)) : 0
+  const giftEarned = earnsGift(total - discount)
+  const missingForGift = giftPromo ? Math.max(0, giftPromo.minSubtotal - (total - discount)) : 0
   const selectedUnit = storeConfig.units.find((unit) => unit.id === selectedUnitId) || storeConfig.units[0]
   const availableContacts = storeConfig.whatsappContacts.filter((contact) => contact.unitId === selectedUnit.id)
   const otherUnit = storeConfig.units.find((unit) => unit.id !== selectedUnit.id)
@@ -414,7 +417,8 @@ const CartDrawer = ({ isOpen, items, customer, settings, onOrderPlaced, onKeepSh
         discount: createdOrder.discount,
         couponCode: createdOrder.couponCode || '',
         pixAvailable,
-        reservedUntil: createdOrder.reservedUntil
+        reservedUntil: createdOrder.reservedUntil,
+        gift: giftPromo && earnsGift(createdOrder.subtotal - createdOrder.discount) ? giftPromo.gift : undefined
       })
       trackEvent('generate_lead', {
         currency: 'BRL',
@@ -541,6 +545,14 @@ const CartDrawer = ({ isOpen, items, customer, settings, onOrderPlaced, onKeepSh
                   {!freeShipping && onKeepShopping && (
                     <button type="button" onClick={() => { onClose(); onKeepShopping() }}>Ver mais peças</button>
                   )}
+                </FreeShipping>
+              )}
+              {giftPromo && (
+                <FreeShipping $done={giftEarned}>
+                  {giftEarned
+                    ? <strong>Você ganhou um {giftPromo.gift} de brinde</strong>
+                    : <span>Faltam <strong>{formatPrice(missingForGift)}</strong> para ganhar um {giftPromo.gift} de brinde</span>}
+                  <span className="bar" aria-hidden="true"><span style={{ width: `${Math.min(100, ((total - discount) / giftPromo.minSubtotal) * 100)}%` }} /></span>
                 </FreeShipping>
               )}
               <Total>

@@ -538,7 +538,7 @@ const Home = () => {
         <S.Benefits aria-label="Vantagens">
           <li>
             <span className="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" /><path d="M15 18H9" /><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" /><circle cx="17" cy="18" r="2" /><circle cx="7" cy="18" r="2" /></svg></span>
-            <div><strong>Entrega rápida</strong><small>Belém e região, a partir de R$ 12</small></div>
+            <div><strong>Entrega rápida</strong><small>{settings.freeShippingMin ? `Belém e região · grátis a partir de ${formatPrice(settings.freeShippingMin)}` : 'Belém e região, a partir de R$ 12'}</small></div>
           </li>
           <li>
             <span className="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="2" /><path d="M2 10h20" /></svg></span>

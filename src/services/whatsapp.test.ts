@@ -123,6 +123,34 @@ describe('WhatsApp order checkout', () => {
     expect(message).not.toContain('Endereço:')
     expect(message).not.toContain('Bairro:')
     expect(message).not.toContain('Ponto de referência:')
+    expect(message).not.toContain('Brinde')
+  })
+
+  it('includes the gift when the order earns it', () => {
+    const message = createOrderMessage(items, {
+      reference: 'BELLA999',
+      name: 'Ana',
+      phone: '91999990000',
+      unitName: 'Galeria Portuense',
+      unitAddress: 'Tv. Padre Eutíquio, 105',
+      attendant: 'Galeria Portuense',
+      storePhone: '5591980648559',
+      fulfillment: 'Retirada na loja',
+      street: '',
+      houseNumber: '',
+      complement: '',
+      neighborhood: '',
+      postalCode: '',
+      deliveryCity: '',
+      referencePoint: '',
+      deliveryNotes: '',
+      deliveryFee: 0,
+      payment: 'Pix',
+      subtotal: 379.8,
+      gift: 'relógio rosé'
+    })
+
+    expect(message).toContain('Brinde Black Friday: relógio rosé')
   })
 
   it('routes the message to the selected WhatsApp number', () => {
