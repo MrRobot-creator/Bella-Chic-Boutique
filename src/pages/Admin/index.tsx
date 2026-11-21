@@ -57,8 +57,8 @@ const tabLabels: Record<Tab, string> = {
   settings: 'Configurações'
 }
 
-/** O que a atendente vê: o resto (peças, cupons, avaliações, lista VIP, equipe e configurações) é só da dona. */
-const attendantTabs: Tab[] = ['summary', 'orders', 'counter', 'stock']
+/** O que a atendente vê: o resto (cupons, avaliações, lista VIP, equipe e configurações) é só da dona. Peças: cadastra e edita, não exclui. */
+const attendantTabs: Tab[] = ['summary', 'orders', 'counter', 'products', 'stock']
 
 const TAB_KEY = 'bella-chic-admin-tab'
 const readTab = (): Tab => {
@@ -584,7 +584,7 @@ const Admin = () => {
         ) : (
           <>
             {adminUnitId && (
-              <AdminNotice role="status">Você está no painel da <strong>{unitNameOf(adminUnitId)}</strong>: pedidos, vendas e faturamento desta loja, e o estoque das duas.</AdminNotice>
+              <AdminNotice role="status">Você está no painel da <strong>{unitNameOf(adminUnitId)}</strong>: pedidos, vendas e faturamento desta loja, o estoque das duas e o cadastro de peças.</AdminNotice>
             )}
             <AdminTabs aria-label="Seções do painel">
               {visibleTabs.map((key) => (
@@ -807,7 +807,7 @@ const Admin = () => {
                           setNotice('')
                           setError('')
                         }}>Editar</AdminButton>
-                        <AdminButton type="button" className="danger" onClick={() => handleDeleteProduct(product)}>Excluir</AdminButton>
+                        {!adminUnitId && <AdminButton type="button" className="danger" onClick={() => handleDeleteProduct(product)}>Excluir</AdminButton>}
                       </div>
                     </ProductRow>
                   ))}

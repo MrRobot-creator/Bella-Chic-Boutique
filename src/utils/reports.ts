@@ -25,7 +25,8 @@ export type SalesSummary = {
   siteCount: number
   averageTicket: number
   itemsSold: number
-  topProducts: { productId: number; name: string; quantity: number; revenue: number }[]
+  /** productId null: peça fora do cadastro, somada pelo nome. */
+  topProducts: { productId: number | null; name: string; quantity: number; revenue: number }[]
   byUnit: UnitSales[]
 }
 
@@ -129,13 +130,15 @@ export const buildSalesSummary = (orders: StoreOrder[], since: Date): SalesSumma
   const storeRevenue = storeSales.reduce((total, order) => total + orderNetValue(order), 0)
   const revenue = confirmed.reduce((total, order) => total + orderNetValue(order), 0)
 
-  const byProduct = new Map<number, { productId: number; name: string; quantity: number; revenue: number }>()
+  const byProduct = new Map<string, SalesSummary['topProducts'][number]>()
   confirmed.forEach((order) => {
     order.items.forEach((item) => {
-      const current = byProduct.get(item.productId) || { productId: item.productId, name: item.name, quantity: 0, revenue: 0 }
+      const productId = item.productId ?? null
+      const key = productId === null ? `avulsa:${item.name.trim().toLocaleLowerCase('pt-BR')}` : String(productId)
+      const current = byProduct.get(key) || { productId, name: item.name, quantity: 0, revenue: 0 }
       current.quantity += item.quantity
       current.revenue += item.quantity * Number(item.unitPrice)
-      byProduct.set(item.productId, current)
+      byProduct.set(key, current)
     })
   })
 

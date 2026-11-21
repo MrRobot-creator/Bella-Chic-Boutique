@@ -217,8 +217,17 @@ const OrdersPanel = ({ settings, refreshKey, adminUnitId, onChanged }: OrdersPan
                 {order.channel === 'balcao' && order.customer.name !== 'Cliente no balcão' && <p><strong>{order.customer.name}</strong>{order.customer.phone ? ` · ${order.customer.phone}` : ''}</p>}
                 <ul>
                   {order.items.map((item, index) => (
-                    <li key={`${item.productId}-${item.size}-${item.color}-${index}`}>
-                      {item.quantity}× {item.name} · {item.size}{item.sizeFit ? ` (${item.sizeFit})` : ''} · {item.color} — {formatPrice(item.unitPrice * item.quantity)}
+                    <li key={`${item.productId ?? 'avulsa'}-${item.size}-${item.color}-${index}`}>
+                      {item.photo && (
+                        <a href={item.photo} target="_blank" rel="noreferrer">
+                          <img src={item.photo} alt={`Foto de ${item.name}`} loading="lazy" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 8, verticalAlign: 'middle', marginRight: 8 }} />
+                        </a>
+                      )}
+                      {item.quantity}× {item.name}
+                      {item.productId == null
+                        ? ' · fora do cadastro'
+                        : ` · ${item.size}${item.sizeFit ? ` (${item.sizeFit})` : ''} · ${item.color}`}
+                      {' — '}{formatPrice(item.unitPrice * item.quantity)}
                     </li>
                   ))}
                 </ul>

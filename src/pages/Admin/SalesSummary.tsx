@@ -215,7 +215,7 @@ const SalesSummary = ({ products, refreshKey, adminUnitId }: SalesSummaryProps) 
           ) : (
             <ol>
               {summary.topProducts.map((product) => (
-                <li key={product.productId}>
+                <li key={`${product.productId ?? 'avulsa'}-${product.name}`}>
                   <strong>{product.name}</strong> — {product.quantity} {product.quantity === 1 ? 'peça' : 'peças'} · {formatPrice(product.revenue)}
                 </li>
               ))}

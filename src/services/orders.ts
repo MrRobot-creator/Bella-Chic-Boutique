@@ -6,7 +6,8 @@ export type StoreOrderStatus = 'pending' | 'confirmed' | 'paid' | 'shipped' | 'd
 export type StoreOrderChannel = 'site' | 'balcao'
 
 export type StoreOrderItem = {
-  productId: number
+  /** null na peça fora do cadastro, vendida no balcão (supabase/v9-atendente-pecas.sql). */
+  productId: number | null
   name: string
   size: string
   color: string
@@ -14,7 +15,14 @@ export type StoreOrderItem = {
   sizes: string[]
   quantity: number
   unitPrice: number
+  /** Foto da peça fora do cadastro. */
+  photo?: string
 }
+
+/** Peça do cadastro, que baixa estoque, ou peça fora do cadastro, só com nome e preço. */
+export type StoreSaleItem =
+  | { productId: number; size: string; color: string; quantity: number }
+  | { name: string; unitPrice: number; quantity: number; photo?: string }
 
 export type StoreOrder = {
   id: string
@@ -80,7 +88,7 @@ export type StoreSaleInput = {
   unitName: string
   unitAddress: string
   payment: StoreOrder['payment']
-  items: Array<Pick<StoreOrderItem, 'productId' | 'size' | 'color' | 'quantity'>>
+  items: StoreSaleItem[]
   discount?: number
   customerName?: string
   customerPhone?: string

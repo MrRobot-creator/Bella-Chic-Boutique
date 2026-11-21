@@ -54,6 +54,18 @@ describe('buildSalesSummary', () => {
     expect(summary.topProducts.map((product) => product.name)).toEqual(['Vestido Dress', 'Blusa'])
   })
 
+  it('soma a peça fora do cadastro pelo nome, sem misturar com as peças do cadastro', () => {
+    const avulsa = (quantity: number, name = 'Blusa de renda') => ({ productId: null, name, size: '', color: '', sizes: [], quantity, unitPrice: 50 })
+    const summary = buildSalesSummary([
+      order({ id: '1', channel: 'balcao', status: 'delivered', items: [avulsa(1), avulsa(2, ' blusa de RENDA ')], subtotal: 150, discount: 0 }),
+      order({ id: '2' })
+    ], new Date('2026-10-01T00:00:00Z'))
+    expect(summary.topProducts).toEqual([
+      { productId: null, name: 'Blusa de renda', quantity: 3, revenue: 150 },
+      { productId: 1, name: 'Vestido Dress', quantity: 2, revenue: 200 }
+    ])
+  })
+
   it('conta pago, enviado, entregue e balcão como venda, e separa o balcão', () => {
     const summary = buildSalesSummary([
       order({ status: 'paid' }),

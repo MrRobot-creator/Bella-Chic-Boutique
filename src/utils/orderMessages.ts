@@ -24,7 +24,10 @@ export const orderStatusMessage = (order: StoreOrder, step: MessageStep, setting
   const name = firstName(order.customer.name)
   const hello = name ? `Oi, ${name}!` : 'Oi!'
   const total = formatPrice(orderTotal(order))
-  const items = order.items.map((item) => `• ${item.quantity}x ${item.name} (${item.size}, ${item.color})`).join('\n')
+  const items = order.items.map((item) => {
+    const variant = [item.size, item.color].filter(Boolean).join(', ')
+    return `• ${item.quantity}x ${item.name}${variant ? ` (${variant})` : ''}`
+  }).join('\n')
 
   if (step === 'confirmed') {
     const pix = order.payment === 'Pix' ? orderPixPayload(order, settings) : ''
